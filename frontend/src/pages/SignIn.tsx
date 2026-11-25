@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError, type SignInMember } from "../api";
 import { useAuth } from "../auth";
 import Avatar from "../lib/Avatar";
@@ -84,6 +85,8 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
 
   return (
     <main className="welcome">
+      {!admin && <Link to="/admin" className="corner-login">Login</Link>}
+      {admin && <Link to="/" className="corner-login">← Home</Link>}
       <div className="arch">
         <div className="arch-inner">
           <Star />
