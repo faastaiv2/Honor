@@ -3,7 +3,7 @@ const BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 const TOKEN_KEY = "honor.token";
 
 export interface Viewer { kind: "admin" | "member"; id: string; name: string; is_admin: boolean }
-export interface SignInMember { id: string; name: string; code: string; has_pin: boolean }
+export interface SignInMember { id: string; name: string; avatar: string; has_pin: boolean }
 export interface Score { gain: number; bonus: number; cut: number; delta: number; done: number; of: number; weekend: boolean; excused: boolean }
 export interface Tier { key: string; min: number | null; max: number | null; emoji: string; name: string; color: string; range: string; games: string; benefits: string }
 export interface Week { number: number; start: string; days_left: number }
@@ -39,7 +39,6 @@ export interface History {
 export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean; avatar: string }
 export interface Adjustment { id: string; member_id: string; delta: number; note: string; created_at: string; created_by: string }
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
-export interface AdminAccount { id: string; email: string; name: string }
 
 export class ApiError extends Error {
   status: number;
@@ -93,7 +92,7 @@ export const api = {
   history: (days = 14) => request<History>(`/board/history?days=${days}`),
 
   members: () => request<AdminMember[]>("/admin/members"),
-  addMember: (body: { name: string; code: string; base_honor: number; pin?: string }) => request<AdminMember>("/admin/members", send("POST", body)),
+  addMember: (body: { name: string; base_honor: number; pin?: string }) => request<AdminMember>("/admin/members", send("POST", body)),
   editMember: (id: string, body: Partial<Omit<AdminMember, "id" | "has_pin">> & { pin?: string | null }) => request<AdminMember>(`/admin/members/${id}`, send("PATCH", body)),
   deleteMember: (id: string) => request<void>(`/admin/members/${id}`, { method: "DELETE" }),
   adjustments: () => request<Adjustment[]>("/admin/adjustments"),
@@ -101,9 +100,7 @@ export const api = {
   deleteAdjustment: (id: string) => request<void>(`/admin/adjustments/${id}`, { method: "DELETE" }),
   settings: () => request<Settings>("/admin/settings"),
   saveSettings: (body: Partial<Settings>) => request<Settings>("/admin/settings", send("PUT", body)),
-  admins: () => request<AdminAccount[]>("/admin/admins"),
-  addAdmin: (email: string, name: string, password: string) => request<AdminAccount>("/admin/admins", send("POST", { email, name, password })),
-  removeAdmin: (id: string) => request<void>(`/admin/admins/${id}`, { method: "DELETE" }),
-  importSheet: (text: string, start: string, end: string) =>
-    request<{ days: number; entries: number; unknown_initials: string[] }>("/admin/import", send("POST", { text, start, end })),
+  importPreview: (text: string) => request<{ days: number; first: string | null; last: string | null; letters: string[] }>("/admin/import/preview", send("POST", { text })),
+  importSheet: (text: string, start: string, end: string, mapping: Record<string, string>) =>
+    request<{ days: number; entries: number; unknown_initials: string[] }>("/admin/import", send("POST", { text, start, end, mapping })),
 };

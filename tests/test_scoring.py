@@ -80,3 +80,4 @@ def test_parse_handles_emoji_separators():
     d = parse_sheet(row)[0]
     assert d.excused == {"H"}
     assert parse_sheet("11/20/2026\tWeekend\tWeekend, A\tNone")[0].ticks == {"A": {"fajr"}}
+    assert parse_sheet("10/27/2026\tNew\tA, H")[0].ticks == {"A": {"fajr"}, "H": {"fajr"}}

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { api, type Board, type BoardRow, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
 import { daysLeftLabel, groupByTier } from "../lib/board";
@@ -7,16 +6,13 @@ import { useChangeCounter } from "../lib/events";
 
 type Tab = "top" | "week";
 
-function Row({ r, score, sub }: { r: BoardRow; score: string; sub?: string }) {
+function Row({ r, score }: { r: BoardRow; score: string }) {
   return (
-    <li className={`lb-row${r.is_me ? " me" : ""}${r.legendary ? " legend" : ""}`} style={{ ["--tc" as string]: r.tier.color }}>
-      <Avatar avatar={r.member.avatar} code={r.member.code} color={r.tier.color} />
-      <span className="lb-name">
-        {r.is_me ? "Me" : r.member.name}
-        <span className="lb-medal" title={r.tier.name}>{r.tier.emoji}</span>
-        {r.quest.active && <span className="lb-tag">Quest day {r.quest.days + 1}</span>}
-      </span>
-      <span className="lb-score">{score}{sub && <small>{sub}</small>}</span>
+    <li className={`lb-row${r.is_me ? " me" : ""}`}>
+      <Avatar avatar={r.member.avatar} color={r.tier.color} />
+      <span className="lb-name">{r.is_me ? "Me" : r.member.name}</span>
+      <span className="lb-medal" title={r.tier.name}>{r.tier.emoji}</span>
+      <span className="lb-score">{score}</span>
     </li>
   );
 }
@@ -33,42 +29,42 @@ export default function Leaderboard({ info }: { info: TodayInfo | null }) {
 
   return (
     <section className="card lb" aria-labelledby="lb-h">
-      <div className="lb-head">
-        <h2 id="lb-h">Top Honor <Link to="/rules" className="lb-info" aria-label="How Honor works">i</Link></h2>
-        <p className="lb-sub">Family board</p>
-        {board && (
-          <div className="lb-week">
-            <b>Week {board.week.number}</b>
-            <span>{days > 0 && <em>{days}</em>}{days > 0 ? daysLeftLabel(days).slice(String(days).length) : daysLeftLabel(days)}</span>
-          </div>
-        )}
-      </div>
+      <h2 id="lb-h" className="lb-title">Top Honor</h2>
+      {board && (
+        <div className="lb-week">
+          <b>Week {board.week.number}</b>
+          <span>{days > 0 ? <><em>{days}</em>{daysLeftLabel(days).slice(String(days).length)}</> : daysLeftLabel(days)}</span>
+        </div>
+      )}
 
-      {!board ? <p className="note">Loading…</p> : tab === "top" ? (
+      {!board ? <p className="note">Loading…</p> : board.rows.length === 0 ? <p className="note">No members yet.</p> : tab === "top" ? (
         sections.map(({ tier: t, rows }) => (
           <div className="lb-sec" key={t.key} style={{ ["--tc" as string]: t.color }}>
             <div className="lb-bar">
-              <span>{t.emoji} {t.name}</span>
-              <small>Ranks<br />{t.range}</small>
+              <span>{t.name}</span>
+              <small>Best<br />{rows[0].label}</small>
             </div>
-            <ol>{rows.map((r) => <Row key={r.member.id} r={r} score={r.label} sub={r.today.delta > 0 ? `+${r.today.delta} today` : undefined} />)}</ol>
+            <ol>{rows.map((r) => <Row key={r.member.id} r={r} score={r.label} />)}</ol>
           </div>
         ))
       ) : (
         <div className="lb-sec" style={{ ["--tc" as string]: "#0b4a3a" }}>
-          <div className="lb-bar"><span>This week</span><small>Honor<br />gained</small></div>
+          <div className="lb-bar">
+            <span>This Week</span>
+            <small>Honor<br />gained</small>
+          </div>
           <ol>
-            {board.weekly.map((w, i) => {
+            {board.weekly.map((w) => {
               const r = byId.get(w.member_id)!;
-              return <Row key={w.member_id} r={r} score={`${w.week_delta > 0 ? "+" : ""}${w.week_delta}`} sub={i < 3 && w.week_delta > 0 ? ["🥇 1st", "🥈 2nd", "🥉 3rd"][i] : undefined} />;
+              return <Row key={w.member_id} r={r} score={`${w.week_delta > 0 ? "+" : ""}${w.week_delta}`} />;
             })}
           </ol>
         </div>
       )}
 
       <div className="lb-tabs" role="tablist">
-        <button role="tab" aria-selected={tab === "top"} className={tab === "top" ? "on" : ""} onClick={() => setTab("top")}>Top Honor 🏅</button>
-        <button role="tab" aria-selected={tab === "week"} className={tab === "week" ? "on" : ""} onClick={() => setTab("week")}>This Week 📅</button>
+        <button role="tab" aria-selected={tab === "top"} className={tab === "top" ? "on" : ""} onClick={() => setTab("top")}>Top Honor</button>
+        <button role="tab" aria-selected={tab === "week"} className={tab === "week" ? "on" : ""} onClick={() => setTab("week")}>This Week</button>
       </div>
     </section>
   );

@@ -10,6 +10,7 @@ from datetime import date, datetime
 
 from app.scoring import SHEET_COLUMNS
 
+_WORDS = {"new", "non", "nil", "na", "off", "all", "yes", "no"}
 _DATE = re.compile(r"^\s*(\d{1,2})/(\d{1,2})/(\d{4})\s*$")
 
 
@@ -22,8 +23,8 @@ class ParsedDay:
 
 def _initials(cell: str) -> list[str]:
     # "Z👺Si 👺B👺" and "A, Si" both work: split on anything that is not a letter.
-    # Words such as "Weekend", "None" or "New" are longer than any initials (at most 3 letters).
-    return [p for p in re.split(r"[^A-Za-z]+", cell or "") if 0 < len(p) <= 3]
+    # Words such as "Weekend", "None" or "New" are not initials.
+    return [p for p in re.split(r"[^A-Za-z]+", cell or "") if 0 < len(p) <= 3 and p.lower() not in _WORDS]
 
 
 def parse_sheet(text: str) -> list[ParsedDay]:

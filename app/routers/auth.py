@@ -41,7 +41,7 @@ def _limit(request: Request, key: str) -> None:
 @router.get("/members")
 def sign_in_list(db: Session = Depends(get_db)) -> list[dict]:
     """Names for the sign-in screen. Only members with a PIN can sign in."""
-    return [{"id": m.id, "name": m.name, "code": m.code, "has_pin": bool(m.pin_hash)} for m in active_members(db)]
+    return [{"id": m.id, "name": m.name, "avatar": m.avatar, "has_pin": bool(m.pin_hash)} for m in active_members(db)]
 
 
 @router.post("/member")

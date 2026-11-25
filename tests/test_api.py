@@ -272,3 +272,24 @@ def test_sleeping_database_is_retried(client, monkeypatch):
     monkeypatch.setitem(main._state, "last_try", 0.0)
     assert client.get("/api/auth/members").status_code == 200  # next try succeeds
     assert main.STARTUP_PROBLEMS == [] and main._state["ready"]
+
+
+def test_member_without_initials_gets_hidden_tag(client, family):
+    ha = auth(client, admin=True)
+    a = client.post("/api/admin/members", headers=ha, json={"name": "Amir", "base_honor": 1, "pin": "1111"}).json()
+    b = client.post("/api/admin/members", headers=ha, json={"name": "Amina", "base_honor": 1, "pin": "2222"}).json()
+    assert a["code"] and b["code"] and a["code"].lower() != b["code"].lower()
+    assert a["code"].lower() != "a"  # "A" is Alpha's already
+
+
+def test_import_with_letter_mapping(client, family, db):
+    ha = auth(client, admin=True)
+    tasks = "\t".join(["S, Q"] + ["Q"] * 17 + ["Q"])
+    text = f"11/23/2026\t{tasks}\n"
+    prev = client.post("/api/admin/import/preview", headers=ha, json={"text": text}).json()
+    assert prev == {"days": 1, "first": "2026-11-23", "last": "2026-11-23", "letters": ["Q", "S"]}
+    r = client.post("/api/admin/import", headers=ha, json={"text": text, "start": "2026-11-23", "end": "2026-11-23",
+                                                           "mapping": {"Q": family["B"].id}})
+    assert r.json() == {"days": 1, "entries": 1, "unknown_initials": ["S"]}
+    log = db.query(DayLog).filter_by(member_id=family["B"].id).one()
+    assert set(log.tasks) == set(scoring.SHEET_COLUMNS)

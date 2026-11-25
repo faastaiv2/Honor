@@ -1,14 +1,14 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from zoneinfo import available_timezones
 
 from app.db import get_db
 from app.deps import Viewer, require_admin
-from app.models import Adjustment, Admin, DayLog, Member
+from app.models import Adjustment, DayLog, Member
 from app.security import hash_secret
 from app.services import get_settings_row
 from app.sheet_import import parse_sheet
@@ -20,7 +20,7 @@ PIN = Field(default=None, pattern=r"^\d{4,8}$")
 
 class MemberIn(BaseModel):
     name: str = Field(min_length=1, max_length=80)
-    code: str = Field(min_length=1, max_length=3, pattern=r"^[A-Za-z]+$")
+    code: str | None = Field(default=None, min_length=1, max_length=3, pattern=r"^[A-Za-z]+$")  # made from the name
     base_honor: int = Field(default=1, ge=-1000, le=1000)
     pin: str | None = PIN
 
@@ -54,16 +54,31 @@ class SettingsIn(BaseModel):
     timezone: str | None = None
 
 
-class AdminIn(BaseModel):
-    email: EmailStr
-    name: str = Field(min_length=1, max_length=80)
-    password: str = Field(min_length=10, max_length=72)
-
-
 class ImportIn(BaseModel):
     text: str = Field(max_length=2_000_000)
     start: date
     end: date
+    # Which member each letter in the sheet means, e.g. {"S": "<member id>"}. Letters left out are skipped.
+    mapping: dict[str, str] = Field(default_factory=dict)
+
+
+class PreviewIn(BaseModel):
+    text: str = Field(max_length=2_000_000)
+
+
+def _make_code(name: str, taken: set[str]) -> str:
+    """A short internal tag for a member (never shown); unique, letters only."""
+    letters = "".join(ch for ch in name if ch.isascii() and ch.isalpha()) or "M"
+    for n in (1, 2, 3):
+        c = letters[:n].capitalize()
+        if c.lower() not in taken:
+            return c
+    i = 0
+    while True:
+        c = (letters[0].upper() + "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i % 26] + "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i // 26 % 26])
+        if c.lower() not in taken:
+            return c
+        i += 1
 
 
 def _member_out(m: Member) -> dict:
@@ -79,7 +94,9 @@ def list_members(_: Viewer = Depends(require_admin), db: Session = Depends(get_d
 @router.post("/members", status_code=201)
 def add_member(body: MemberIn, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
     last = db.scalar(select(func.max(Member.sort_order))) or 0
-    m = Member(name=body.name.strip(), code=body.code.strip(), base_honor=body.base_honor, sort_order=last + 1,
+    taken = {c.lower() for c in db.scalars(select(Member.code))}
+    code = body.code.strip() if body.code else _make_code(body.name.strip(), taken)
+    m = Member(name=body.name.strip(), code=code, base_honor=body.base_honor, sort_order=last + 1,
                pin_hash=hash_secret(body.pin) if body.pin else None)
     db.add(m)
     db.commit()
@@ -160,38 +177,16 @@ def write_settings(body: SettingsIn, _: Viewer = Depends(require_admin), db: Ses
     return {"score_from": s.score_from.isoformat(), "cut_misses": s.cut_misses, "timezone": s.timezone}
 
 
-@router.get("/admins")
-def list_admins(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
-    return [{"id": a.id, "email": a.email, "name": a.name} for a in db.scalars(select(Admin).order_by(Admin.created_at))]
-
-
-@router.post("/admins", status_code=201)
-def add_admin(body: AdminIn, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
-    email = body.email.lower()
-    if db.scalar(select(Admin).where(func.lower(Admin.email) == email)):
-        raise HTTPException(409, "That email is already a parent account")
-    a = Admin(email=email, name=body.name.strip(), password_hash=hash_secret(body.password))
-    db.add(a)
-    db.commit()
-    return {"id": a.id, "email": a.email, "name": a.name}
-
-
-@router.delete("/admins/{admin_id}", status_code=204)
-def remove_admin(admin_id: str, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> None:
-    if admin_id == v.id:
-        raise HTTPException(400, "You cannot remove yourself")
-    a = db.get(Admin, admin_id)
-    if a:
-        db.delete(a)
-        db.commit()
-
-
 @router.post("/import")
 def import_sheet(body: ImportIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
     """Copy ticks from the pasted sheet into the app for days between start and end (inclusive)."""
     if body.end < body.start:
         raise HTTPException(400, "The end date is before the start date")
-    by_code = {m.code.strip().lower(): m for m in db.scalars(select(Member))}
+    members = {m.id: m for m in db.scalars(select(Member))}
+    if body.mapping:
+        by_code = {k.strip().lower(): members[v] for k, v in body.mapping.items() if v in members}
+    else:
+        by_code = {m.code.strip().lower(): m for m in members.values()}
     unknown: set[str] = set()
     written = 0
     days = [p for p in parse_sheet(body.text) if body.start <= p.day <= body.end]
@@ -211,3 +206,12 @@ def import_sheet(body: ImportIn, v: Viewer = Depends(require_admin), db: Session
             written += 1
     db.commit()
     return {"days": len(days), "entries": written, "unknown_initials": sorted(unknown)}
+
+
+@router.post("/import/preview")
+def preview_sheet(body: PreviewIn, _: Viewer = Depends(require_admin)) -> dict:
+    """The letters used in the pasted sheet and its date range, so the admin can say who is who."""
+    days = parse_sheet(body.text)
+    letters = sorted({w for d in days for w in (*d.ticks, *d.excused)}, key=lambda x: (x.lower(), x))
+    return {"days": len(days), "first": min((d.day for d in days), default=None),
+            "last": max((d.day for d in days), default=None), "letters": letters}
