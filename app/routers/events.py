@@ -79,7 +79,7 @@ def events(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -
     is_open = bool(now and _state(now, today, clock) == "open")
     out = lambda e: _event_out(e, today, clock)  # noqa: E731
     return {
-        "today": today.isoformat(), "clock": clock, "open": is_open, "banners": BANNERS,
+        "today": today.isoformat(), "clock": clock, "timezone": cfg.timezone, "open": is_open, "banners": BANNERS,
         "event": out(now) if now and _state(now, today, clock) != "closed" else None,
         "next": out(upcoming[0]) if upcoming else None,
         "upcoming": [out(e) for e in upcoming],
@@ -120,12 +120,22 @@ def _apply(ev: Event, body: EventIn) -> None:
         raise HTTPException(400, "Upload a banner picture or choose a ready-made one")
 
 
+def _not_over(db: Session, body: "EventIn") -> None:
+    """A tournament for today must still be open later today (in the family's time zone)."""
+    cfg = get_settings_row(db)
+    today, clock = today_for(cfg), clock_for(cfg)
+    if body.day == today and body.closes <= clock:
+        raise HTTPException(400, f"That's already over: it is {clock} now ({cfg.timezone} time). "
+                                 "Choose a later closing time or another day, or fix the time zone in Admin → Settings")
+
+
 @router.post("/create")
 def create_event(body: EventIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
     if body.day < today_for(get_settings_row(db)):
         raise HTTPException(400, "Choose today or a day in the future")
     if db.scalar(select(Event).where(Event.day == body.day)):
         raise HTTPException(400, "There is already an event that day")
+    _not_over(db, body)
     ev = Event()
     _apply(ev, body)
     db.add(ev)
@@ -144,6 +154,8 @@ def edit_event(event_id: str, body: EventIn, v: Viewer = Depends(require_admin),
             raise HTTPException(400, "Art has already been sent in, so the day can't change")
         if db.scalar(select(Event).where(Event.day == body.day, Event.id != ev.id)):
             raise HTTPException(400, "There is already an event that day")
+    if body.day != ev.day or body.closes != ev.closes:
+        _not_over(db, body)
     _apply(ev, body)
     # New prizes apply to winners already picked.
     for e in db.scalars(select(EventEntry).where(EventEntry.event_day == ev.day, EventEntry.place.is_not(None))):

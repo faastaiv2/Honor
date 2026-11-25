@@ -775,3 +775,14 @@ def test_quest_music_upload_is_admin_only_and_served_to_family(client, family):
     assert every["quest-music"]["has"] and every["quest-music"]["size"] == len(song) and not every["chest"]["has"]
     assert client.put("/api/media/nonsense", headers={**ha, "Content-Type": "audio/mpeg"}, content=song).status_code == 404
     assert client.delete("/api/media/quest-music", headers=ha).json()["has"] is False
+
+
+def test_event_for_today_must_not_be_already_over(client, family):
+    from app.routers import events as ev_mod
+    ha = auth(client, admin=True)
+    a, b = at_today()
+    with a, b, patch.object(ev_mod, "clock_for", lambda cfg: "20:30"), patch.object(ev_mod, "today_for", lambda cfg: TODAY):
+        r = client.post("/api/events/create", headers=ha, json={"day": TODAY.isoformat(), "title": "Late", "opens": "09:00", "closes": "18:00"})
+        assert r.status_code == 400 and "already over" in r.json()["detail"]
+        r = client.post("/api/events/create", headers=ha, json={"day": TODAY.isoformat(), "title": "Tonight", "opens": "20:00", "closes": "23:00"})
+        assert r.status_code == 200 and r.json()["open"] is True and r.json()["timezone"]

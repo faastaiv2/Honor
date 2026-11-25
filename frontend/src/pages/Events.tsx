@@ -163,6 +163,11 @@ function EventEditor({ data, ev, onSaved, onCancel, onError }: {
         <label className="field"><span className="field-label">Closes at</span><input type="time" required value={f.closes} onChange={(e) => set("closes", e.target.value)} />
           <span className="field-hint">Art can be sent only between these times</span></label>
       </div>
+      <p className={`ev-tz${f.day === data.today && f.closes <= data.clock ? " over" : ""}`}>
+        {f.day === data.today && f.closes <= data.clock
+          ? <>⚠️ It's already {ampm(data.clock)} now ({data.timezone} time), so this would close straight away. Pick a later closing time or another day. If {ampm(data.clock)} is the wrong time, change the time zone in Admin → Settings.</>
+          : <>🕐 Times are in {data.timezone} time · it's {ampm(data.clock)} now</>}
+      </p>
       <label className="field"><span className="field-label">Theme for the kids (optional)</span>
         <input maxLength={200} placeholder="e.g. Draw your favourite animal" value={f.prompt} onChange={(e) => set("prompt", e.target.value)} /></label>
 
@@ -359,10 +364,11 @@ export default function Events() {
           {data.next ? <>
             <h2>🔒 Opens {data.next.day === data.today ? "today" : fmt(data.next.day, { weekday: "long", day: "numeric", month: "short" })}{allDay(data.next) ? "" : ` at ${ampm(data.next.opens)}`}</h2>
             <Countdown day={data.next.day} at={data.next.opens} />
-            <p className="note">Get your art ready: drawing, painting, calligraphy, a model… anything you made yourself.</p>
+            {!isAdmin && <button className="ev-enter" disabled>📷 Enter the tournament<small>Opens {data.next.day === data.today ? "today" : fmt(data.next.day, { weekday: "long" })}{allDay(data.next) ? "" : ` at ${ampm(data.next.opens)}`}</small></button>}
+            <p className="note">Get your art ready now: drawing, painting, calligraphy, a model… anything you made yourself.</p>
           </> : <>
-            <h2>🔒 No tournament scheduled yet</h2>
-            <p className="note">{isAdmin ? "Create one above." : "Ask your parents to set one up. Meanwhile, keep practising your art!"}</p>
+            <h2>🗓️ New tournament next Saturday!</h2>
+            <p className="note">{isAdmin ? "Create it above so the kids can see when it opens." : "Start your art now, so it's ready for Saturday. The best three win gems!"}</p>
           </>}
         </section>
       ) : (
@@ -381,7 +387,7 @@ export default function Events() {
             </div>
           ) : (
             <div className="ev-submit">
-              <h2>Send your art</h2>
+              <h2>📷 Enter the tournament</h2>
               {pic ? <img className="art ev-preview" src={pic} alt="Your picture" /> : (
                 <button className="ev-drop" onClick={() => file.current?.click()}><span>📷</span><b>Take or choose a photo</b><small>of your art</small></button>
               )}
@@ -400,6 +406,18 @@ export default function Events() {
           {judgeBar(data.today, data.current.length)}
         </section>
       )}
+
+      <details className="card ev-rules" open={!isAdmin && !data.mine}>
+        <summary><h2>📜 How to take part</h2></summary>
+        <ol>
+          <li><b>Make your art.</b> A drawing, painting, calligraphy, a model… anything you made yourself.{hero?.prompt ? <> This time the theme is <b>{hero.prompt}</b>.</> : null}</li>
+          <li><b>Wait for the tournament to open.</b> {hero ? <>It opens {hero.day === data.today ? "today" : fmt(hero.day, { weekday: "long", day: "numeric", month: "short" })}{allDay(hero) ? "" : `, ${hours(hero)}`}.</> : "Usually on Saturdays."}</li>
+          <li><b>Tap “Enter the tournament”</b>, take a photo of your art (or choose one), give it a name, and send it.{(hero?.fee ?? 0) > 0 ? <> Entering costs <b>{hero!.fee} gems</b>.</> : " It's free."}</li>
+          <li><b>One picture each.</b> You can replace it until the tournament closes.</li>
+          <li><b>Your parents pick the winners:</b> 🥇 +{prizes["1"]}, 🥈 +{prizes["2"]}, 🥉 +{prizes["3"]} gems, and a medal in Achievements.</li>
+        </ol>
+        <p className="note">Be honest: only send art you made yourself. 🤝</p>
+      </details>
 
       {data.past.map((t) => (
         <section key={t.day} className="card ev-past">

@@ -67,7 +67,7 @@ export interface ArtEventIn {
   fee: number; banner: string; banner_image?: string | null;
 }
 export interface EventsInfo {
-  today: string; clock: string; open: boolean; banners: string[]; event: ArtEvent | null; next: ArtEvent | null; upcoming: ArtEvent[];
+  today: string; clock: string; timezone: string; open: boolean; banners: string[]; event: ArtEvent | null; next: ArtEvent | null; upcoming: ArtEvent[];
   suggested_day: string; current: EventEntry[]; mine: EventEntry | null; past: (ArtEvent & { judged: boolean; entries: EventEntry[] })[];
 }
 export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number>; members: string[] }
