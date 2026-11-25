@@ -176,18 +176,20 @@ FREE_PICTURES: list[tuple[str, str]] = [
 RARITIES = ["common", "rare", "epic", "legendary"]
 SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     # Common
-    ("squire", "Squire", 100, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
+    ("squire", "Squire", 100, "common"), ("flowergirl", "Flower Girl", 100, "common"), ("archer", "Archer", 100, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
     ("koala", "Koala", 240, "common"),
     # Rare
-    ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("unicorn", "Unicorn", 300, "rare"),
+    ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("shieldmaiden", "Shieldmaiden", 250, "rare"),
+    ("fairy", "Fairy", 250, "rare"), ("unicorn", "Unicorn", 300, "rare"),
     ("dino", "Dino", 300, "rare"), ("astronaut", "Astronaut", 400, "rare"), ("robot", "Robot", 400, "rare"),
     ("ninja", "Ninja", 440, "rare"),
     # Epic
     ("knight", "Knight", 500, "epic"), ("spartan", "Spartan", 500, "epic"), ("frostknight", "Frost Knight", 500, "epic"),
+    ("warriorprincess", "Warrior Princess", 500, "epic"),
     ("phoenix", "Phoenix", 600, "epic"), ("dragon", "Dragon", 700, "epic"), ("kinglion", "Lion King", 800, "epic"),
     ("cosmiccat", "Cosmic cat", 900, "epic"),
     # Legendary
-    ("dragonknight", "Dragon Knight", 1000, "legendary"), ("knightepic", "Epic Knight", 1000, "legendary"),
+    ("dragonknight", "Dragon Knight", 1000, "legendary"), ("crystalqueen", "Crystal Queen", 1000, "legendary"), ("knightepic", "Epic Knight", 1000, "legendary"),
     ("knightlegend", "Legendary Knight", 1500, "legendary"),
 ]
 FREE_AVATARS = [k for k, _ in FREE_PICTURES]
