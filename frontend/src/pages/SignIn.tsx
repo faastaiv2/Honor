@@ -26,6 +26,9 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
   const [members, setMembers] = useState<SignInMember[] | null>(null);
   const [pick, setPick] = useState<SignInMember | null>(null);
   const [pin, setPin] = useState("");
+  const [first, setFirst] = useState<string | null>(null); // new member: the PIN they chose, waiting to be typed again
+  const setup = !!pick && !pick.has_pin;
+  const maxLen = setup ? 4 : 8;
   const parent = admin;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,10 +43,12 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
 
   const submitPin = useCallback(async (value: string) => {
     if (!pick || value.length < 4 || busy) return;
+    if (setup && first === null) { setFirst(value); setPin(""); return; } // now type it again
+    if (setup && first !== value) { setError("Those PINs don't match. Choose again"); setFirst(null); setPin(""); return; }
     setBusy(true);
     setError("");
     try {
-      const r = await api.memberLogin(pick.id, value);
+      const r = setup ? await api.memberSetup(pick.id, value) : await api.memberLogin(pick.id, value);
       signIn(r.token, r.viewer);
     } catch (err) {
       fail(err);
@@ -51,14 +56,17 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
     } finally {
       setBusy(false);
     }
-  }, [pick, busy, signIn]);
+  }, [pick, busy, signIn, setup, first]);
 
   const press = useCallback((k: string) => {
     setError("");
     if (k === "del") setPin((p) => p.slice(0, -1));
     else if (k === "go") submitPin(pin);
-    else setPin((p) => (p.length < 8 ? p + k : p));
-  }, [pin, submitPin]);
+    else setPin((p) => (p.length < maxLen ? p + k : p));
+  }, [pin, submitPin, maxLen]);
+
+  // A new member's 4th digit moves straight on.
+  useEffect(() => { if (setup && pin.length === 4) submitPin(pin); }, [setup, pin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Typing on a keyboard works too.
   useEffect(() => {
@@ -67,7 +75,7 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
       if (/^\d$/.test(e.key)) press(e.key);
       else if (e.key === "Backspace") press("del");
       else if (e.key === "Enter") press("go");
-      else if (e.key === "Escape") { setPick(null); setPin(""); }
+      else if (e.key === "Escape") { setPick(null); setPin(""); setFirst(null); }
     };
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
@@ -112,10 +120,11 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
               {members?.length === 0 && <p className="note">No members yet. A parent signs in first and adds everyone.</p>}
               <div className="who-grid">
                 {members?.map((m) => (
-                  <button key={m.id} className="who-tile" disabled={!m.has_pin} title={m.has_pin ? undefined : "Ask a parent to set your PIN"}
-                    onClick={() => { setPick(m); setPin(""); setError(""); }}>
+                  <button key={m.id} className={`who-tile${m.has_pin ? "" : " is-new"}`}
+                    onClick={() => { setPick(m); setPin(""); setFirst(null); setError(""); }}>
                     <Avatar avatar={m.avatar} color="#6b3e1d" frame={m.frame} size={54} />
                     <span>{m.name}</span>
+                    {!m.has_pin && <small className="who-new">New ✨</small>}
                   </button>
                 ))}
               </div>
@@ -123,20 +132,27 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
           ) : (
             <div className="pin-step">
               <Avatar avatar={pick.avatar} color="#6b3e1d" frame={pick.frame} size={64} />
-              <h2>As-salāmu ʿalaykum, {pick.name}</h2>
-              <p className="note">Type your PIN</p>
+              <h2>{setup ? `Welcome, ${pick.name}!` : `As-salāmu ʿalaykum, ${pick.name}`}</h2>
+              {setup ? (
+                <div className="pin-setup">
+                  <div className="pin-steps" aria-hidden="true"><i className="on" /><i className={first !== null ? "on" : ""} /></div>
+                  <p className="pin-setup-title">{first === null ? "Choose your own 4-digit PIN" : "Type the same PIN again"}</p>
+                  <p className="note">{first === null ? "You'll use it every time you sign in. Keep it secret!" : "Just to be sure you remember it"}</p>
+                </div>
+              ) : <p className="note">Type your PIN</p>}
               <div className={`pin-dots${error ? " shake" : ""}`} aria-label={`${pin.length} digits entered`}>
-                {Array.from({ length: Math.max(4, pin.length) }, (_, i) => <i key={i} className={i < pin.length ? "on" : ""} />)}
+                {Array.from({ length: setup ? 4 : Math.max(4, pin.length) }, (_, i) => <i key={i} className={i < pin.length ? "on" : ""} />)}
               </div>
               <div className="keypad">
                 {KEYS.map((k) => (
                   <button key={k} type="button" className={k === "go" ? "go" : ""} disabled={busy || (k === "go" && pin.length < 4)}
-                    aria-label={k === "del" ? "Delete" : k === "go" ? "Sign in" : k} onClick={() => press(k)}>
+                    aria-label={k === "del" ? "Delete" : k === "go" ? (setup ? "Next" : "Sign in") : k} onClick={() => press(k)}>
                     {k === "del" ? "⌫" : k === "go" ? "✓" : k}
                   </button>
                 ))}
               </div>
-              <button type="button" className="link" onClick={() => { setPick(null); setPin(""); setError(""); }}>← Not {pick.name}?</button>
+              <button type="button" className="link" onClick={() => { setPick(null); setPin(""); setFirst(null); setError(""); }}>← Not {pick.name}?</button>
+              {setup && first !== null && <button type="button" className="link" onClick={() => { setFirst(null); setPin(""); setError(""); }}>Start over</button>}
             </div>
           )}
 

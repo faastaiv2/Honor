@@ -111,6 +111,7 @@ const send = (method: string, body?: unknown): RequestInit => ({ method, body: b
 
 export const api = {
   signInList: () => request<SignInMember[]>("/auth/members"),
+  memberSetup: (member_id: string, pin: string) => request<{ token: string; viewer: Viewer }>("/auth/member/setup", send("POST", { member_id, pin })),
   memberLogin: (member_id: string, pin: string) => request<{ token: string; viewer: Viewer }>("/auth/member", send("POST", { member_id, pin })),
   adminLogin: (email: string, password: string) => request<{ token: string; viewer: Viewer }>("/auth/admin", send("POST", { email, password })),
   me: () => request<Viewer>("/auth/me"),

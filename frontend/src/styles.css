@@ -1627,3 +1627,11 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 }
 .guard { border: 2px solid #d04a3a; }
 .guard pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; background: var(--soft, #0000000d); padding: 10px; border-radius: 10px; max-height: 220px; overflow: auto; }
+.who-tile { position: relative; }
+.who-new { position: absolute; top: -8px; right: -6px; padding: 2px 8px; border-radius: 99px; background: linear-gradient(180deg, #ffe48a, #f0b429); color: #4a2c00; font-weight: 900; font-size: 11px; box-shadow: 0 2px 6px #0003; }
+.pin-setup { display: grid; justify-items: center; gap: 2px; }
+.pin-steps { display: flex; gap: 6px; margin-bottom: 4px; }
+.pin-steps i { width: 26px; height: 5px; border-radius: 9px; background: #0002; }
+.pin-steps i.on { background: #c99a2e; }
+.pin-setup-title { margin: 0; font-weight: 800; font-size: 17px; }
+.pin-setup .note { margin: 0; }

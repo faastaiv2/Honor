@@ -114,7 +114,7 @@ function MemberCard({ m, row, onDone, onChanged, onError }: { m: AdminMember; ro
         <div className="ad-facts">
           <span title="Change in Honor this week">📈 {row ? `${row.week_delta > 0 ? "+" : ""}${row.week_delta} this week` : "—"}</span>
           {row && row.pending > 0 && <span title="Earned today, arrives at midnight">🌙 +{row.pending} at midnight</span>}
-          {!m.has_pin && <span className="warn">No PIN yet</span>}
+          {!m.has_pin && <span className="warn" title="They choose their own 4-digit PIN when they first sign in">New · chooses own PIN</span>}
           {m.early_ticks > 0 && <span className="warn" title="Tried to tick a task before its time and had to swear the oath again">⚠️ Ticked early {m.early_ticks}×</span>}
         </div>
         {!!row?.excused_today?.length && (
@@ -152,7 +152,7 @@ function AddMember({ onAdded, onError }: { onAdded: (s: string) => void; onError
   async function add(e: FormEvent) {
     e.preventDefault();
     try {
-      await api.addMember({ name: nm.name.trim(), base_honor: Number(nm.base), pin: nm.pin });
+      await api.addMember({ name: nm.name.trim(), base_honor: Number(nm.base), ...(nm.pin ? { pin: nm.pin } : {}) });
       onAdded(`${nm.name.trim()} added`);
       setNm({ name: "", pin: "", base: "1" });
       setOpen(false);
@@ -164,8 +164,8 @@ function AddMember({ onAdded, onError }: { onAdded: (s: string) => void; onError
       <h3>New member</h3>
       <Field label="Name"><input required autoFocus maxLength={80} value={nm.name} onChange={(e) => setNm({ ...nm, name: e.target.value })} /></Field>
       <div className="ad-two">
-        <Field label="PIN" hint="4–8 digits to sign in">
-          <input required inputMode="numeric" minLength={4} maxLength={8} value={nm.pin} onChange={(e) => setNm({ ...nm, pin: e.target.value.replace(/\D/g, "") })} />
+        <Field label="PIN (optional)" hint="Leave empty: they choose their own 4-digit PIN the first time">
+          <input inputMode="numeric" minLength={4} maxLength={8} value={nm.pin} onChange={(e) => setNm({ ...nm, pin: e.target.value.replace(/\D/g, "") })} />
         </Field>
         <Field label="Starting level" hint="1 for someone new">
           <input type="number" value={nm.base} onChange={(e) => setNm({ ...nm, base: e.target.value })} />

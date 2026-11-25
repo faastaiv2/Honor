@@ -18,6 +18,11 @@ class MemberLogin(BaseModel):
     pin: str = Field(min_length=1, max_length=12)
 
 
+class PinSetup(BaseModel):
+    member_id: str
+    pin: str = Field(pattern=r"^\d{4}$")  # a new member chooses their own 4-digit PIN
+
+
 class AdminLogin(BaseModel):
     email: str = Field(max_length=255)
     password: str = Field(min_length=1, max_length=72)
@@ -40,7 +45,7 @@ def _limit(request: Request, key: str) -> None:
 
 @router.get("/members")
 def sign_in_list(db: Session = Depends(get_db)) -> list[dict]:
-    """Names for the sign-in screen. Only members with a PIN can sign in."""
+    """Names for the sign-in screen. A member without a PIN chooses one the first time."""
     return [{"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "has_pin": bool(m.pin_hash)}
             for m in active_members(db)]
 
@@ -51,6 +56,21 @@ def member_login(body: MemberLogin, request: Request, db: Session = Depends(get_
     m = db.get(Member, body.member_id)
     if not m or not m.active or not verify_secret(body.pin, m.pin_hash):
         raise HTTPException(401, "That PIN is not right")
+    v = Viewer("member", m.id, m.name)
+    return {"token": create_token(m.id, "member"), "viewer": _viewer_out(v)}
+
+
+@router.post("/member/setup")
+def member_setup(body: PinSetup, request: Request, db: Session = Depends(get_db)) -> dict:
+    """First sign-in for a member the parent added without a PIN: they choose their own, once."""
+    _limit(request, "s:" + body.member_id)
+    m = db.get(Member, body.member_id)
+    if not m or not m.active:
+        raise HTTPException(404, "Member not found")
+    if m.pin_hash:
+        raise HTTPException(409, "You already have a PIN. Type it to sign in")
+    m.pin_hash = hash_secret(body.pin)
+    db.commit()
     v = Viewer("member", m.id, m.name)
     return {"token": create_token(m.id, "member"), "viewer": _viewer_out(v)}
 

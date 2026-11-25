@@ -743,3 +743,15 @@ def test_event_times_prizes_fee_banner_and_edit(client, family, db):
         info = client.get("/api/events", headers=h).json()
         assert info["open"] is False and info["past"][0]["title"] == "Calligraphy"
         assert client.post("/api/events/entry", headers=auth(client, family["B"]), json={"title": "late", "image": PNG}).status_code == 403
+
+
+def test_new_member_sets_own_four_digit_pin_once(client, family, db):
+    ha = auth(client, admin=True)
+    m = client.post("/api/admin/members", headers=ha, json={"name": "Newbie", "base_honor": 1}).json()
+    assert not m["has_pin"]
+    assert client.post("/api/auth/member/setup", json={"member_id": m["id"], "pin": "12345"}).status_code == 422
+    assert client.post("/api/auth/member/setup", json={"member_id": m["id"], "pin": "12a4"}).status_code == 422
+    r = client.post("/api/auth/member/setup", json={"member_id": m["id"], "pin": "4321"})
+    assert r.status_code == 200 and r.json()["viewer"]["name"] == "Newbie"
+    assert client.post("/api/auth/member/setup", json={"member_id": m["id"], "pin": "0000"}).status_code == 409
+    assert client.post("/api/auth/member", json={"member_id": m["id"], "pin": "4321"}).status_code == 200
