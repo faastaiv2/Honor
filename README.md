@@ -66,7 +66,7 @@ npm install
 npm run dev                          # http://localhost:5173
 ```
 
-Sign in with "Parent sign-in" using the email and password from `.env`, then add members in **Admin**.
+Open http://localhost:5173/admin and sign in with the email and password from `.env`, then add members in **Admin**.
 
 ## Tests
 
