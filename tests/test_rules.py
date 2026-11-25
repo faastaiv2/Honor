@@ -12,7 +12,7 @@ MON, TUE, WED, THU, FRI, SAT, SUN = (date(2026, 11, 23) + timedelta(days=i) for 
 def test_tier_boundaries_match_the_table():
     expect = {1: "bronze", 3: "bronze", 4: "silver", 7: "silver", 8: "gold", 12: "gold", 13: "platinum", 18: "platinum",
               19: "emerald", 24: "emerald", 25: "sapphire", 31: "sapphire", 32: "ruby", 39: "ruby",
-              40: "diamond", 46: "diamond", 47: "obsidian", 49: "obsidian", 0: "low", -3: "low"}
+              40: "diamond", 46: "diamond", 47: "obsidian", 49: "obsidian", 0: "member", -1: "low", -3: "low"}
     for level, key in expect.items():
         assert tier_for(level, False).key == key, level
     assert tier_for(60, False).key == "obsidian"  # no Legendary without the quest

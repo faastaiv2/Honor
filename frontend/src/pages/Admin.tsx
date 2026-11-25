@@ -147,13 +147,13 @@ function MemberCard({ m, row, onDone, onChanged, onError }: { m: AdminMember; ro
 
 function AddMember({ onAdded, onError }: { onAdded: (s: string) => void; onError: (s: string) => void }) {
   const [open, setOpen] = useState(false);
-  const [nm, setNm] = useState({ name: "", pin: "", base: "1" });
+  const [nm, setNm] = useState({ name: "", pin: "", base: "0" });
   async function add(e: FormEvent) {
     e.preventDefault();
     try {
       await api.addMember({ name: nm.name.trim(), base_honor: Number(nm.base), ...(nm.pin ? { pin: nm.pin } : {}) });
       onAdded(`${nm.name.trim()} added`);
-      setNm({ name: "", pin: "", base: "1" });
+      setNm({ name: "", pin: "", base: "0" });
       setOpen(false);
     } catch (err) { onError(msg(err)); }
   }
@@ -166,7 +166,7 @@ function AddMember({ onAdded, onError }: { onAdded: (s: string) => void; onError
         <Field label="PIN (optional)" hint="Leave empty: they choose their own 4-digit PIN the first time">
           <input inputMode="numeric" minLength={4} maxLength={8} value={nm.pin} onChange={(e) => setNm({ ...nm, pin: e.target.value.replace(/\D/g, "") })} />
         </Field>
-        <Field label="Starting level" hint="1 for someone new">
+        <Field label="Starting level" hint="0 = Member, where everyone new starts">
           <input type="number" value={nm.base} onChange={(e) => setNm({ ...nm, base: e.target.value })} />
         </Field>
       </div>

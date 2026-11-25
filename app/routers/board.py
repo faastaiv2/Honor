@@ -369,7 +369,8 @@ def _celebration(db: Session, m: Member, tier, p) -> dict | None:
     The first time we see a member we just note their rank (no show for where they started). A drop in rank is
     noted silently too, so climbing back up earns the show again."""
     now = _RANK_ORDER.index(tier.key)
-    if m.seen_rank not in _RANK_ORDER or now < _RANK_ORDER.index(m.seen_rank):
+    # Climbing back to Member (0) from Low Honor is noted quietly: the shows are for Bronze and up.
+    if m.seen_rank not in _RANK_ORDER or now < _RANK_ORDER.index(m.seen_rank) or tier.key == "member":
         m.seen_rank, m.seen_level_gems = tier.key, p.gems_levels
         db.commit()
         return None

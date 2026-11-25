@@ -37,7 +37,8 @@ class Tier:
 
 
 TIERS: list[Tier] = [
-    Tier("low", -10**6, 0, "👺", "Low Honor", "#b4322a", "0 mins", "None"),
+    Tier("low", -10**6, -1, "👺", "Low Honor", "#b4322a", "0 mins", "None"),
+    Tier("member", 0, 0, "🛡️", "Member", "#6f7f8e", "0 mins", "None"),  # where new members start
     Tier("bronze", 1, 3, "🥉", "Bronze", "#b0703a", "0 mins / week (after finishing tasks)", "None"),
     Tier("silver", 4, 7, "🥈", "Silver", "#8a97a3", "10 mins / Sunday (after finishing tasks)",
          "Can miss up to 1 task and make up next day", next_day=1),
@@ -95,7 +96,9 @@ def roman(n: int) -> str:
 
 def tier_range(t: Tier) -> str:
     if t.key == "low":
-        return "0 and below"
+        return "−I and below"
+    if t.key == "member":
+        return "0"
     if t.max is None:
         return roman(t.min)
     return f"{roman(t.min)} – {roman(t.max)}"
@@ -109,11 +112,11 @@ GEMS_NEW_RATES_FROM = date(2026, 11, 26)
 GEMS_PER_TASK_BEFORE = 5
 GEMS_PER_LEVEL = 10        # the first time a member reaches each new level
 # Extra, the first time a member reaches each rank: the higher the rank, the bigger the reward.
-RANK_GEMS = {"low": 0, "bronze": 25, "silver": 50, "gold": 100, "platinum": 150, "emerald": 200, "sapphire": 300,
+RANK_GEMS = {"low": 0, "member": 0, "bronze": 25, "silver": 50, "gold": 100, "platinum": 150, "emerald": 200, "sapphire": 300,
              "ruby": 400, "diamond": 500, "obsidian": 750, "legendary": 1000}
 GEMS_FOR_LEGENDARY = RANK_GEMS["legendary"]
 # The daily streak chest: claim once a day while your streak is alive. Higher ranks get more.
-DAILY_CLAIM = {"low": 0, "bronze": 3, "silver": 4, "gold": 5, "platinum": 6, "emerald": 8, "sapphire": 10, "ruby": 12,
+DAILY_CLAIM = {"low": 0, "member": 0, "bronze": 3, "silver": 4, "gold": 5, "platinum": 6, "emerald": 8, "sapphire": 10, "ruby": 12,
                "diamond": 15, "obsidian": 20, "legendary": 25}
 
 

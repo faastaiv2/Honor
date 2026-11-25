@@ -65,7 +65,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
           <span className="wc-badge"><RankBadge color={t.color} label={p.label} size={56} /></span>
         </div>
         <h2 className="profile-name">{p.member.name}</h2>
-        <p className="profile-title"><RankIcon rank={t.key} /> {t.name} member</p>
+        <p className="profile-title"><RankIcon rank={t.key} /> {t.key === "member" ? "Member" : `${t.name} member`}</p>
         <div className="fat-bar" style={{ width: "min(100%, 340px)" }}><i style={{ width: `${pct}%` }} /></div>
         <p className="note" style={{ margin: 0 }}>{p.next ? <>{p.next.needed} more to <RankIcon rank={p.next.name} /> {p.next.name}</> : p.legendary ? <><RankIcon rank="legendary" /> You hold Legendary</> : "XLIX is the top without the Legendary quest"}</p>
         <div className="wc-stats" style={{ width: "100%" }}>

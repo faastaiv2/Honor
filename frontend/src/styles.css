@@ -1843,3 +1843,5 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .ev-rules li { line-height: 1.45; }
 .an-when { grid-column: 1 / -1; }
 .an-when input { max-width: 160px; }
+.bx-start { margin: 14px 0 0; padding: 12px 16px; border-radius: 16px; background: linear-gradient(135deg, #fff6e0, #ffe8c0); color: #4a2c00; font-weight: 700; }
+@media (prefers-color-scheme: dark) { .bx-start { background: linear-gradient(135deg, #3a2c10, #2a1f0a); color: #f3d98a; } }

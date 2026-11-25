@@ -56,6 +56,8 @@ function Gem({ x, y, s, c, cut = "round" }: { x: number; y: number; s: number; c
 const LOOKS: Record<string, Look> = {
   low: { metal: ["#c9c9c9", "#8a8a8a", "#5a5a5a"], field: ["#9a9a9a", "#5e5e5e"],
     front: () => <path d="M30 14 L34 24 L28 31 L35 40 L31 50" fill="none" stroke="#3a3a3a" strokeWidth="1.6" strokeLinejoin="round" /> },
+  member: { metal: ["#e8eef3", "#8a9aa8", "#4e5c68"], field: ["#a8b6c2", "#5e6c78"],
+    front: () => <><circle cx="32" cy="30" r="7" fill="none" stroke="#e8eef3" strokeWidth="2" /><path d="M32 23 V37 M25 30 H39" stroke="#e8eef3" strokeWidth="1.4" opacity=".6" /></> },
   bronze: { metal: ["#f6c896", "#b0703a", "#6e4018"], field: ["#c98a4e", "#7a4a1e"],
     front: () => <><path d="M18 30 L32 22 L46 30 V35 L32 27 L18 35 Z" fill="#f3c590" stroke="#6e4018" strokeWidth=".8" />
       {[[20, 18], [44, 18], [32, 47]].map(([x, y]) => <circle key={`${x}${y}`} cx={x} cy={y} r="1.6" fill="#f6d2a8" stroke="#6e4018" strokeWidth=".5" />)}</> },

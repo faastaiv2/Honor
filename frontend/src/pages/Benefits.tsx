@@ -48,15 +48,16 @@ function RankDetail({ t, state, needed, avatar }: { t: Tier; state: "done" | "he
         <div>
           <p className="bx-kicker">{state === "here" ? "Your rank" : state === "done" ? "Reached ✓" : state === "ahead" ? "🔒 Locked" : "Rank"}</p>
           <h2>{t.name}</h2>
-          <p className="bx-levels">{t.key === "legendary" ? "Earned through the Legendary quest" : `Levels ${romanRange(t)}`}</p>
+          <p className="bx-levels">{t.key === "legendary" ? "Earned through the Legendary quest" : t.key === "member" ? "Level 0 · where everyone starts" : `Levels ${romanRange(t)}`}</p>
           {state === "ahead" && needed !== undefined && needed > 0 && <p className="bx-need">{needed} more level{needed === 1 ? "" : "s"} to unlock</p>}
         </div>
       </div>
 
+      {t.key === "member" && <p className="bx-start">👋 Welcome! Finish every task for one day to reach <b>Bronze I</b>, your first rank, with its own crest, frame, theme and gems.</p>}
       <div className="bx-stats">
-        <Stat tone="gem" icon={<Gem size={34} />} label="Arrival reward" big={<>+{t.gems ?? 0} <Gem /></>}
-          note={t.achievement ? `Once, the first time you reach it. Plus the “${t.achievement.name}” achievement: +${t.achievement.gems} more` : "Once, the first time you reach it"} />
-        <Stat tone="fire" icon={<Brazier size={38} />} label="Daily streak chest" big={<>+{t.daily ?? 0} <Gem /> <span className="bx-per">a day</span></>} note="While your streak is alive" />
+        {t.key !== "member" && <Stat tone="gem" icon={<Gem size={34} />} label="Arrival reward" big={<>+{t.gems ?? 0} <Gem /></>}
+          note={t.achievement ? `Once, the first time you reach it. Plus the “${t.achievement.name}” achievement: +${t.achievement.gems} more` : "Once, the first time you reach it"} />}
+        {t.key !== "member" && <Stat tone="fire" icon={<Brazier size={38} />} label="Daily streak chest" big={<>+{t.daily ?? 0} <Gem /> <span className="bx-per">a day</span></>} note="While your streak is alive" />}
         <Stat icon="🎮" label="Game / YouTube time" big={games} note={gamesNote} />
         <Stat icon="🔁" label="Make-ups" big={mu} note={muNote} />
       </div>

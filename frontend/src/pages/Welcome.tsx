@@ -164,7 +164,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
           <p className="wc-salam">As-salāmu ʿalaykum · {hello}</p>
           <h1>Welcome, {p.member.name}!</h1>
           <div className="wc-titles">
-            <p className="wc-title"><RankIcon rank={t.key} /> {t.name} member</p>
+            <p className="wc-title"><RankIcon rank={t.key} /> {t.key === "member" ? "Member" : `${t.name} member`}</p>
             {place && (
               <Link to="/leaderboard" className={`wc-place p${Math.min(place.rank, 4)}`} title="Your place on the leaderboard">
                 <b>#{place.rank}</b><span>of {place.of}</span>
