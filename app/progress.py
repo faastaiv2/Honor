@@ -8,7 +8,7 @@ Rules (from the family's Honor rules):
 - A Legendary member who does not complete their tasks on 3 days in a row (weekdays; the weekend
   is optional) is demoted to 🔮 Obsidian (XLVII) and can never receive Legendary again.
 
-Gems: 1 for each task and the bonus ticked and 20 for finishing every task of the day (5 per task before
+Gems: 20 for finishing every task of the day (5 per task before
 26 Nov 2026); 10 for each level reached for the first time; more for each rank reached for the first time
 (growing with the rank, 1000 for Legendary). Falling and climbing back earns nothing twice.
 """

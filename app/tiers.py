@@ -102,7 +102,7 @@ def tier_range(t: Tier) -> str:
 
 
 # ---------------------------------------------------------------- rewards and the shop
-GEMS_PER_TASK = 1          # each task and the bonus ticked, once per day
+GEMS_PER_TASK = 0          # ticking a task gives no gems; finishing the whole day does
 GEMS_FOR_FULL_DAY = 20     # extra when every task of the day is done
 # Before this day tasks paid 5 gems each and there was no full-day reward (so nobody's balance shrinks).
 GEMS_NEW_RATES_FROM = date(2026, 11, 26)

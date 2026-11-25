@@ -61,7 +61,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
           <div className="perk-grid">
             <Perk icon="🎮" title="Game / YouTube time" text={current.games} />
             <Perk icon="🔁" title="Make-ups" text={current.benefits === "None" ? "No make-ups yet. Reach Silver to make up a missed task the next day." : current.benefits} />
-            <Perk icon={<Gem />} title="Gems" text={`${gems?.per_task ?? 1} per task, +${gems?.full_day ?? 20} for finishing the whole day, +${gems?.per_level ?? 10} for each new level.`} />
+            <Perk icon={<Gem />} title="Gems" text={`+${gems?.full_day ?? 20} for finishing every task in a day, +${gems?.per_level ?? 10} for each new level, more for new ranks and achievements.`} />
             <Perk icon={<Brazier />} title="Daily streak chest" text={`+${current.daily ?? 0} gems a day while your streak is alive. Higher ranks get bigger chests.`} />
           </div>
           <Unlocks tier={current} profile={p} />

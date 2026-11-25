@@ -56,7 +56,7 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
 }
 
 export default function Today({ info }: { info: TodayInfo | null }) {
-  const perTask = info?.gems.per_task ?? 1, fullDay = info?.gems.full_day ?? 20;
+  const perTask = info?.gems.per_task ?? 0, fullDay = info?.gems.full_day ?? 20;
   const { viewer } = useAuth();
   const [members, setMembers] = useState<SignInMember[]>([]);
   const [memberId, setMemberId] = useState<string | null>(viewer?.is_admin ? null : viewer?.id ?? null);
@@ -182,7 +182,7 @@ export default function Today({ info }: { info: TodayInfo | null }) {
       {t.next_day && <i className={`night${t.counted_today ? " ok" : ""}`} title="Read at night: it counts for the next day">
         🌙 for tomorrow · {t.counted_today ? "last night's counted ✓" : "not read last night"}</i>}
       {extra}
-      {pops[t.key] && <span className="gem-pop" key={pops[t.key]} aria-hidden="true">+{perTask} <Gem /></span>}
+      {perTask > 0 && pops[t.key] && <span className="gem-pop" key={pops[t.key]} aria-hidden="true">+{perTask} <Gem /></span>}
     </label>
   );
 

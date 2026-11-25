@@ -73,7 +73,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
           <h2>Shop &amp; style</h2>
           <span className="gem-wallet"><Gem /> {p.gems.balance}</span>
         </div>
-        <p className="note">Your rank unlocks its own frame and theme for free. Buy extra ones with gems: +1 <Gem /> per task, +20 <Gem /> for finishing the whole day, and your daily streak chest.</p>
+        <p className="note">Your rank unlocks its own frame and theme for free. Buy extra ones with gems: +20 <Gem /> for finishing every task in a day, plus your streak chest and achievements.</p>
         <div className="seg" role="tablist">
           {TABS.map((x) => <button key={x.kind} role="tab" aria-selected={tab === x.kind} className={tab === x.kind ? "on" : ""} onClick={() => setTab(x.kind)}>{x.label}</button>)}
         </div>

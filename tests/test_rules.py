@@ -143,9 +143,8 @@ def test_surah_mulk_counts_for_the_next_day():
     assert days(no_mulk, FULL)[d2] == -1
 
 
-def test_gems_a_little_per_task_and_a_prize_for_the_full_day():
+def test_gems_only_for_the_full_day():
     thu = date(2026, 11, 26)  # the new rates start here
     half = FULL[:5]
     p = simulate(10, {thu: (FULL, ""), thu + timedelta(days=1): (half, "")}, {}, [], thu, thu + timedelta(days=2), 1)
-    paid = [k for k in FULL if k != "gate"]  # the pledge itself earns no gems
-    assert p.gems_tasks == len(paid) * 1 + 20 + len([k for k in half if k != "gate"]) * 1
+    assert p.gems_tasks == 20  # nothing per task, 20 for the full day, nothing for the half day

@@ -76,9 +76,9 @@ function WeekStrip({ days }: { days: Profile["week_days"] }) {
 
 function cheer(done: number, of: number, weekend: boolean): string {
   if (of && done >= of) return "All done! MashaAllah, Honor earned today 🌟";
-  if (weekend && done === 0) return "It's the weekend: tasks are optional, but they still earn gems.";
-  if (done === 0) return "Bismillah! Tick your first task to start earning gems.";
-  if (done / of < 0.5) return "Good start! Every task is a gem, and finishing them all is a big gem prize.";
+  if (weekend && done === 0) return "It's the weekend: tasks are optional, but a full day still earns +20 gems.";
+  if (done === 0) return "Bismillah! Tick your first task to start the day.";
+  if (done / of < 0.5) return "Good start! Finish them all for +20 gems.";
   if (of - done <= 3) return `Almost there! Just ${of - done} more to go.`;
   return "Great progress, keep it up!";
 }
@@ -92,6 +92,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
   const memberId = info?.viewer.id;
   const prev = useRef<Profile | null>(null);
   const [claimMsg, setClaimMsg] = useState("");
+  const [place, setPlace] = useState<{ rank: number; of: number; ahead: string | null; gap: number } | null>(null);
   async function claim() {
     try {
       const np = await api.claimDaily();
@@ -125,6 +126,12 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       setP(np);
     }).catch(() => undefined);
     api.day(memberId).then(setDay).catch(() => undefined);
+    api.leaderboard().then((b) => {
+      const me = b.rows.find((r) => r.is_me);
+      if (!me) return;
+      const above = [...b.rows].filter((r) => r.rank < me.rank).sort((x, y) => y.rank - x.rank)[0];
+      setPlace({ rank: me.rank, of: b.rows.length, ahead: above ? (above.member.name) : null, gap: above ? above.level - me.level : 0 });
+    }).catch(() => undefined);
   }, [memberId, changes, info?.tiers.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!p) return <section className="welcome-card skeleton" aria-busy="true" />;
@@ -146,7 +153,16 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
         <div className="wc-hello">
           <p className="wc-salam">As-salāmu ʿalaykum · {hello}</p>
           <h1>Welcome, {p.member.name}!</h1>
-          <p className="wc-title"><RankIcon rank={t.key} /> {t.name} member</p>
+          <div className="wc-titles">
+            <p className="wc-title"><RankIcon rank={t.key} /> {t.name} member</p>
+            {place && (
+              <Link to="/leaderboard" className={`wc-place p${Math.min(place.rank, 4)}`} title="Your place on the leaderboard">
+                <b>#{place.rank}</b><span>of {place.of}</span>
+              </Link>
+            )}
+          </div>
+          {place && <p className="wc-place-note">{place.rank === 1 ? "You're top of the family! 🏆"
+            : place.gap > 0 ? `${place.gap} level${place.gap === 1 ? "" : "s"} behind ${place.ahead}` : `Level with ${place.ahead}`}</p>}
         </div>
         <div className="wc-ring"><Ring done={done} of={of} /></div>
       </div>
