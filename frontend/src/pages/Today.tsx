@@ -80,11 +80,12 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
   );
 }
 
-export default function Today({ info }: { info: TodayInfo | null }) {
+export default function Today({ info, member }: { info: TodayInfo | null; member?: string }) {
   const perTask = info?.gems.per_task ?? 0, fullDay = info?.gems.full_day ?? 20;
   const { viewer } = useAuth();
   const [members, setMembers] = useState<SignInMember[]>([]);
-  const [memberId, setMemberId] = useState<string | null>(viewer?.is_admin ? null : viewer?.id ?? null);
+  const [memberId, setMemberId] = useState<string | null>(member ?? (viewer?.is_admin ? null : viewer?.id ?? null));
+  const embedded = !!member; // shown inside the admin's member list
   const [date, setDate] = useState<string | undefined>(undefined);
   const [view, setView] = useState<DayView | null>(null);
   const [excuse, setExcuse] = useState("");
@@ -94,7 +95,7 @@ export default function Today({ info }: { info: TodayInfo | null }) {
   const saving = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(() => {
-    if (!viewer?.is_admin) return;
+    if (!viewer?.is_admin || embedded) return;
     api.signInList().then((ms) => { setMembers(ms); setMemberId((cur) => cur ?? ms[0]?.id ?? null); }).catch(() => undefined);
   }, [viewer]);
 
@@ -219,11 +220,11 @@ export default function Today({ info }: { info: TodayInfo | null }) {
   );
 
   return (
-    <section className={`card${view.editable ? "" : " locked"}`} aria-labelledby="tasks-h">
-      <div className="row" style={{ justifyContent: "space-between" }}>
+    <section className={`${embedded ? "day-embedded" : "card"}${view.editable ? "" : " locked"}`} aria-labelledby={embedded ? undefined : "tasks-h"} aria-label={embedded ? `${view.member.name}'s tasks` : undefined}>
+      {!embedded && <div className="row" style={{ justifyContent: "space-between" }}>
         <h2 id="tasks-h" style={{ marginBottom: 0 }}>Daily tasks{viewer?.is_admin ? "" : ` · ${view.member.name}`}</h2>
-      </div>
-      {viewer?.is_admin && (
+      </div>}
+      {viewer?.is_admin && !embedded && (
         <div className="chips" role="group" aria-label="Member" style={{ marginTop: 12 }}>
           {members.map((m) => (
             <button key={m.id} className={`chip${m.id === memberId ? " on" : ""}`} onClick={() => setMemberId(m.id)}>{m.name}</button>

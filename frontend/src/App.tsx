@@ -1,3 +1,4 @@
+import AdminHome from "./pages/AdminHome";
 import FirstRun from "./pages/FirstRun";
 import Achievements from "./pages/Achievements";
 import { useEffect, useState } from "react";
@@ -70,7 +71,7 @@ export default function App() {
         <div className="wrap">
           <Routes>
             <Route path="/" element={viewer.is_admin
-              ? <div className="main"><Today info={info} /><Leaderboard info={info} /></div>
+              ? <div className="main"><AdminHome info={info} /><Leaderboard info={info} /></div>
               : <div className="home"><Welcome info={info} /><Today info={info} /></div>} />
             <Route path="/leaderboard" element={<Leaderboard info={info} full />} />
             <Route path="/history" element={viewer.is_admin ? <HistoryPage /> : <Navigate to="/profile" />} />

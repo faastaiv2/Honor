@@ -1360,3 +1360,26 @@ label.task > span:not(.gem-pop) { flex: 1 1 auto; min-width: 0; }
 .shop-item.epic::before { content: "Epic"; position: absolute; top: -10px; left: 50%; translate: -50% 0; padding: 1px 10px; border-radius: 999px;
   background: linear-gradient(180deg, #e6dcff, #a88aff); color: #2a0a50; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 2px 6px #0003; }
 .shop-item.epic .shop-name { color: light-dark(#4a2a90, #d8c8ff); }
+
+/* Admin home: members collapsed, tap to open their day */
+.ah-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ah-head h2 { margin: 0; }
+.ah-sum { font-weight: 800; color: var(--mute); font-size: 14px; }
+.ah-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.ah-item { border-radius: 16px; background: var(--soft); border: 2px solid transparent; border-left: 5px solid var(--tc); overflow: hidden; }
+.ah-item.open { background: var(--paper); border-color: color-mix(in srgb, var(--tc) 40%, var(--line)); border-left-color: var(--tc); }
+.ah-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-height: 64px; border: 0; border-radius: 0; background: transparent; text-align: start; font-weight: 400; color: var(--ink); }
+.ah-name { flex: 1; min-width: 0; display: grid; }
+.ah-name b { font-size: 17px; }
+.ah-name small { font-size: 12.5px; font-weight: 700; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ah-prog { display: grid; justify-items: end; gap: 4px; width: 96px; }
+.ah-prog b { font-size: 15px; } .ah-prog b.ok { color: var(--good); }
+.ah-bar { width: 100%; height: 8px; border-radius: 999px; background: var(--soft2); overflow: hidden; }
+.ah-bar i { display: block; height: 100%; border-radius: inherit; background: var(--tc); }
+.ah-pending { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #1b2550; color: #e8ecff; white-space: nowrap; }
+.ah-chev { font-size: 24px; font-weight: 800; color: var(--mute); transition: transform .2s; }
+.ah-item.open .ah-chev { transform: rotate(90deg); }
+.ah-body { padding: 0 12px 12px; animation: fade .2s both; }
+.day-embedded { display: block; }
+@media (max-width: 520px) { .ah-prog { width: 70px; } .ah-pending { display: none; } }
+label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
