@@ -120,7 +120,9 @@ DAILY_CLAIM = {"low": 0, "bronze": 3, "silver": 4, "gold": 5, "platinum": 6, "em
 def tier_dict(t: Tier) -> dict:
     return {"key": t.key, "min": t.min if t.key != "low" else None, "max": t.max, "emoji": t.emoji, "name": t.name,
             "color": t.color, "range": tier_range(t), "games": t.games, "benefits": t.benefits,
-            "gems": RANK_GEMS.get(t.key, 0), "daily": DAILY_CLAIM.get(t.key, 0)}
+            "gems": RANK_GEMS.get(t.key, 0), "daily": DAILY_CLAIM.get(t.key, 0),
+            "frame": next(({"key": k, "name": n} for k, n, r, _ in FRAMES if r == t.key), None),
+            "theme": next(({"key": k, "name": n} for k, n, r, _ in THEMES if r == t.key), None)}
 
 # Each rank unlocks its own frame and theme for free. Others are bought with gems.
 # (key, name, unlocked by rank key, or None if it is bought; price in gems)

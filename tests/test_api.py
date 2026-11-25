@@ -516,6 +516,19 @@ def test_special_period_pauses_and_shrinks_tasks(client, family, db):
         assert client.delete(f"/api/admin/periods/{pid}", headers=ha).status_code == 204
 
 
+def test_special_period_for_chosen_members_only(client, family, db):
+    ha = auth(client, admin=True)
+    a, b = at_today()
+    with a, b:
+        r = client.post("/api/admin/periods", headers=ha, json={"name": "Sick week", "start": TODAY.isoformat(),
+                        "end": TODAY.isoformat(), "off": ["lap"], "members": [family["A"].id]})
+        assert r.status_code == 201 and r.json()["members"] == [family["A"].id]
+        keys = lambda m: [t["key"] for g in client.get(f"/api/board/day?member_id={m.id}", headers=ha).json()["groups"] for t in g["tasks"]]
+        assert "lap" not in keys(family["A"]) and "lap" in keys(family["B"])
+        assert client.post("/api/admin/periods", headers=ha, json={"name": "x", "start": TODAY.isoformat(),
+                           "end": TODAY.isoformat(), "off": ["lap"], "members": ["nobody"]}).status_code == 400
+
+
 def test_member_excuses_one_task_with_a_reason(client, family, db):
     mulk_last_night(db, family["A"])
     h, ha = auth(client, family["A"]), auth(client, admin=True)

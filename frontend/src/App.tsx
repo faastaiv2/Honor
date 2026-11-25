@@ -57,7 +57,7 @@ export default function App() {
           </div>
           <nav className="tabs scroll" aria-label="Sections">
             <NavLink to="/" end>Today</NavLink>
-            <NavLink to="/leaderboard">Leaderboard</NavLink>
+            {!viewer.is_admin && <NavLink to="/leaderboard">Leaderboard</NavLink>}
             {!viewer.is_admin && <NavLink to="/achievements">Achievements</NavLink>}
             <NavLink to="/events">Events</NavLink>
             {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Profile</NavLink>}

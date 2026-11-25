@@ -93,6 +93,7 @@ class Period(Base):
     end: Mapped[date] = mapped_column(Date)
     off: Mapped[list] = mapped_column(JSON, default=list)  # task keys that are paused
     numbers: Mapped[dict] = mapped_column(JSON, default=dict)  # task key -> fixed number during the period
+    members: Mapped[list] = mapped_column(JSON, default=list)  # who it applies to; empty = everyone
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

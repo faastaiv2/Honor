@@ -5,7 +5,8 @@ const TOKEN_KEY = "honor.token";
 export interface Viewer { kind: "admin" | "member"; id: string; name: string; is_admin: boolean; theme?: string }
 export interface SignInMember { id: string; name: string; avatar: string; frame: string; has_pin: boolean }
 export interface Score { gain: number; bonus: number; cut: number; delta: number; done: number; of: number; weekend: boolean; excused: boolean }
-export interface Tier { key: string; min: number | null; max: number | null; emoji: string; name: string; color: string; range: string; games: string; benefits: string; gems?: number; daily?: number }
+export interface Tier { key: string; min: number | null; max: number | null; emoji: string; name: string; color: string; range: string; games: string; benefits: string; gems?: number; daily?: number;
+  frame?: { key: string; name: string } | null; theme?: { key: string; name: string } | null }
 export interface Week { number: number; start: string; days_left: number }
 export interface Status {
   level: number; label: string; tier: Tier; legendary: boolean; banned: boolean; pending: number;
@@ -68,7 +69,7 @@ export interface EventsInfo {
   today: string; clock: string; open: boolean; banners: string[]; event: ArtEvent | null; next: ArtEvent | null; upcoming: ArtEvent[];
   suggested_day: string; current: EventEntry[]; mine: EventEntry | null; past: (ArtEvent & { judged: boolean; entries: EventEntry[] })[];
 }
-export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number> }
+export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number>; members: string[] }
 export interface Period extends PeriodIn { id: string }
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 

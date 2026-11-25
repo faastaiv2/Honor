@@ -113,7 +113,7 @@ def progress_for(db: Session, cfg: AppSettings, members: list[Member], today: da
             if any(d == qd and (at is None or created < at) for qd, at in quests):
                 continue
             adj[d] = adj.get(d, 0) + delta
-        out[m.id] = simulate(m.base_honor, mine, adj, starts, start, today, cfg.cut_misses, week_from, tasks, periods)
+        out[m.id] = simulate(m.base_honor, mine, adj, starts, start, today, cfg.cut_misses, week_from, tasks, scoring.for_member(periods, m.id))
     return out
 
 

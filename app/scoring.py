@@ -190,6 +190,11 @@ class DayScore:
         return self.gain + self.bonus + self.cut
 
 
+def for_member(periods: list | None, member_id: str) -> list:
+    """The special periods that apply to one member (a period with no members chosen applies to everyone)."""
+    return [p for p in (periods or []) if not (getattr(p, "members", None) or []) or member_id in p.members]
+
+
 def day_plan(specs: list, periods: list | None, d: date) -> list:
     """The tasks that apply on day `d`: special periods (like Ramadan) can pause tasks or fix a smaller number."""
     if not periods:

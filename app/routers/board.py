@@ -131,7 +131,7 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
     log = db.scalar(select(DayLog).where(DayLog.member_id == member.id, DayLog.day == d))
     done = set(log.tasks if log else [])
     skip = dict(log.task_excuses or {}) if log else {}
-    periods = [x for x in load_periods(db) if x.start <= d <= x.end]
+    periods = [x for x in scoring.for_member(load_periods(db), member.id) if x.start <= d <= x.end]
     late = dict(log.late or {}) if log else {}
     excuse = log.excuse if log else ""
     i = scoring.day_index(d)
@@ -197,7 +197,7 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
         raise HTTPException(403, "You can only mark your own tasks")
     if body.date > today:
         raise HTTPException(403, "That day has not started yet")
-    specs = scoring.day_plan(load_tasks(db), load_periods(db), body.date)
+    specs = scoring.day_plan(load_tasks(db), scoring.for_member(load_periods(db), m.id), body.date)
     tasks = {k for k in body.tasks if k in {"gate", "bonus"} | {t.key for t in specs}}
     log = db.scalar(select(DayLog).where(DayLog.member_id == m.id, DayLog.day == body.date))
     before = set(log.tasks if log else [])
@@ -275,9 +275,10 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     prog = progress_for(db, cfg, members, today)
     yesterday = today - timedelta(days=1)
     logs = logs_between(db, yesterday, today)
-    specs = scoring.day_plan(load_tasks(db), load_periods(db), today)
+    all_tasks, all_periods = load_tasks(db), load_periods(db)
     rows = []
     for m in members:
+        specs = scoring.day_plan(all_tasks, scoring.for_member(all_periods, m.id), today)
         p = prog[m.id]
         log, prev = logs.get((m.id, today)), logs.get((m.id, yesterday))
         counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, specs,
@@ -330,7 +331,7 @@ def history(days: int = Query(default=14, ge=1, le=62), v: Viewer = Depends(curr
                 cells.append({"state": "pre"})
                 continue
             log, prev = logs.get((m.id, d)), logs.get((m.id, d - timedelta(days=1)))
-            plan = scoring.day_plan(specs, periods, d)
+            plan = scoring.day_plan(specs, scoring.for_member(periods, m.id), d)
             counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, plan, first_day=d == first)
             s = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, plan,
                                   (log.task_excuses or {}) if log else None)
@@ -391,7 +392,7 @@ def _week_days(db: Session, cfg, m: Member, today: date) -> list[dict]:
         if d > today or d < first:
             state = "future" if d > today else "pre"
         else:
-            plan = scoring.day_plan(specs, periods, d)
+            plan = scoring.day_plan(specs, scoring.for_member(periods, m.id), d)
             counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, plan, first_day=d == first)
             sc = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, plan,
                                    (log.task_excuses or {}) if log else None)

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { api, ApiError, type Period, type PeriodIn, type TaskDef } from "../api";
+import { api, ApiError, type AdminMember, type Period, type PeriodIn, type TaskDef } from "../api";
+import Avatar from "../lib/Avatar";
 import { fmt } from "../lib/dates";
 import { notifyChanged, useToast } from "../lib/events";
 
@@ -135,7 +136,7 @@ function TaskRow({ t, first, last, groups, onSaved, onError }: { t: TaskDef; fir
 type Mode = "normal" | "off" | "less";
 
 /** Set up a special period: name, dates, and what happens to each task. */
-function PeriodEditor({ tasks, initial, onSave, onCancel, onDelete }: { tasks: TaskDef[]; initial?: Period; onSave: (p: PeriodIn) => Promise<void>; onCancel: () => void; onDelete?: () => void }) {
+function PeriodEditor({ tasks, people, initial, onSave, onCancel, onDelete }: { tasks: TaskDef[]; people: AdminMember[]; initial?: Period; onSave: (p: PeriodIn) => Promise<void>; onCancel: () => void; onDelete?: () => void }) {
   const today = new Date().toISOString().slice(0, 10);
   const [name, setName] = useState(initial?.name ?? "Ramadan");
   const [start, setStart] = useState(initial?.start ?? today);
@@ -145,6 +146,12 @@ function PeriodEditor({ tasks, initial, onSave, onCancel, onDelete }: { tasks: T
   const [nums, setNums] = useState<Record<string, string>>(() => Object.fromEntries(tasks.map((t) => [t.key,
     String(initial?.numbers[t.key] ?? Math.max(1, Math.round((t.number_today ?? 2) / 2)))])));
   const [sure, setSure] = useState(false);
+  const [who, setWho] = useState<string[]>(initial?.members ?? []); // empty = everyone
+  const everyone = who.length === 0;
+  const toggle = (id: string) => setWho((w) => {
+    const next = w.includes(id) ? w.filter((x) => x !== id) : [...w, id];
+    return next.length === people.length ? [] : next; // all picked = everyone
+  });
   const groups = [...new Set(tasks.map((t) => t.group))];
   const setAll = (keys: string[], m: Mode) => setModes((x) => ({ ...x, ...Object.fromEntries(keys.map((k) => [k, m])) }));
   const off = tasks.filter((t) => modes[t.key] === "off").length, less = tasks.filter((t) => modes[t.key] === "less").length;
@@ -153,7 +160,7 @@ function PeriodEditor({ tasks, initial, onSave, onCancel, onDelete }: { tasks: T
   async function submit(e: FormEvent) {
     e.preventDefault();
     await onSave({ name: name.trim(), start, end, off: tasks.filter((t) => modes[t.key] === "off").map((t) => t.key),
-      numbers: Object.fromEntries(tasks.filter((t) => modes[t.key] === "less").map((t) => [t.key, Number(nums[t.key]) || 0])) });
+      numbers: Object.fromEntries(tasks.filter((t) => modes[t.key] === "less").map((t) => [t.key, Number(nums[t.key]) || 0])), members: who });
   }
 
   return (
@@ -162,6 +169,18 @@ function PeriodEditor({ tasks, initial, onSave, onCancel, onDelete }: { tasks: T
         <label className="field"><span className="field-label">Name</span><input required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ramadan" /></label>
         <label className="field"><span className="field-label">From</span><input type="date" required value={start} onChange={(e) => setStart(e.target.value)} /></label>
         <label className="field"><span className="field-label">To</span><input type="date" required min={start} value={end} onChange={(e) => setEnd(e.target.value)} /></label>
+      </div>
+      <div className="pd-who">
+        <span className="field-label">Who is it for?</span>
+        <div className="pd-who-list" role="group" aria-label="Who the period applies to">
+          <button type="button" className={`pd-chip${everyone ? " on" : ""}`} aria-pressed={everyone} onClick={() => setWho([])}>👨‍👩‍👧‍👦 Everyone</button>
+          {people.map((m) => (
+            <button type="button" key={m.id} className={`pd-chip${who.includes(m.id) ? " on" : ""}`} aria-pressed={who.includes(m.id)} onClick={() => toggle(m.id)}>
+              <Avatar avatar={m.avatar} color="#8a5a2b" size={22} /> {m.name}
+            </button>
+          ))}
+        </div>
+        <span className="field-hint">{everyone ? "Applies to all members" : `Only for ${people.filter((m) => who.includes(m.id)).map((m) => m.name).join(", ")}`}</span>
       </div>
       <p className="note" style={{ margin: 0 }}>{days} day{days === 1 ? "" : "s"} · {off} paused · {less} lighter. Everything is back to normal the day after.</p>
       <div className="pd-quick">
@@ -200,6 +219,8 @@ function PeriodEditor({ tasks, initial, onSave, onCancel, onDelete }: { tasks: T
 function Periods({ tasks, onError, onSaved }: { tasks: TaskDef[]; onError: (s: string) => void; onSaved: (s: string) => void }) {
   const [list, setList] = useState<Period[] | null>(null);
   const [editing, setEditing] = useState<string | "new" | null>(null);
+  const [people, setPeople] = useState<AdminMember[]>([]);
+  useEffect(() => { api.members().then((ms) => setPeople(ms.filter((m) => m.active))).catch(() => undefined); }, []);
   const reload = useCallback(() => { api.periods().then(setList).catch((e) => onError(msg(e))); }, [onError]);
   useEffect(reload, [reload]);
   const today = new Date().toISOString().slice(0, 10);
@@ -212,13 +233,13 @@ function Periods({ tasks, onError, onSaved }: { tasks: TaskDef[]; onError: (s: s
         <div><h3>Special periods</h3><p className="note">Pause tasks or make them lighter for a while, like in Ramadan or on a trip.</p></div>
         {editing === null && <button onClick={() => setEditing("new")}>＋ Add period</button>}
       </div>
-      {editing === "new" && <PeriodEditor tasks={tasks} onCancel={() => setEditing(null)} onSave={(b) => run(() => api.addPeriod(b), `${b.name} added`)} />}
+      {editing === "new" && <PeriodEditor tasks={tasks} people={people} onCancel={() => setEditing(null)} onSave={(b) => run(() => api.addPeriod(b), `${b.name} added`)} />}
       {list?.length === 0 && editing !== "new" && <p className="note">No special periods. Every task runs as normal.</p>}
       <ul className="pd-list">
         {list?.map((p) => {
           const state = today < p.start ? "coming" : today > p.end ? "over" : "now";
           return editing === p.id ? (
-            <li key={p.id}><PeriodEditor tasks={tasks} initial={p} onCancel={() => setEditing(null)}
+            <li key={p.id}><PeriodEditor tasks={tasks} people={people} initial={p} onCancel={() => setEditing(null)}
               onSave={(b) => run(() => api.editPeriod(p.id, b), "Period saved")} onDelete={() => run(() => api.deletePeriod(p.id), "Period deleted")} /></li>
           ) : (
             <li key={p.id} className={`pd-item ${state}`}>
@@ -226,6 +247,7 @@ function Periods({ tasks, onError, onSaved }: { tasks: TaskDef[]; onError: (s: s
                 <b>{p.name}</b> <span className={`pd-state ${state}`}>{state === "now" ? "On now" : state === "coming" ? "Coming" : "Over"}</span>
                 <p className="note" style={{ margin: "2px 0 0" }}>{fmt(p.start, { day: "numeric", month: "short" })} – {fmt(p.end, { day: "numeric", month: "short", year: "numeric" })}</p>
                 <div className="tk-tags" style={{ marginTop: 6 }}>
+                  <span className="tk-tag who">{p.members.length ? `👤 ${people.filter((m) => p.members.includes(m.id)).map((m) => m.name).join(", ") || "Chosen members"}` : "👨‍👩‍👧‍👦 Everyone"}</span>
                   {p.off.map((k) => <span key={k} className="tk-tag sick">Off · {label(k)}</span>)}
                   {Object.entries(p.numbers).map(([k, n]) => <span key={k} className="tk-tag grow">{label(k)} → {n}</span>)}
                 </div>

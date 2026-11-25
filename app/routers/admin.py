@@ -373,6 +373,7 @@ class PeriodIn(BaseModel):
     end: date
     off: list[str] = Field(default_factory=list, max_length=60)  # tasks paused during the period
     numbers: dict[str, int] = Field(default_factory=dict)  # task -> smaller fixed number during the period
+    members: list[str] = Field(default_factory=list, max_length=60)  # who it applies to; empty = everyone
 
     @field_validator("numbers")
     @classmethod
@@ -384,7 +385,8 @@ class PeriodIn(BaseModel):
 
 def _period_out(p: Period) -> dict:
     return {"id": p.id, "name": p.name, "start": p.start.isoformat(), "end": p.end.isoformat(),
-            "off": list(p.off or []), "numbers": dict(p.numbers or {})}
+            "off": list(p.off or []), "numbers": dict(p.numbers or {}),
+            "members": list(p.members or [])}
 
 
 def _check_period(body: PeriodIn, db: Session) -> None:
@@ -396,6 +398,9 @@ def _check_period(body: PeriodIn, db: Session) -> None:
     unknown = (set(body.off) | set(body.numbers)) - keys
     if unknown:
         raise HTTPException(400, f"Unknown task: {', '.join(sorted(unknown))}")
+    ids = set(db.scalars(select(Member.id)))
+    if set(body.members) - ids:
+        raise HTTPException(400, "Unknown member")
     if not body.off and not body.numbers:
         raise HTTPException(400, "Pause at least one task or give one a smaller number")
 
@@ -409,7 +414,7 @@ def list_periods(_: Viewer = Depends(require_admin), db: Session = Depends(get_d
 def add_period(body: PeriodIn, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
     _check_period(body, db)
     p = Period(name=body.name.strip(), start=body.start, end=body.end, off=sorted(set(body.off) - set(body.numbers)),
-               numbers=body.numbers)
+               numbers=body.numbers, members=sorted(set(body.members)))
     db.add(p)
     db.commit()
     return _period_out(p)
@@ -423,6 +428,7 @@ def edit_period(period_id: str, body: PeriodIn, _: Viewer = Depends(require_admi
     _check_period(body, db)
     p.name, p.start, p.end = body.name.strip(), body.start, body.end
     p.off, p.numbers = sorted(set(body.off) - set(body.numbers)), body.numbers
+    p.members = sorted(set(body.members))
     db.commit()
     return _period_out(p)
 
