@@ -57,7 +57,7 @@ def test_member_marks_own_day_and_scores(client, family):
     assert alpha["level"] == 10 + 2 - 2 and alpha["label"] == "X" and alpha["is_me"]
     assert alpha["tier"]["name"] == "Great Honor" and alpha["week_delta"] == 0
     assert rows[0]["member"]["name"] == "Sierra" and rows[0]["rank"] == 1
-    assert board["week"] == {"number": 5, "start": "2026-11-22", "days_left": 4}
+    assert board["week"] == {"number": 1, "start": "2026-11-22", "days_left": 4}  # scoring began 22 Nov
     assert board["weekly"][0]["member_id"] == family["A"].id
 
 
@@ -305,3 +305,11 @@ def test_one_missed_task_cuts_honor(client, family):
         assert r.json()["score"]["cut"] == -1 and r.json()["score"]["delta"] == -1
         today = client.put("/api/board/day", headers=h, json={"member_id": family["B"].id, "date": TODAY.isoformat(), "tasks": nearly})
         assert today.json()["score"]["cut"] == 0  # today is still open
+
+
+def test_week_number_counts_from_scoring_start():
+    from app.services import week_info
+    start = date(2026, 11, 25)  # a Wednesday: its week (from Sunday 22 Nov) is Week 1
+    assert week_info(date(2026, 11, 28), start)["number"] == 1
+    assert week_info(date(2026, 11, 29), start)["number"] == 2  # next Sunday
+    assert week_info(date(2026, 12, 13), start)["number"] == 4

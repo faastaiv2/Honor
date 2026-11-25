@@ -74,7 +74,7 @@ def today_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db
     i = scoring.day_index(t)
     count, dhikr = scoring.bonus_parts(i)
     return {
-        "today": t.isoformat(), "day_number": i + 1, "weekend": scoring.is_weekend(t), "week": week_info(t),
+        "today": t.isoformat(), "day_number": i + 1, "weekend": scoring.is_weekend(t), "week": week_info(t, cfg.score_from),
         "bonus": {"count": count, "dhikr": dhikr},
         "rules": {"cut_misses": cfg.cut_misses, "score_from": cfg.score_from.isoformat(), "timezone": cfg.timezone},
         "tiers": [tier_dict(x) for x in TIERS],
@@ -212,7 +212,7 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
             rank, prev = i + 1, key
         r["rank"] = rank
     weekly = sorted(rows, key=lambda r: (-r["week_delta"], -r["level"], r["member"]["name"].lower()))
-    return {"week": week_info(today), "rows": rows,
+    return {"week": week_info(today, cfg.score_from), "rows": rows,
             "weekly": [{"member_id": r["member"]["id"], "week_delta": r["week_delta"]} for r in weekly]}
 
 

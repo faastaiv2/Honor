@@ -11,7 +11,6 @@ from app.models import Adjustment, AppSettings, DayLog, Member
 from app.progress import Progress, simulate
 from app.tiers import tier_for
 
-WEEK_ONE = week_start(scoring.PROGRAM_START)
 
 
 def get_settings_row(db: Session) -> AppSettings:
@@ -34,10 +33,11 @@ def today_for(cfg: AppSettings) -> date:
     return datetime.now(zone(cfg)).date()
 
 
-def week_info(today: date) -> dict:
+def week_info(today: date, score_from: date) -> dict:
+    """Week 1 is the week (Sunday to Saturday) in which the board started scoring."""
     start = week_start(today)
-    return {"number": (start - WEEK_ONE).days // 7 + 1, "start": start.isoformat(),
-            "days_left": (start + timedelta(days=6) - today).days}
+    number = max(1, (start - week_start(score_from)).days // 7 + 1)
+    return {"number": number, "start": start.isoformat(), "days_left": (start + timedelta(days=6) - today).days}
 
 
 def active_members(db: Session) -> list[Member]:
