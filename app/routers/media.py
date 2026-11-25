@@ -21,7 +21,8 @@ KEYS = {
     "quest-crack",   # Legendary quest film: the crest shatters
     "rankup-music",  # rank-up film: music
     "chest",         # a treasure chest is tapped open
-    "gems",          # gems pour onto the heap (day complete)
+    "gems",          # gems rain onto the heap (day complete)
+    "gems-crack",    # the floor cracks under the heap
     "collect",       # gems fly into the wallet
     "achievement",   # an achievement is collected
     "event-win",     # winning a place in an art tournament

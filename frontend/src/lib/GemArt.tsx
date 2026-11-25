@@ -40,3 +40,26 @@ export default function GemArt({ tone = "blue", glint = true }: { tone?: "blue" 
     </svg>
   );
 }
+
+const HEX: Record<string, string[]> = {
+  // top face, light side, mid side, dark side, outline
+  blue: ["#8fdcff", "#5cc4ff", "#36a8f0", "#1f86d8", "#1670cc"],
+  sky: ["#b4ecff", "#7fd6ff", "#4cbaf5", "#2c9ae6", "#1a82d8"],
+  deep: ["#79c4ff", "#4aa6ff", "#2f86ec", "#1f68d0", "#1450b8"],
+};
+
+/** A chunky hexagonal gem nugget, the kind that piles up in a heap. View box 0 0 40 40. */
+export function HexGem({ tone = "blue", glint = false }: { tone?: "blue" | "sky" | "deep"; glint?: boolean }) {
+  const c = HEX[tone];
+  return (
+    <svg viewBox="0 0 40 40" aria-hidden="true" className="gem-art hex">
+      <path d="M20 2 L36 11 L36 29 L20 38 L4 29 L4 11 Z" fill={c[2]} stroke={c[4]} strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M4 11 L20 2 L36 11 L20 19 Z" fill={c[0]} />
+      <path d="M4 11 L20 19 L20 38 L4 29 Z" fill={c[1]} />
+      <path d="M36 11 L20 19 L20 38 L36 29 Z" fill={c[3]} />
+      <path d="M11 9 L19 5 L22 7 L14 11 Z" fill="#fff" opacity=".85" />
+      <path d="M7 15 L9 16 L9 25 L7 24 Z" fill="#fff" opacity=".35" />
+      {glint && <path className="gem-glint" d="M31 3 L32 6 L35 7 L32 8 L31 11 L30 8 L27 7 L30 6 Z" fill="#fff" />}
+    </svg>
+  );
+}

@@ -140,8 +140,9 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         <>{slot("chest", "Chest opens", "Plays when the chest is tapped open")}
           {slot("collect", "Collect", "Plays when gems fly into the wallet (every gem reward)")}</>)}
 
-      {card("💎", "Day complete", "Every task done: a heap of gems appears.", () => setPreview({ kind: "gems" }),
-        slot("gems", "Gems appear", "Plays as the heap of gems appears"))}
+      {card("💎", "Gem rain", "Day complete and achievements: gems rain down, pile up, the floor cracks and a few tumble off.", () => setPreview({ kind: "gems" }),
+        <>{slot("gems", "Gems rain down", "Plays as the gems start falling")}
+          {slot("gems-crack", "Floor cracks", "Plays when the heap lands and the floor cracks")}</>)}
 
       {card("🏅", "Achievement collected", "Collecting an achievement's gems in the Achievements tab.", () => setPreview({ kind: "achievement" }),
         slot("achievement", "Achievement", "Plays as the achievement's gems appear"))}

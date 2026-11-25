@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Gem from "./Gem";
-import GemArt from "./GemArt";
+import GemArt, { HexGem } from "./GemArt";
 import { Particles } from "./particles";
 import { playSound } from "./sounds";
 import type { SoundKey } from "../api";
@@ -84,6 +84,42 @@ function heapSpots(n: number) {
   return out;
 }
 
+/** A tall cone of nuggets for the gem rain: wide at the bottom, each row a little narrower, packed and overlapping. */
+function coneSpots(n: number) {
+  const rows: number[] = [];
+  for (let w = 1; rows.reduce((a, b) => a + b, 0) < n; w++) rows.unshift(w);
+  const widest = rows[0], h = rows.length;
+  const size = Math.min(24, 124 / widest); // % of the heap box, overlapping a little
+  const out: { x: number; y: number; r: number; s: number; tone: "blue" | "sky" | "deep"; size: number; spill: number }[] = [];
+  let left = n;
+  rows.forEach((count, row) => {
+    for (let i = 0; i < count && left > 0; i++, left--) {
+      const j = ((row * 7 + i * 13) % 7) - 3;
+      out.push({
+        x: 50 + (i - (count - 1) / 2) * (size * 0.7) + j * 0.5,
+        y: 97 - row * Math.min(size * 0.72, 80 / Math.max(h - 1, 1)),
+        r: ((i * 37 + row * 23) % 40) - 20,
+        s: 0.92 + ((i + row) % 3) * 0.06,
+        tone: (["blue", "sky", "deep"] as const)[(i * 2 + row) % 3],
+        size,
+        spill: 0,
+      });
+    }
+  });
+  // A few gems on the slopes tumble off when the floor cracks (-1 left, 1 right; 2 rests in front).
+  const edge = (side: number, row: number) => {
+    const idx = out.findIndex((g, k) => k >= rows.slice(0, row).reduce((a, b) => a + b, 0) && (side < 0 ? g.x < 50 : g.x > 50));
+    if (idx < 0) return;
+    const sameRow = out.filter((_, k) => k >= rows.slice(0, row).reduce((a, b) => a + b, 0) && k < rows.slice(0, row + 1).reduce((a, b) => a + b, 0));
+    const pick = side < 0 ? sameRow[0] : sameRow[sameRow.length - 1];
+    if (pick && !pick.spill) pick.spill = side;
+  };
+  edge(-1, 1); edge(1, 1); edge(1, 3); edge(-1, 4);
+  const front = out.find((g, k) => k >= rows[0] && !g.spill && g.x < 50);
+  if (front) front.spill = 2;
+  return out;
+}
+
 export interface GemRewardProps {
   amount: number;
   title?: string;
@@ -97,7 +133,9 @@ export interface GemRewardProps {
 export default function GemReward({ amount, title, from, chest = false, jewel, sound, onDone }: GemRewardProps) {
   const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const n = Math.max(6, Math.min(24, Math.round(Math.sqrt(amount) * 2.4)));
-  const spots = useMemo(() => heapSpots(n), [n]);
+  const rain = !chest; // gems rain down onto the floor, pile up, and the floor cracks under them
+  const spots = useMemo(() => (rain ? coneSpots(Math.max(36, Math.min(55, Math.round(Math.sqrt(amount) * 6)))) : heapSpots(n)), [n, rain, amount]);
+  const [cracked, setCracked] = useState(!rain || reduced);
   const [phase, setPhase] = useState<"ready" | "burst" | "heap" | "fly" | "done">(chest && !reduced ? "ready" : "heap");
   const [shown, setShown] = useState(reduced ? amount : 0);
   const [wallet, setWallet] = useState(from ?? 0);
@@ -144,11 +182,24 @@ export default function GemReward({ amount, title, from, chest = false, jewel, s
     else if (!chest || reduced) void playSound("gems");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // "+N" counts up while the heap builds, with glints as gems land.
+  // The rain: when the last gem lands, the floor cracks, the heap sinks a little and a few gems tumble off.
+  const rainMs = 380 + spots.length * 30 + 620;
   useEffect(() => {
-    if (phase !== "heap" || reduced) return;
+    if (!rain || reduced || cracked) return;
+    const t = window.setTimeout(() => {
+      setCracked(true);
+      void playSound("gems-crack");
+      const e = engine.current, h = heapRef.current?.getBoundingClientRect();
+      if (e && h) e.burst("sparkle", 40, ["#9aa8b4", "#cfd8df", "#ffffff"], { x: h.left + h.width / 2, y: h.top + h.height * 0.98 });
+    }, rainMs);
+    return () => clearTimeout(t);
+  }, [rain, reduced, cracked, rainMs]);
+
+  // "+N" counts up while the heap builds (after the crack, for the rain), with glints as gems land.
+  useEffect(() => {
+    if (phase !== "heap" || reduced || !cracked) return;
     const e = engine.current, h = heapRef.current?.getBoundingClientRect();
-    const glints = spots.map((s, i) => window.setTimeout(() => {
+    const glints = (rain ? [] : spots).map((s, i) => window.setTimeout(() => {
       if (e && h && i % 3 === 0) e.burst("sparkle", 8, SPARK, { x: h.left + (h.width * s.x) / 100, y: h.top + (h.height * s.y) / 100 - 20 });
     }, 560 + i * 70));
     const start = performance.now(), len = 400 + n * 70;
@@ -160,7 +211,7 @@ export default function GemReward({ amount, title, from, chest = false, jewel, s
     };
     raf = requestAnimationFrame(step);
     return () => { cancelAnimationFrame(raf); glints.forEach(clearTimeout); };
-  }, [phase, amount, n, reduced, spots]);
+  }, [phase, amount, n, reduced, spots, cracked, rain]);
 
   function collect() {
     void playSound("collect");
@@ -191,22 +242,35 @@ export default function GemReward({ amount, title, from, chest = false, jewel, s
       </span>
       <div className="gr-card">
         {title && <p className="gr-title">{title}</p>}
-        <p className="gr-amount">{chest && !showGems ? <span className="gr-opening">{phase === "ready" ? "Tap the chest to open" : "\u00a0"}</span> : <>+{shown} <Gem size={44} /></>}</p>
-        <div className="gr-heap" ref={heapRef} style={fly ? { ["--dx" as string]: `${fly.dx}px`, ["--dy" as string]: `${fly.dy}px` } : undefined}>
+        <p className="gr-amount">{chest && !showGems ? <span className="gr-opening">{phase === "ready" ? "Tap the chest to open" : "\u00a0"}</span>
+          : !cracked ? <span className="gr-opening">{"\u00a0"}</span> : <>+{shown} <Gem size={44} /></>}</p>
+        <div className={`gr-heap${rain ? " rain" : ""}${cracked && rain ? " cracked" : ""}`} ref={heapRef} style={fly ? { ["--dx" as string]: `${fly.dx}px`, ["--dy" as string]: `${fly.dy}px` } : undefined}>
           {chest && (
             <button type="button" className="gr-chest-btn" onClick={open} disabled={phase !== "ready"} aria-label="Open the chest">
               <Chest state={phase === "ready" ? "closed" : "open"} jewel={jewel} />
             </button>
           )}
           {showGems && <span className="gr-pedestal" />}
-          {showGems && spots.map((s, i) => (
-            <span key={i} className="gr-gem" style={{
-              left: `${s.x}%`, top: `${s.y}%`, ["--r" as string]: `${s.r}deg`, ["--s" as string]: s.s,
-              animationDelay: phase === "fly" ? `${(n - i) * 35}ms` : `${(chest ? 0 : 120) + i * 70}ms`,
-            }}><GemArt tone={s.tone} glint={i % 4 === 0} /></span>
-          ))}
+          {rain && <svg className="gr-cracks" viewBox="0 0 200 50" aria-hidden="true">
+            <path d="M22 18 L2 24 L-6 38 L16 40 L30 30 Z" /><path d="M34 32 L18 44 L30 56 L58 52 L62 40 Z" />
+            <path d="M66 42 L58 56 L92 60 L96 46 Z" /><path d="M104 46 L102 60 L138 58 L134 44 Z" />
+            <path d="M142 40 L140 54 L170 56 L182 44 L166 32 Z" /><path d="M178 18 L170 30 L184 40 L206 38 L198 24 Z" />
+            <path d="M8 14 L-8 16 L-4 24 Z" /><path d="M192 14 L208 17 L204 24 Z" />
+            <path className="gr-crack-line" d="M30 30 L44 36 M60 40 L66 46 M96 46 L104 48 M134 44 L142 42 M166 32 L178 28" />
+          </svg>}
+          {showGems && spots.map((s, i) => {
+            const g = s as typeof s & { size?: number; spill?: number };
+            return (
+              <span key={i} className={`gr-gem${g.spill ? ` spill-${g.spill < 0 ? "l" : g.spill === 2 ? "f" : "r"}` : ""}`} style={{
+                left: `${s.x}%`, top: `${s.y}%`, ["--r" as string]: `${s.r}deg`, ["--s" as string]: s.s,
+                ...(g.size ? { width: `${g.size}%` } : {}),
+                ["--fx" as string]: `${((i * 53) % 60) - 30}px`,
+                animationDelay: phase === "fly" ? `${(spots.length - i) * 25}ms` : rain ? `${380 + i * 30}ms` : `${(chest ? 0 : 120) + i * 70}ms`,
+              }}>{rain ? <HexGem tone={s.tone} glint={i % 6 === 0} /> : <GemArt tone={s.tone} glint={i % 4 === 0} />}</span>
+            );
+          })}
         </div>
-        <button className={`gr-collect${phase === "heap" ? "" : " wait"}`} onClick={collect} disabled={phase !== "heap"} aria-hidden={phase !== "heap"}>Collect</button>
+        <button className={`gr-collect${phase === "heap" && cracked ? "" : " wait"}`} onClick={collect} disabled={phase !== "heap" || !cracked} aria-hidden={phase !== "heap" || !cracked}>Collect</button>
       </div>
     </div>,
     document.body,
