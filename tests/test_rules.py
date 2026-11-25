@@ -150,20 +150,3 @@ def test_gems_only_for_the_full_day():
     half = FULL[:5]
     p = simulate(10, {thu: (FULL, ""), thu + timedelta(days=1): (half, "")}, {}, [], thu, thu + timedelta(days=2), 1)
     assert p.gems_tasks == 20  # nothing per task, 20 for the full day, nothing for the half day
-
-
-def test_rank_gems_come_from_the_achievement_after_the_cutover():
-    from datetime import date
-    from app.achievements import BY_KEY as ACHIEVEMENT_BY_KEY, Facts, reward_for
-    from app.tiers import GEMS_PER_LEVEL, RANK_GEMS
-    silver = ACHIEVEMENT_BY_KEY["silver"]
-    # Silver reached before the cutover: paid automatically, achievement keeps its small reward.
-    from datetime import timedelta as td
-    sick = lambda a, b: {a + td(days=i): ([], "sick") for i in range((b - a).days + 1)}  # noqa: E731  (no cuts)
-    old = simulate(3, sick(date(2026, 11, 22), date(2026, 11, 25)), {date(2026, 11, 24): 1}, [], date(2026, 11, 22), date(2026, 11, 25), 5)
-    assert old.gems_levels == GEMS_PER_LEVEL + RANK_GEMS["silver"] and "silver" in old.ranks_paid
-    assert reward_for(silver, Facts(p=old, gems_earned=0, purchases=0, chests=0)) == silver.gems
-    # Silver reached after it: only the level gems arrive; the achievement pays Silver's 50.
-    new = simulate(3, sick(date(2026, 11, 22), date(2026, 11, 28)), {date(2026, 11, 27): 1}, [], date(2026, 11, 22), date(2026, 11, 28), 5)
-    assert new.gems_levels == GEMS_PER_LEVEL and "silver" not in new.ranks_paid and "silver" in new.ranks_reached
-    assert reward_for(silver, Facts(p=new, gems_earned=0, purchases=0, chests=0)) == RANK_GEMS["silver"]

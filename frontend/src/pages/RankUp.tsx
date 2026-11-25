@@ -6,7 +6,6 @@ import type { Profile, Tier } from "../api";
 import Avatar from "../lib/Avatar";
 import RankIcon from "../lib/RankIcon";
 import ThemePreview from "../lib/ThemePreview";
-import Medal from "../lib/Medal";
 import { api } from "../api";
 import { notifyChanged } from "../lib/events";
 import { Particles } from "../lib/particles";
@@ -283,14 +282,8 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
             )}
             <div className="ru-rw-card wide gems" style={{ animationDelay: "1.5s" }}>
               <span className="ru-rw-ico"><Gem size={34} /></span>
-              <div><span className="ru-rw-tag">Gems</span><b>+{reward} gems for your new level{reward > 10 ? "s" : ""}</b></div>
+              <div><span className="ru-rw-tag">Gems</span><b>+{reward} gems for reaching {tier.name}</b></div>
             </div>
-            {tier.achievement && (tier.gems ?? 0) > 0 && (
-              <div className="ru-rw-card wide ach" style={{ animationDelay: "1.7s" }}>
-                <span className="ru-rw-ico"><Medal icon={tier.achievement.icon} tier={tier.achievement.tier} size={44} /></span>
-                <div><span className="ru-rw-tag">Achievement unlocked</span><b>{tier.achievement.name} · +{tier.gems} gems</b><small>Collect it in the Achievements tab</small></div>
-              </div>
-            )}
           </div>
           <button className="ru-collect" onClick={() => setStage("gems")}>
             <span className="ru-collect-gem"><Gem size={34} /></span>

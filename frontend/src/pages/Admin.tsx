@@ -384,7 +384,7 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
         </aside>
       </div>
 
-      {preview && <RankUp tier={preview} name="Preview" profile={null} reward={preview.key === "legendary" ? 0 : info?.gems.per_level ?? 10} onClose={() => setPreview(null)} />}
+      {preview && <RankUp tier={preview} name="Preview" profile={null} reward={(info?.gems.per_rank[preview.key] ?? 0) + (preview.key === "legendary" ? 0 : info?.gems.per_level ?? 10)} onClose={() => setPreview(null)} />}
       {questPreview && <QuestFilm name="Preview" preview onClose={() => setQuestPreview(false)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
