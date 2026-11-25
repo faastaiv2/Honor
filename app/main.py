@@ -1,10 +1,10 @@
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
 from app.config import DEFAULT_SECRET, get_settings
@@ -30,8 +30,26 @@ def ensure_first_admin() -> None:
             db.commit()
 
 
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def run_migrations() -> None:
+    """Bring the database up to date. On Vercel this runs when a new instance starts."""
+    from alembic import command
+    from alembic.config import Config
+
+    cfg = Config(str(ROOT / "alembic.ini"))
+    cfg.set_main_option("script_location", str(ROOT / "alembic"))
+    command.upgrade(cfg, "head")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    if settings.run_migrations:
+        try:
+            run_migrations()
+        except Exception:  # keep serving; the error shows in the logs and /api/health
+            logging.getLogger("honor").exception("Database migration failed")
     ensure_first_admin()
     yield
 
@@ -62,17 +80,11 @@ def api_not_found(rest: str):
     return JSONResponse({"detail": "Not found"}, status_code=404)
 
 
-# The built website is served by the same server, so one Render service hosts everything.
-_static = Path(settings.static_dir) if settings.static_dir else None
-if _static and (_static / "index.html").exists():
-    app.mount("/assets", StaticFiles(directory=_static / "assets"), name="assets")
-
-    @app.get("/{path:path}", include_in_schema=False)
-    def spa(path: str):
-        f = (_static / path).resolve()
-        if path and f.is_file() and _static.resolve() in f.parents:
-            return FileResponse(f)
-        return FileResponse(_static / "index.html", headers={"Cache-Control": "no-cache"})
+# The built website (frontend/dist). On Vercel these files are served from the CDN;
+# any path that is not a file gets index.html so the React app can route it.
+_site = ROOT / "frontend" / "dist"
+if (_site / "index.html").exists():
+    app.frontend("/", directory=str(_site), fallback="index.html")
 else:
     @app.get("/", include_in_schema=False)
     def root() -> dict:

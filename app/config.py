@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     access_token_days: int = 30  # family devices stay signed in for a month
     bcrypt_rounds: int = 12  # tests lower it for speed
     cors_origins: str = "http://localhost:5173"
-    # Folder with the built website (frontend/dist). In the Docker image it is /app/static.
-    static_dir: str | None = None
+    # Apply database migrations when the server starts (tests switch this off).
+    run_migrations: bool = True
 
     # First run only: the first parent (admin) account is created from these, if no admin exists yet.
     admin_email: str | None = None

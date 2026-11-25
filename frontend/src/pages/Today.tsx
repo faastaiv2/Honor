@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, ApiError, type DayView, type SignInMember, type TaskItem } from "../api";
+import { api, ApiError, type DayView, type SignInMember, type TaskItem, type TodayInfo } from "../api";
 import { useAuth } from "../auth";
 import { addDays, fmt } from "../lib/dates";
 import { notifyChanged, useToast } from "../lib/events";
 
-function allKeys(v: DayView): string[] {
+function doneKeys(v: DayView): string[] {
   const keys = v.groups.flatMap((g) => g.tasks.filter((t) => t.done).map((t) => t.key));
   if (v.pledge?.done) keys.push("gate");
   if (v.bonus.done) keys.push("bonus");
@@ -21,7 +21,37 @@ function withToggled(v: DayView, key: string, on: boolean): DayView {
   };
 }
 
-export default function Today() {
+function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQuest: () => void }) {
+  const st = view.status;
+  const [sure, setSure] = useState(false);
+  return (
+    <div className="perks" style={{ ["--tc" as string]: st.tier.color }}>
+      <div className="perks-top">
+        <span className="perks-medal">{st.tier.emoji}</span>
+        <div>
+          <b>{st.tier.name} · {st.label}</b>
+          <div className="note" style={{ margin: 0 }}>
+            {st.next ? `${st.next.needed} more to ${st.next.emoji} ${st.next.name}` : st.legendary ? "The highest honor" : st.tier.key === "diamond" ? "XLIX is the top without the Legendary quest" : ""}
+          </div>
+        </div>
+      </div>
+      <p><span aria-hidden="true">🎮</span> {st.tier.games}</p>
+      <p><span aria-hidden="true">🎁</span> {st.tier.benefits}</p>
+      {st.quest.active && <p className="quest">👑 Legendary quest, day {st.quest.days + 1}: finish every task <b>and</b> the bonus every day until L.</p>}
+      {st.quest.broken_on && !st.quest.active && st.tier.key !== "honor" && <p className="note">The last Legendary quest ended on {fmt(st.quest.broken_on, { day: "numeric", month: "short" })}.</p>}
+      {st.banned && <p className="note">Legendary Honor was lost and cannot be received again.</p>}
+      {st.can_start_quest && canAct && (
+        <div className="quest">
+          <p style={{ margin: "0 0 8px" }}>👑 <b>Legendary quest.</b> Give up {st.tier.emoji} {st.tier.name}, start again from 🥉 I, and finish <b>every task and every bonus, every day</b> until L. One missed day ends the quest.</p>
+          <button className="primary" onClick={() => (sure ? onQuest() : setSure(true))}>{sure ? "Yes, give up my Diamond title and start" : "Start the Legendary quest"}</button>
+          {sure && <button className="link" onClick={() => setSure(false)}>Not now</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Today({ info }: { info: TodayInfo | null }) {
   const { viewer } = useAuth();
   const [members, setMembers] = useState<SignInMember[]>([]);
   const [memberId, setMemberId] = useState<string | null>(viewer?.is_admin ? null : viewer?.id ?? null);
@@ -29,6 +59,7 @@ export default function Today() {
   const [view, setView] = useState<DayView | null>(null);
   const [excuse, setExcuse] = useState("");
   const [error, setError] = useState("");
+  const [picking, setPicking] = useState(false);
   const [toast, setToast] = useToast();
   const saving = useRef<Promise<unknown>>(Promise.resolve());
 
@@ -44,22 +75,25 @@ export default function Today() {
   }, [memberId, date]);
   useEffect(load, [load]);
 
-  function save(next: DayView, nextExcuse: string) {
+  function save(next: DayView, nextExcuse: string): Promise<DayView | undefined> {
     // One save at a time, in order, so quick taps never overwrite each other.
-    saving.current = saving.current.then(() =>
-      api.saveDay(next.member.id, next.date, allKeys(next), nextExcuse)
-        .then((saved) => { setView((cur) => (cur && cur.date === saved.date && cur.member.id === saved.member.id ? { ...cur, score: saved.score } : cur)); notifyChanged(); return saved; })
-        .catch((e) => { setError(e instanceof ApiError ? e.message : "Could not save. Check your connection."); load(); }));
-    return saving.current;
+    const p = saving.current.then(() =>
+      api.saveDay(next.member.id, next.date, doneKeys(next), nextExcuse)
+        .then((saved) => { setView(saved); notifyChanged(); return saved; })
+        .catch((e) => { setError(e instanceof ApiError ? e.message : "Could not save. Check your connection."); load(); return undefined; }));
+    saving.current = p;
+    return p;
   }
 
   function toggle(key: string, on: boolean) {
     if (!view) return;
+    setError("");
     const next = withToggled(view, key, on);
     setView(next);
     save(next, excuse).then((saved) => {
-      const s = (saved as DayView | undefined)?.score;
+      const s = saved?.score;
       if (on && s && s.done === s.of && s.gain) setToast("All tasks done — Honor received! 🏆");
+      else if (on && saved?.mode === "makeup") setToast("Made up ✔");
     });
   }
 
@@ -69,24 +103,44 @@ export default function Today() {
   const today = view.today;
   const s = view.score;
   const isToday = view.date === today;
-  const row = (t: TaskItem, cls = "", label: React.ReactNode = t.label, extra?: React.ReactNode) => (
-    <label key={t.key} className={`task ${cls}${t.done ? " done" : ""}`}>
-      <input type="checkbox" checked={t.done} disabled={!view.editable} onChange={(e) => toggle(t.key, e.target.checked)} />
-      <span>{label}</span>{extra}
+  const makeup = view.mode === "makeup";
+  const isMe = viewer?.kind === "member" && viewer.id === view.member.id;
+
+  const canTick = (t: TaskItem, isBonus = false) => {
+    if (view.mode === "open" || view.mode === "admin") return true;
+    if (!makeup) return false;
+    if (isBonus) return false;
+    if (t.done) return !!t.late || t.key === "gate";
+    return t.key === "gate" || view.makeup_left > 0;
+  };
+  const row = (t: TaskItem, cls = "", label: React.ReactNode = t.label, extra?: React.ReactNode, isBonus = false) => (
+    <label key={t.key} className={`task ${cls}${t.done ? " done" : ""}${canTick(t, isBonus) ? "" : " off"}`}>
+      <input type="checkbox" checked={t.done} disabled={!canTick(t, isBonus)} onChange={(e) => toggle(t.key, e.target.checked)} />
+      <span>{label}</span>{t.late && <i className="late">made up</i>}{extra}
     </label>
   );
 
   return (
     <section className={`card${view.editable ? "" : " locked"}`} aria-labelledby="tasks-h">
-      <h2 id="tasks-h">Daily tasks{viewer?.is_admin ? "" : ` · ${view.member.name}`}</h2>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <h2 id="tasks-h" style={{ marginBottom: 0 }}>Daily tasks{viewer?.is_admin ? "" : ` · ${view.member.name}`}</h2>
+        {isMe && info && <button className="chip" onClick={() => setPicking((x) => !x)} aria-expanded={picking}>Avatar</button>}
+      </div>
+      {picking && info && (
+        <div className="chips avatars" role="group" aria-label="Choose your avatar">
+          {info.avatars.map((a) => (
+            <button key={a} className="chip" onClick={async () => { try { await api.setAvatar(a); setPicking(false); notifyChanged(); setToast("Avatar saved"); } catch (e) { setError(e instanceof ApiError ? e.message : "Could not save"); } }}>{a}</button>
+          ))}
+        </div>
+      )}
       {viewer?.is_admin && (
-        <div className="chips" role="group" aria-label="Member">
+        <div className="chips" role="group" aria-label="Member" style={{ marginTop: 12 }}>
           {members.map((m) => (
             <button key={m.id} className={`chip${m.id === memberId ? " on" : ""}`} onClick={() => setMemberId(m.id)}>{m.name}</button>
           ))}
         </div>
       )}
-      <div className="daynav">
+      <div className="daynav" style={{ marginTop: 12 }}>
         <button aria-label="Previous day" onClick={() => setDate(addDays(view.date, -1))}>‹</button>
         <b>{isToday ? "Today · " : view.date === addDays(today, -1) ? "Yesterday · " : ""}{fmt(view.date, { weekday: "short", day: "numeric", month: "short" })}</b>
         <button aria-label="Next day" disabled={view.date >= today} onClick={() => setDate(addDays(view.date, 1))}>›</button>
@@ -102,6 +156,9 @@ export default function Today() {
           <div className="meter"><i style={{ width: `${s.of ? (s.done / s.of) * 100 : 0}%` }} /></div>
         </div>
       </div>
+      {makeup && (
+        <p className="banner">🔁 <b>Make-up:</b> {view.makeup_left > 0 ? `you can still tick ${view.makeup_left} missed task${view.makeup_left === 1 ? "" : "s"} for this day.` : "no make-ups left for this day."} The bonus cannot be made up.</p>
+      )}
       {view.pledge ? row(view.pledge, "gate") : <p className="note" style={{ margin: "0 0 6px" }}>🎮 Weekend: games and YouTube allowed.</p>}
       {view.groups.map((g) => (
         <div key={g.name}>
@@ -111,14 +168,16 @@ export default function Today() {
       ))}
       <div className="grp">Bonus</div>
       {row({ key: "bonus", label: "", done: view.bonus.done }, "bonus",
-        <>{view.bonus.count} <span className="ar">{view.bonus.dhikr}</span></>, <em>+1 Honor</em>)}
-      <form className="row" style={{ marginTop: 14 }} onSubmit={(e) => { e.preventDefault(); save(view, excuse.trim()).then(() => { setToast(excuse.trim() ? "Excuse saved" : "Excuse cleared"); load(); }); }}>
+        <>{view.bonus.count} <span className="ar">{view.bonus.dhikr}</span></>, <em>+1 Honor</em>, true)}
+      <form className="row" style={{ marginTop: 14 }} onSubmit={(e) => { e.preventDefault(); save(view, excuse.trim()).then((ok) => ok && setToast(excuse.trim() ? "Excuse saved" : "Excuse cleared")); }}>
         <input className="grow" placeholder="Excused today? Reason (sick, knee pain…)" maxLength={120} value={excuse}
-          disabled={!view.editable} onChange={(e) => setExcuse(e.target.value)} aria-label="Reason for being excused" />
-        <button disabled={!view.editable}>Save reason</button>
+          disabled={!view.excuse_editable} onChange={(e) => setExcuse(e.target.value)} aria-label="Reason for being excused" />
+        <button disabled={!view.excuse_editable}>Save reason</button>
       </form>
-      {!view.editable && <p className="note">This day is locked. Only a parent can change older days.</p>}
+      {view.mode === "locked" && <p className="note">This day is locked. {view.date < today ? "Your rank does not allow making it up now; a parent can still change it." : ""}</p>}
       {error && <p className="err" role="alert">{error}</p>}
+      <Perks view={view} canAct={isMe || !!viewer?.is_admin}
+        onQuest={async () => { try { await api.startQuest(view.member.id); notifyChanged(); load(); setToast("The Legendary quest has begun 👑"); } catch (e) { setError(e instanceof ApiError ? e.message : "Could not start"); } }} />
       {toast && <div className="toast" role="status">{toast}</div>}
     </section>
   );

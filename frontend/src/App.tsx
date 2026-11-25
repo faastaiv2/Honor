@@ -55,7 +55,7 @@ export default function App() {
       <main className="band">
         <div className="wrap">
           <Routes>
-            <Route path="/" element={<div className="main"><Today /><Leaderboard info={info} /></div>} />
+            <Route path="/" element={<div className="main"><Today info={info} /><Leaderboard info={info} /></div>} />
             <Route path="/leaderboard" element={<Leaderboard info={info} />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/rules" element={<Rules info={info} />} />

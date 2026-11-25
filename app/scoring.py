@@ -162,42 +162,6 @@ def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, to
     return DayScore(gain, bonus, cut, len(req) - missed, len(req), weekend, excused)
 
 
-TIERS = [  # (minimum level, emoji, name, colour)
-    (50, "💎", "Legendary Honor", "#5b6bd6"),
-    (35, "👑", "Royal Honor", "#8a4fb3"),
-    (25, "🎗️", "Highest Honor", "#0d7680"),
-    (19, "🌟", "Higher Honor", "#d99a00"),
-    (13, "⭐", "High Honor", "#c58b12"),
-    (8, "🥇", "Great Honor", "#b8860b"),
-    (4, "🥈", "Good Honor", "#7d8a96"),
-    (1, "🥉", "Honor", "#a8673a"),
-    (-10**9, "👺", "Low Honor", "#b4322a"),
-]
-
-
-def tier_of(h: int) -> tuple[int, str, str, str]:
-    return next(t for t in TIERS if h >= t[0])
-
-
-def next_tier(h: int) -> tuple[int, str, str, str] | None:
-    above = [t for t in TIERS if t[0] > h]
-    return above[-1] if above else None
-
-
-def roman(n: int) -> str:
-    if n == 0:
-        return "0"
-    if n < 0:
-        return "−" + roman(-n)
-    out = ""
-    for v, s in [(1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"),
-                 (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]:
-        while n >= v:
-            out += s
-            n -= v
-    return out
-
-
 def date_range(start: date, end: date):
     d = start
     while d <= end:

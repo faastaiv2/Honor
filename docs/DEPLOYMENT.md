@@ -1,75 +1,93 @@
-# Put Honor online (step by step)
+# Put Honor online for free (Vercel + Neon)
 
-Honor runs as **one Render web service** (the Docker image holds both the website and the API)
-plus a **Render PostgreSQL** database. Every push to `main` redeploys automatically.
+| Piece | Service | Free plan |
+|---|---|---|
+| Website + API | **Vercel** (Hobby plan) | Free for personal, non-commercial use. No sleeping server: the API runs as a Vercel Function and the website is served from Vercel's CDN. |
+| Database | **Neon** Postgres | Free with no time limit, no card needed: 1 GB storage, 100 compute-hours a month (the database pauses itself when nobody uses it, so a family board uses very little). |
 
-The button labels on Render change from time to time. If one differs slightly, look for the closest match.
+Every push to `main` on GitHub redeploys automatically. Database tables are created and updated
+automatically when the app starts.
 
-**Cost:** the blueprint uses Render's paid `starter` web service and `basic-256mb` database,
-as in Quranic Light. Free web services fall asleep (the first visit takes about a minute) and free
-databases are deleted after a few weeks, so they are not suitable for the family's records.
-Check Render's pricing page for current prices.
+The button labels on Vercel and Neon change from time to time. If a label differs slightly, look for the closest match.
 
 ---
 
-## Step 1. Create the service and database on Render
+## Step 1. Import the repository into Vercel
 
-1. Sign in at **render.com** and connect your GitHub account (if it is not already connected for Quranic Light).
-2. **New +** → **Blueprint** → choose the **faastaiv2/Honor** repository. Render reads `render.yaml` and shows
-   a database (`honor-db`) and a web service (`honor`).
-3. It asks for the two values marked `sync: false`:
-   - `ADMIN_EMAIL`: your email (the first parent account)
-   - `ADMIN_PASSWORD`: a long, unique password
-4. **Apply** and wait for the first deploy (a few minutes; the Docker image builds the website and the API).
-5. Open the `honor` service, copy its address (like `https://honor-xxxx.onrender.com`), and visit
-   `.../api/health`. You should see `{"status":"ok","env":"production"}`.
+1. Go to **vercel.com** → **Sign Up** → **Continue with GitHub** (choose the free **Hobby** plan).
+2. **Add New… → Project** → find **faastaiv2/Honor** → **Import**.
+   (If it is not listed, click **Adjust GitHub App Permissions** and allow the Honor repository.)
+3. Vercel detects **FastAPI** by itself. Leave the settings as they are (`vercel.json` already builds the website).
+4. **Don't click Deploy yet.** First add the database and settings (Steps 2–3). If you already deployed, that's fine; you will redeploy at the end.
 
-> If Render complains about a plan name, open `render.yaml` and use a current plan name from Render's pricing page.
+## Step 2. Create the free Neon database
 
-## Step 2. First sign-in and settings
+Easiest way, from inside Vercel:
 
-1. Open the site's address, choose **Parent sign-in**, and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+1. Open the project → **Storage** tab → **Create Database** → **Neon** (Serverless Postgres) → **Continue**.
+2. Pick the **Free** plan and a region near you, name it `honor`, **Create**.
+3. **Connect** it to the Honor project (all environments). Vercel adds `DATABASE_URL` to the project automatically.
+
+(Alternatively, create a project at **neon.tech**, copy its connection string, and add it in Vercel as
+`DATABASE_URL` under **Settings → Environment Variables**.)
+
+## Step 3. Add the settings
+
+Project → **Settings → Environment Variables**, add for **Production** (and Preview):
+
+| Name | Value |
+|---|---|
+| `ENV` | `production` |
+| `SECRET_KEY` | a long random text, at least 32 characters (see below) |
+| `ADMIN_EMAIL` | your email (the first parent account) |
+| `ADMIN_PASSWORD` | a long, unique password |
+
+To make a `SECRET_KEY` in PowerShell:
+
+```powershell
+[Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
+## Step 4. Deploy
+
+**Deployments → … → Redeploy** (or **Deploy** if you have not deployed yet). After a minute you get an
+address like `https://honor-xxxx.vercel.app`.
+
+Check `https://honor-xxxx.vercel.app/api/health` shows `{"status":"ok","env":"production"}`.
+
+## Step 5. First sign-in and settings
+
+1. Open the address, choose **Parent sign-in**, sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 2. **Admin → Settings → Time zone**: set the family's time zone (for example `Asia/Riyadh`, `Asia/Karachi`,
-   `Europe/London`). Days change at midnight in this time zone, and a day is only scored once it is over.
-3. **Admin → Your password**: change the password. You can then remove `ADMIN_PASSWORD` from Render's
-   Environment tab (it is only used when no parent account exists yet).
+   `Europe/London`). Days change at midnight there, and a day is only scored once it is over.
+3. **Admin → Your password**: change the password. You can then delete `ADMIN_PASSWORD` from Vercel
+   (it is only used when no parent account exists yet).
 
-## Step 3. Add the members
+## Step 6. Add the members and import the sheet
 
-In **Admin → Members**, add each person with the **initials used in the sheet** and their **Base**
-(their Honor level on the day before scoring starts), and give each a 4–8 digit **PIN**.
+1. **Admin → Members**: add each person with the **initials used in the sheet**, their **Base** (their level
+   from the sheet on the day before scoring starts) and a 4–8 digit **PIN**. Set **Scoring starts** in Settings
+   to the day after those levels were recorded. (The family's names and levels are deliberately not kept in
+   this public repository.)
+2. **Admin → Import from the spreadsheet**: copy the sheet's rows, paste, choose the dates, **Import**.
 
-Use each person's **last level from the sheet** as their Base, and set **Admin → Settings → Scoring starts**
-to the day after that level was recorded. (The family's names and levels are deliberately not kept in this
-public repository.)
-
-## Step 4. Import recent days from the spreadsheet
-
-1. In the Google Sheet, select all the rows (including headers is fine) and copy.
-2. **Admin → Import from the spreadsheet**: paste, choose **From 19/11/2026** to the last day filled in, and **Import**.
-3. It reports how many entries it imported and any initials it did not recognize.
-
-## Step 5 (optional). Use your own address
-
-To use, for example, `honor.quranic.education`:
-
-1. Render → `honor` → **Settings → Custom Domains** → add `honor.quranic.education`.
-2. In Cloudflare DNS for `quranic.education`, add the **CNAME** record Render shows
-   (name `honor`, target `honor-xxxx.onrender.com`), **DNS only** (grey cloud) until Render shows the certificate as issued.
-
-## Step 6. Give the family the link
+## Step 7. Share it
 
 Members open the address on their phone, tap their name and type their PIN.
-Tip: "Add to Home Screen" in the phone's browser makes it feel like an app.
+"Add to Home Screen" in the phone's browser makes it feel like an app.
+
+### Optional: your own address
+
+To use `honor.quranic.education`: Vercel project → **Settings → Domains** → add it, then in Cloudflare DNS
+add the **CNAME** record Vercel shows (name `honor`), **DNS only** (grey cloud).
 
 ---
 
 ## Backups
 
-Render's paid PostgreSQL plans keep daily backups (see the database's **Backups** tab).
-To take your own copy, use **Connect → External** on the database and run `pg_dump` with that address.
+Neon keeps a short restore window on the free plan. For your own copy, open the Neon console →
+**Connect** → copy the connection string and run `pg_dump "<connection string>" > honor-backup.sql`.
 
 ## Updating
 
-Push to `main`. GitHub runs the tests; Render rebuilds and redeploys. Database changes are applied
-automatically on start (`alembic upgrade head`).
+Push to `main`. GitHub runs the tests; Vercel rebuilds and redeploys; the database is migrated on start.

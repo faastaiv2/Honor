@@ -32,6 +32,7 @@ class MemberPatch(BaseModel):
     pin: str | None = PIN
     sort_order: int | None = None
     active: bool | None = None
+    avatar: str | None = Field(default=None, max_length=16)
 
 
 class AdjustmentIn(BaseModel):
@@ -67,7 +68,7 @@ class ImportIn(BaseModel):
 
 def _member_out(m: Member) -> dict:
     return {"id": m.id, "name": m.name, "code": m.code, "base_honor": m.base_honor, "has_pin": bool(m.pin_hash),
-            "sort_order": m.sort_order, "active": m.active}
+            "sort_order": m.sort_order, "active": m.active, "avatar": m.avatar}
 
 
 @router.get("/members")

@@ -1,6 +1,7 @@
 import os
 
 os.environ.setdefault("BCRYPT_ROUNDS", "4")  # fast hashing in tests; must be set before the app is imported
+os.environ["RUN_MIGRATIONS"] = "false"  # tests build their own in-memory database
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

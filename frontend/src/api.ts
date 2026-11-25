@@ -5,29 +5,38 @@ const TOKEN_KEY = "honor.token";
 export interface Viewer { kind: "admin" | "member"; id: string; name: string; is_admin: boolean }
 export interface SignInMember { id: string; name: string; code: string; has_pin: boolean }
 export interface Score { gain: number; bonus: number; cut: number; delta: number; done: number; of: number; weekend: boolean; excused: boolean }
-export interface Tier { emoji: string; name: string; color: string; min: number | null }
+export interface Tier { key: string; min: number | null; max: number | null; emoji: string; name: string; color: string; range: string; games: string; benefits: string }
+export interface Week { number: number; start: string; days_left: number }
+export interface Status {
+  level: number; label: string; tier: Tier; legendary: boolean; banned: boolean;
+  quest: { active: boolean; start: string | null; days: number; broken_on: string | null };
+  can_start_quest: boolean;
+  next: { emoji: string; name: string; needed: number } | null;
+}
 export interface TodayInfo {
-  today: string; day_number: number; weekend: boolean;
+  today: string; day_number: number; weekend: boolean; week: Week;
   bonus: { count: string; dhikr: string };
   rules: { cut_misses: number; score_from: string; timezone: string };
-  tiers: Tier[]; viewer: Viewer;
+  tiers: Tier[]; avatars: string[]; viewer: Viewer;
 }
-export interface TaskItem { key: string; label: string; done: boolean; fitness?: boolean }
+export interface TaskItem { key: string; label: string; done: boolean; fitness?: boolean; late?: boolean }
 export interface DayView {
   member: { id: string; name: string }; date: string; today: string; weekend: boolean;
   pledge: TaskItem | null; groups: { name: string; tasks: TaskItem[] }[];
   bonus: { key: string; count: string; dhikr: string; done: boolean };
-  excuse: string; score: Score; editable: boolean; before_scoring: boolean;
+  excuse: string; score: Score; mode: "open" | "makeup" | "admin" | "locked"; editable: boolean; excuse_editable: boolean;
+  makeup_left: number; makeup_rule: string; before_scoring: boolean; status: Status;
 }
-export interface BoardRow {
-  rank: number; member: { id: string; name: string; code: string }; honor: number; level: string;
-  tier: Tier & { next: { emoji: string; name: string; min: number; needed: number } | null }; today: Score;
+export interface BoardRow extends Status {
+  rank: number; member: { id: string; name: string; code: string; avatar: string };
+  today: Score; week_delta: number; is_me: boolean;
 }
+export interface Board { week: Week; rows: BoardRow[]; weekly: { member_id: string; week_delta: number }[] }
 export interface History {
   dates: { date: string; weekend: boolean }[];
   rows: { member: { id: string; name: string }; cells: { state: string; delta?: number; done?: number; of?: number }[] }[];
 }
-export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean }
+export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean; avatar: string }
 export interface Adjustment { id: string; member_id: string; delta: number; note: string; created_at: string; created_by: string }
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 export interface AdminAccount { id: string; email: string; name: string }
@@ -78,7 +87,9 @@ export const api = {
   today: () => request<TodayInfo>("/board/today"),
   day: (memberId: string, date?: string) => request<DayView>(`/board/day?member_id=${encodeURIComponent(memberId)}${date ? `&date=${date}` : ""}`),
   saveDay: (member_id: string, date: string, tasks: string[], excuse: string) => request<DayView>("/board/day", send("PUT", { member_id, date, tasks, excuse })),
-  leaderboard: () => request<BoardRow[]>("/board/leaderboard"),
+  leaderboard: () => request<Board>("/board/leaderboard"),
+  setAvatar: (avatar: string) => request<{ avatar: string }>("/board/avatar", send("PUT", { avatar })),
+  startQuest: (member_id: string) => request<Status>("/board/quest", send("POST", { member_id })),
   history: (days = 14) => request<History>(`/board/history?days=${days}`),
 
   members: () => request<AdminMember[]>("/admin/members"),

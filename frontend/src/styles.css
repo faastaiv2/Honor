@@ -120,3 +120,49 @@ td.open { color: var(--gold); }
   table { font-size: 13px; }
   nav.tabs .who span { display: none; }
 }
+
+/* ---- Top Honor leaderboard (game-style) ---- */
+.avatar { display: grid; place-items: center; flex: none; border-radius: 8px; border: 3px solid #fff; box-shadow: 0 1px 3px #0003; font-family: "Lilita One", "Nunito Sans", sans-serif; color: #1d2a5c; line-height: 1; }
+.lb { padding-inline: clamp(10px, 2vw, 22px); }
+.lb-head { text-align: center; padding-bottom: 14px; border-bottom: 3px solid #2f3b6b22; margin-bottom: 14px; }
+.lb-head h2 { font-family: "Lilita One", Marcellus, sans-serif; font-size: clamp(36px, 6vw, 48px); color: #2b3270; margin: 0; letter-spacing: .5px; }
+.lb-info { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #4a90e2; color: #fff; font: 700 16px/1 Georgia, serif; text-decoration: none; vertical-align: super; }
+.lb-sub { margin: 2px 0 10px; color: #6a6fc9; font-weight: 800; }
+.lb-week { display: flex; justify-content: space-between; align-items: center; background: #4b5079; color: #fff; border-radius: 12px; padding: 10px 18px; font-family: "Lilita One", sans-serif; font-size: 20px; }
+.lb-week b { font-weight: 400; }
+.lb-week em { font-style: normal; color: #9fc2ff; }
+.lb-sec { margin-bottom: 16px; }
+.lb-bar { display: flex; justify-content: space-between; align-items: center; background: var(--tc); color: #fff; border-radius: 10px 10px 0 0; padding: 6px 16px; font-family: "Lilita One", sans-serif; text-shadow: 0 1px 0 #0003; }
+.lb-bar span { font-size: clamp(22px, 3.4vw, 30px); }
+.lb-bar small { text-align: right; font-size: 14px; line-height: 1.15; }
+.lb-sec ol { list-style: none; margin: 0; padding: 0; }
+.lb-row { display: flex; align-items: center; gap: 14px; padding: 8px 14px; background: color-mix(in srgb, var(--tc) 12%, #fff); font-family: "Lilita One", sans-serif; color: #2b3270; }
+.lb-row:nth-child(even) { background: color-mix(in srgb, var(--tc) 20%, #fff); }
+.lb-row:last-child { border-radius: 0 0 10px 10px; }
+.lb-row.me { background: color-mix(in srgb, var(--tc) 78%, #1d1d3a); color: #fff; }
+.lb-row.legend { box-shadow: inset 0 0 0 3px #e8c14a; }
+.lb-name { flex: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: clamp(20px, 3vw, 26px); overflow-wrap: anywhere; }
+.lb-medal { font-size: 1.15em; }
+.lb-tag { font-family: "Nunito Sans", sans-serif; font-size: 12px; font-weight: 800; background: #e8c14a; color: #3a2c00; padding: 2px 8px; border-radius: 99px; }
+.lb-score { font-size: clamp(24px, 3.6vw, 32px); text-align: right; white-space: nowrap; }
+.lb-score small { display: block; font-family: "Nunito Sans", sans-serif; font-size: 12px; font-weight: 800; opacity: .75; }
+.lb-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.lb-tabs button { min-height: 52px; border-radius: 12px; border: 0; background: #2c3f7a; color: #c9d3f5; font: 22px "Lilita One", sans-serif; box-shadow: inset 0 -4px 0 #0003; }
+.lb-tabs button.on { background: #3f6fc4; color: #fff; }
+:root[data-theme=dark] .lb-head h2, :root:not([data-theme=light]) .lb-head h2 { color: light-dark(#2b3270, #c9d3ff); }
+@media (max-width: 600px) { .lb-row { gap: 10px; padding: 8px 10px; } .avatar { width: 40px !important; height: 40px !important; } }
+
+/* ---- rank perks, make-up and quest ---- */
+label.task.off { cursor: default; }
+label.task.off input { opacity: .55; }
+i.late { margin-inline-start: auto; font-style: normal; font-size: 12px; font-weight: 800; color: #fff; background: var(--em2); padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.perks { margin-top: 18px; border-radius: 14px; padding: 14px 16px; background: color-mix(in srgb, var(--tc) 12%, var(--paper)); border: 2px solid color-mix(in srgb, var(--tc) 45%, transparent); }
+.perks-top { display: flex; gap: 12px; align-items: center; }
+.perks-medal { font-size: 36px; line-height: 1; }
+.perks p { margin: 8px 0 0; font-size: 15px; }
+.perks .quest { background: #fff6d6; color: #3a2c00; border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
+.chips.avatars .chip { font-size: 24px; padding: 0 10px; }
+.tier-table td, .tier-table th { white-space: normal; text-align: left; vertical-align: top; }
+.tier-table td:first-child { white-space: nowrap; font-weight: 800; }
+.legend-box { margin-top: 18px; border-radius: 14px; padding: 16px; background: linear-gradient(135deg, #2a2108, #5a4410); color: #f8e7b0; }
+.legend-box h3 { color: #ffd76a; margin-top: 0; }

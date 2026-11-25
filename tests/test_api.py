@@ -9,8 +9,8 @@ TODAY = date(2026, 11, 24)
 ALL = sorted(set(scoring.REQUIRED) | {"gate", "bonus"})
 
 
-def at_today():
-    return patch("app.routers.board.today_for", return_value=TODAY), patch("app.services.today_for", return_value=TODAY)
+def at_today(day=TODAY):
+    return patch("app.routers.board.today_for", return_value=day), patch("app.services.today_for", return_value=day)
 
 
 def test_health_and_unknown_api(client):
@@ -50,10 +50,14 @@ def test_member_marks_own_day_and_scores(client, family):
         assert body["score"]["delta"] == 2 and body["editable"]
         assert "hack" not in sum(([t["key"] for t in g["tasks"]] for g in body["groups"]), [])
         board = client.get("/api/board/leaderboard", headers=h).json()
-    alpha = next(r for r in board if r["member"]["name"] == "Alpha")
+    rows = board["rows"]
+    alpha = next(r for r in rows if r["member"]["name"] == "Alpha")
     # base 10, +2 today; 22 and 23 Nov were empty weekdays: -1 each
-    assert alpha["honor"] == 10 + 2 - 2
-    assert board[0]["member"]["name"] == "Sierra" and board[0]["rank"] == 1
+    assert alpha["level"] == 10 + 2 - 2 and alpha["label"] == "X" and alpha["is_me"]
+    assert alpha["tier"]["name"] == "Great Honor" and alpha["week_delta"] == 0
+    assert rows[0]["member"]["name"] == "Sierra" and rows[0]["rank"] == 1
+    assert board["week"] == {"number": 5, "start": "2026-11-22", "days_left": 4}
+    assert board["weekly"][0]["member_id"] == family["A"].id
 
 
 def test_member_cannot_mark_others_or_old_days(client, family):
@@ -63,11 +67,8 @@ def test_member_cannot_mark_others_or_old_days(client, family):
         other = client.put("/api/board/day", headers=h, json={"member_id": family["B"].id, "date": TODAY.isoformat(), "tasks": []})
         assert other.status_code == 403
         old = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id,
-                                                             "date": (TODAY - timedelta(days=2)).isoformat(), "tasks": []})
+                                                             "date": (TODAY - timedelta(days=2)).isoformat(), "tasks": ["fajr"]})
         assert old.status_code == 403
-        yest = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id,
-                                                              "date": (TODAY - timedelta(days=1)).isoformat(), "tasks": []})
-        assert yest.status_code == 200
         future = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id,
                                                                 "date": (TODAY + timedelta(days=1)).isoformat(), "tasks": []})
         assert future.status_code == 403
@@ -101,9 +102,9 @@ def test_adjustment_changes_leaderboard(client, family):
     ha = auth(client, admin=True)
     a, b = at_today()
     with a, b:
-        before = {r["member"]["name"]: r["honor"] for r in client.get("/api/board/leaderboard", headers=ha).json()}
+        before = {r["member"]["name"]: r["level"] for r in client.get("/api/board/leaderboard", headers=ha).json()["rows"]}
         client.post("/api/admin/adjustments", headers=ha, json={"member_id": family["B"].id, "delta": 3})
-        after = {r["member"]["name"]: r["honor"] for r in client.get("/api/board/leaderboard", headers=ha).json()}
+        after = {r["member"]["name"]: r["level"] for r in client.get("/api/board/leaderboard", headers=ha).json()["rows"]}
     assert after["Bravo"] == before["Bravo"] + 3
 
 
@@ -140,3 +141,97 @@ def test_first_admin_from_environment(db, monkeypatch):
     assert db.query(Admin).one().email == "owner@example.com"
     main.ensure_first_admin()  # second start: no duplicate
     assert db.query(Admin).count() == 1
+
+
+def put_day(client, h, member, day, tasks, excuse=""):
+    return client.put("/api/board/day", headers=h, json={"member_id": member.id, "date": day.isoformat(),
+                                                          "tasks": tasks, "excuse": excuse})
+
+
+def test_makeup_depends_on_rank(client, family, db):
+    """Bravo (Good Honor) may make up 1 task the next day; Sierra (Highest Honor) 2."""
+    family["B"].base_honor, family["S"].base_honor = 7, 28  # after Sun/Mon cuts: V (Good) and XXVI (Highest)
+    db.commit()
+    mon, tue = date(2026, 11, 23), TODAY
+    hb, hs = auth(client, family["B"]), auth(client, family["S"])
+    a, b = at_today(mon)
+    with a, b:
+        put_day(client, hb, family["B"], mon, ["gate", "fajr"])
+        put_day(client, hs, family["S"], mon, ["gate", "fajr"])
+    a, b = at_today(tue)
+    with a, b:
+        view = client.get(f"/api/board/day?member_id={family['B'].id}&date={mon}", headers=hb).json()
+        assert view["mode"] == "makeup" and view["makeup_left"] == 1 and not view["excuse_editable"]
+        assert put_day(client, hb, family["B"], mon, ["gate", "fajr", "yaseen"]).status_code == 200
+        r = put_day(client, hb, family["B"], mon, ["gate", "fajr", "yaseen", "dalail"])
+        assert r.status_code == 403 and "next day" in r.json()["detail"]
+        assert put_day(client, hs, family["S"], mon, ["gate", "fajr", "yaseen", "dalail"]).status_code == 200
+        # cannot untick what was ticked on the day, cannot make up the bonus, cannot add an excuse later
+        assert put_day(client, hb, family["B"], mon, ["gate", "yaseen"]).status_code == 403
+        assert put_day(client, hs, family["S"], mon, ["gate", "fajr", "yaseen", "dalail", "bonus"]).status_code == 403
+        assert put_day(client, hb, family["B"], mon, ["gate", "fajr", "yaseen"], "sick").status_code == 403
+        # a made-up task can be unticked again
+        assert put_day(client, hb, family["B"], mon, ["gate", "fajr"]).status_code == 200
+    log = db.query(DayLog).filter_by(member_id=family["S"].id, day=mon).one()
+    assert log.late == {"yaseen": "2026-11-24", "dalail": "2026-11-24"}
+
+
+def test_lowest_rank_cannot_make_up(client, family, db):
+    from app.models import Member
+    m = Member(name="Zulu", code="Zu", base_honor=2, pin_hash=family["A"].pin_hash)
+    db.add(m)
+    db.commit()
+    h = auth(client, m)
+    a, b = at_today()
+    with a, b:
+        view = client.get(f"/api/board/day?member_id={m.id}&date=2026-11-23", headers=h).json()
+        assert view["mode"] == "locked" and view["makeup_left"] == 0
+        r = put_day(client, h, m, date(2026, 11, 23), ["fajr"])
+        assert r.status_code == 403 and "Good Honor" in r.json()["detail"]
+
+
+def test_legendary_quest_flow(client, family, db):
+    from app.models import Member
+    m = Member(name="Delta", code="D", base_honor=48, pin_hash=family["A"].pin_hash)
+    db.add(m)
+    db.commit()
+    h = auth(client, m)
+    a, b = at_today()
+    with a, b:
+        assert client.post("/api/board/quest", headers=auth(client, family["B"]), json={"member_id": m.id}).status_code == 403
+        lb = client.get("/api/board/leaderboard", headers=h).json()["rows"]
+        me = next(r for r in lb if r["is_me"])
+        # 22 & 23 Nov were empty: 48 - 2 = 46 (Supreme), so no quest yet
+        assert me["level"] == 46 and not me["can_start_quest"]
+    m.base_honor = 49
+    db.commit()
+    a, b = at_today()
+    with a, b:
+        me = next(r for r in client.get("/api/board/leaderboard", headers=h).json()["rows"] if r["is_me"])
+        assert me["tier"]["key"] == "diamond" and me["can_start_quest"]
+        q = client.post("/api/board/quest", headers=h, json={"member_id": m.id}).json()
+        assert q["level"] == 1 and q["quest"]["active"] and q["tier"]["key"] == "honor"
+        assert client.post("/api/board/quest", headers=h, json={"member_id": m.id}).status_code == 400
+
+
+def test_avatar(client, family):
+    h = auth(client, family["A"])
+    assert client.put("/api/board/avatar", headers=h, json={"avatar": "🦁"}).json() == {"avatar": "🦁"}
+    assert client.put("/api/board/avatar", headers=h, json={"avatar": "<b>"}).status_code == 400
+    assert client.put("/api/board/avatar", headers=auth(client, admin=True), json={"avatar": "🦁"}).status_code == 400
+
+
+def test_migrations_run_on_a_fresh_database(tmp_path, monkeypatch):
+    from sqlalchemy import create_engine, inspect
+
+    from app import main
+    url = f"sqlite:///{tmp_path}/fresh.db"
+    monkeypatch.setenv("DATABASE_URL", url)
+    from app.config import get_settings
+    get_settings.cache_clear()
+    try:
+        main.run_migrations()
+    finally:
+        get_settings.cache_clear()
+    cols = {c["name"] for c in inspect(create_engine(url)).get_columns("day_logs")}
+    assert {"late", "tasks", "excuse"} <= cols

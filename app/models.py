@@ -34,6 +34,8 @@ class Member(Base):
     base_honor: Mapped[int] = mapped_column(Integer, default=1)  # level on the day before scoring starts
     pin_hash: Mapped[str | None] = mapped_column(String(100), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    avatar: Mapped[str] = mapped_column(String(16), default="")  # an emoji the member picks
+    quest_starts: Mapped[list] = mapped_column(JSON, default=list)  # days a Legendary quest was started
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
@@ -47,6 +49,7 @@ class DayLog(Base):
     day: Mapped[date] = mapped_column(Date, index=True)
     tasks: Mapped[list] = mapped_column(JSON, default=list)
     excuse: Mapped[str] = mapped_column(String(120), default="")
+    late: Mapped[dict] = mapped_column(JSON, default=dict)  # task -> day it was made up (ticked after the day)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
     updated_by: Mapped[str] = mapped_column(String(120), default="")
 

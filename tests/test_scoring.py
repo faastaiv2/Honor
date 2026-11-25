@@ -60,14 +60,6 @@ def test_weekend_earns_without_pledge_and_never_cuts():
     assert s.score_day(fri, set(), "", TODAY, 5).delta == 0
 
 
-def test_tiers_and_roman():
-    assert s.tier_of(28)[2] == "Highest Honor"
-    assert s.tier_of(3)[2] == "Honor" and s.tier_of(4)[2] == "Good Honor"
-    assert s.tier_of(0)[2] == "Low Honor" and s.tier_of(-1)[2] == "Low Honor"
-    assert s.next_tier(28)[2] == "Royal Honor" and s.next_tier(60) is None
-    assert s.roman(28) == "XXVIII" and s.roman(-1) == "−I" and s.roman(0) == "0"
-
-
 def test_parse_sheet_rows_with_and_without_row_numbers():
     tasks = "\t".join(["A, B"] + ["A"] * 17 + ["B"])
     text = (

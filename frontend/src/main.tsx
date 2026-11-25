@@ -1,5 +1,6 @@
 import "@fontsource/amiri/400.css";
 import "@fontsource/marcellus/400.css";
+import "@fontsource/lilita-one/400.css";
 import "@fontsource/nunito-sans/400.css";
 import "@fontsource/nunito-sans/600.css";
 import "@fontsource/nunito-sans/800.css";
