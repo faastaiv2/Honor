@@ -346,6 +346,21 @@ def delete_task(key: str, _: Viewer = Depends(require_admin), db: Session = Depe
         db.commit()
 
 
+@router.post("/tasks/reset")
+def reset_tasks(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
+    """Put the tasks back exactly as in the original sheet (names, groups, order, growing numbers).
+    Tasks added later are removed; members' past ticks are kept."""
+    for r in db.scalars(select(TaskDef)):
+        db.delete(r)
+    db.flush()
+    for i, t in enumerate(DEFAULT_SPECS):
+        db.add(TaskDef(key=t.key, label=t.label, group=t.group, fitness=t.fitness, number=t.number, step=t.step,
+                       every=t.every, start_day=t.start_day, next_day=t.next_day, sort_order=i))
+    db.commit()
+    today = today_for(get_settings_row(db))
+    return [_task_out(r, today) for r in db.scalars(select(TaskDef).order_by(TaskDef.sort_order))]
+
+
 # ---------------------------------------------------------------- special periods (like Ramadan)
 class PeriodIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)

@@ -1387,3 +1387,7 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .shop-section:first-child { margin-top: 0; }
 .tk-shown { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--soft); font-size: 14px; color: var(--mute); }
 .tk-shown b { color: var(--ink); font-size: 16px; }
+.tk-reset { display: grid; justify-items: start; padding-top: 6px; }
+.tk-reset > button { min-height: 40px; border-radius: 999px; padding: 0 16px; font-weight: 700; color: var(--mute); }
+.tk-reset-ask { padding: 14px; border-radius: 16px; border: 2px solid color-mix(in srgb, var(--bad) 45%, var(--line)); background: color-mix(in srgb, var(--bad) 7%, var(--paper)); }
+.tk-reset-ask p { margin: 0 0 10px; }

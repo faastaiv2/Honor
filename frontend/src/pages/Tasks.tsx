@@ -235,6 +235,7 @@ export default function Tasks() {
   const [error, setError] = useState("");
   const [toast, setToast] = useToast();
   const [adding, setAdding] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [nt, setNt] = useState<Draft>(EMPTY);
 
   const reload = useCallback(() => { api.tasks().then(setTasks).catch((e) => setError(msg(e))); }, []);
@@ -294,6 +295,23 @@ export default function Tasks() {
           );
         })}
       </div>
+      <section className="tk-reset">
+        {!resetting ? (
+          <button onClick={() => setResetting(true)}>↺ Reset tasks to the original list</button>
+        ) : (
+          <div className="tk-reset-ask" role="alertdialog" aria-label="Reset tasks">
+            <p><b>Put every task back as it was in the original sheet?</b> Names, groups, order and growing numbers go back to the start
+              (numbers continue where they'd be today). Tasks you added are removed. Members' past ticks are kept.</p>
+            <div className="tk-actions">
+              <button className="danger" onClick={async () => {
+                try { setTasks(await api.resetTasks()); setResetting(false); saved("Tasks reset to the original list"); }
+                catch (e) { setError(msg(e)); }
+              }}>Yes, reset all tasks</button>
+              <button onClick={() => setResetting(false)}>Cancel</button>
+            </div>
+          </div>
+        )}
+      </section>
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );

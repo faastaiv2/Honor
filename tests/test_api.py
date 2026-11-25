@@ -597,3 +597,17 @@ def test_quest_resets_to_one_even_after_a_parent_raised_them_today(client, famil
         db.commit()
         me = next(r for r in client.get("/api/board/leaderboard", headers=h).json()["rows"] if r["is_me"])
         assert me["level"] == 3
+
+
+def test_reset_tasks_to_the_original_sheet(client, family):
+    ha = auth(client, admin=True)
+    with patch("app.routers.admin.today_for", return_value=TODAY):
+        client.patch("/api/admin/tasks/lap", headers=ha, json={"label": "1"})  # a mistake like "2 1"
+        client.post("/api/admin/tasks", headers=ha, json={"label": "Extra"})
+        out = client.post("/api/admin/tasks/reset", headers=ha).json()
+    keys = [t["key"] for t in out]
+    assert keys == [t.key for t in scoring.DEFAULT_SPECS]
+    lap = next(t for t in out if t["key"] == "lap")
+    assert lap["label"] == "{n} laps" and lap["number_today"] is not None
+    assert next(t for t in out if t["key"] == "mulk")["next_day"]
+    assert client.post("/api/admin/tasks/reset", headers=auth(client, family["A"])).status_code == 403

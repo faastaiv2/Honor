@@ -128,6 +128,7 @@ export const api = {
   addAdjustment: (member_id: string, delta: number, note: string) => request("/admin/adjustments", send("POST", { member_id, delta, note })),
   deleteAdjustment: (id: string) => request<void>(`/admin/adjustments/${id}`, { method: "DELETE" }),
   tasks: () => request<TaskDef[]>("/admin/tasks"),
+  resetTasks: () => request<TaskDef[]>("/admin/tasks/reset", send("POST", {})),
   periods: () => request<Period[]>("/admin/periods"),
   addPeriod: (body: PeriodIn) => request<Period>("/admin/periods", send("POST", body)),
   editPeriod: (id: string, body: PeriodIn) => request<Period>(`/admin/periods/${encodeURIComponent(id)}`, send("PUT", body)),
