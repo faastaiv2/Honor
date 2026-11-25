@@ -64,6 +64,7 @@ def _status(p: Progress) -> dict:
         nx = None  # Legendary is only reached through the quest
     return {
         "level": p.level, "label": _level_label(p), "tier": tier_dict(t), "legendary": p.legendary,
+        "pending": p.pending,
         "banned": p.banned, "quest": {"active": p.quest_start is not None,
                                       "start": p.quest_start.isoformat() if p.quest_start else None,
                                       "days": p.quest_days,
@@ -94,7 +95,7 @@ def today_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db
         "task_count": len(load_tasks(db)),
         "avatars": AVATARS,
         "viewer": {"kind": v.kind, "id": v.id, "name": v.name, "is_admin": v.is_admin,
-                   "theme": (db.get(Member, v.id).theme if v.kind == "member" else "") or "classic"},
+                   "theme": (db.get(Member, v.id).theme if v.kind == "member" else "") or "bronze"},
         "gems": {"per_task": GEMS_PER_TASK, "per_level": GEMS_PER_LEVEL, "per_rank": GEMS_PER_RANK},
     }
 
@@ -167,7 +168,8 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
         raise HTTPException(403, "You can only mark your own tasks")
     if body.date > today:
         raise HTTPException(403, "That day has not started yet")
-    tasks = {k for k in body.tasks if k in {"gate", "bonus"} | {t.key for t in load_tasks(db)}}
+    specs = load_tasks(db)
+    tasks = {k for k in body.tasks if k in {"gate", "bonus"} | {t.key for t in specs}}
     log = db.scalar(select(DayLog).where(DayLog.member_id == m.id, DayLog.day == body.date))
     before = set(log.tasks if log else [])
     late = dict(log.late or {}) if log else {}
@@ -195,6 +197,8 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
     elif v.is_admin:
         late = {k: d for k, d in late.items() if k in tasks}
 
+    if "bonus" in tasks and not scoring.score_day(body.date, tasks, body.excuse, today, cfg.cut_misses, specs).gain:
+        tasks.discard("bonus")  # the bonus opens only once every task is done (and unticks if one is unticked)
     if log is None:
         log = DayLog(member_id=m.id, day=body.date)
         db.add(log)
@@ -277,22 +281,41 @@ def set_avatar(body: AvatarIn, v: Viewer = Depends(current_viewer), db: Session 
     return {"avatar": m.avatar}
 
 
+_RANK_ORDER = [t.key for t in TIERS]
+
+
+def _celebration(db: Session, m: Member, tier, p) -> dict | None:
+    """The rank-up show still owed to this member, if any.
+
+    The first time we see a member we just note their rank (no show for where they started). A drop in rank is
+    noted silently too, so climbing back up earns the show again."""
+    now = _RANK_ORDER.index(tier.key)
+    if m.seen_rank not in _RANK_ORDER or now < _RANK_ORDER.index(m.seen_rank):
+        m.seen_rank, m.seen_level_gems = tier.key, p.gems_levels
+        db.commit()
+        return None
+    if m.seen_rank == tier.key:
+        return None
+    return {"tier": tier.key, "reward": max(0, p.gems_levels - m.seen_level_gems)}
+
+
 def _profile(db: Session, m: Member) -> dict:
     cfg = get_settings_row(db)
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
     tier = tier_of_progress(p)
+    celebrate = _celebration(db, m, tier, p)
     owned = owned_items(db, m.id)
     spent = gems_spent(db, m.id)
     nxt = p.best_level + 1
     reward = 0 if p.legendary or nxt > CAP_WITHOUT_LEGENDARY else GEMS_PER_LEVEL + (
         GEMS_PER_RANK if tier_for(nxt, False).min == nxt else 0)
-    return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "theme": m.theme or "classic"},
+    return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "theme": m.theme or "bronze"},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
             "gems": {"balance": gems_earned(p) - spent, "earned": gems_earned(p), "spent": spent,
                      "today": p.today_tasks_gems, "from_tasks": p.gems_tasks, "from_levels": p.gems_levels},
             "next_level_reward": {"level": roman(nxt), "gems": reward} if reward else None,
             "frames": catalogue("frame", tier, owned), "themes": catalogue("theme", tier, owned),
-            "avatars": catalogue("avatar", tier, owned)}
+            "avatars": catalogue("avatar", tier, owned), "celebrate": celebrate}
 
 
 @router.get("/profile")
@@ -300,6 +323,19 @@ def get_profile(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     if v.kind != "member":
         raise HTTPException(400, "Profiles are for members")
     return _profile(db, db.get(Member, v.id))
+
+
+@router.post("/profile/celebrated")
+def celebrated(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """The member watched their rank-up show: don't play it again."""
+    if v.kind != "member":
+        raise HTTPException(400, "Profiles are for members")
+    m = db.get(Member, v.id)
+    cfg = get_settings_row(db)
+    p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
+    m.seen_rank, m.seen_level_gems = tier_of_progress(p).key, p.gems_levels
+    db.commit()
+    return _profile(db, m)
 
 
 @router.put("/profile")
@@ -351,7 +387,7 @@ def buy(body: BuyIn, v: Viewer = Depends(current_viewer), db: Session = Depends(
 
 @router.post("/quest")
 def start_quest(body: QuestIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
-    """Give up 🖤 Obsidian and restart at I on the road to 👑 Legendary."""
+    """Give up 🔮 Obsidian and restart at I on the road to 👑 Legendary."""
     m = _member_or_404(db, body.member_id)
     if not v.is_admin and v.id != m.id:
         raise HTTPException(403, "Only you or a parent can start your quest")
@@ -359,7 +395,7 @@ def start_quest(body: QuestIn, v: Viewer = Depends(current_viewer), db: Session 
     today = today_for(cfg)
     p = progress_for(db, cfg, [m], today)[m.id]
     if not can_start_quest(p):
-        raise HTTPException(400, "Only an 🖤 Obsidian member can start the Legendary quest")
+        raise HTTPException(400, "Only an 🔮 Obsidian member can start the Legendary quest")
     m.quest_starts = [*(m.quest_starts or []), today.isoformat()]
     db.commit()
     return _status(progress_for(db, cfg, [m], today)[m.id])

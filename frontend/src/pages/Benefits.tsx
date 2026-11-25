@@ -89,7 +89,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
               <div className="bn-card next-rank legend-card">
                 <span className="bn-card-ico">👑</span>
                 <b>Legendary</b>
-                <p>Reached only through the Legendary quest from 🖤 Obsidian: start again from I and finish every task and bonus, every day, until L.</p>
+                <p>Reached only through the Legendary quest from 🔮 Obsidian: start again from I and finish every task and bonus, every day, until L.</p>
               </div>
             )}
           </div>
@@ -124,7 +124,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
           <div><b>−1 Honor cut 👺</b><p>{(info?.rules.cut_misses ?? 1) <= 1 ? "A weekday ends with any task not completed (and no excuse)." : `A weekday ends with ${info?.rules.cut_misses} or more tasks missed.`} Tasks made up in time count as done.</p></div>
           <div><b>Excused days</b><p>Write a reason on the day (sick, injury): exercise tasks are excused and nothing is cut.</p></div>
           <div><b>Weekends (Fri &amp; Sat)</b><p>Games and YouTube allowed. Tasks are optional: earn, never lose.</p></div>
-          <div><b>👑 Legendary</b><p>From 🖤 Obsidian, give up the title, restart at I and finish every task and bonus every day until L. Missing tasks 3 weekdays in a row loses it for good.</p></div>
+          <div><b>👑 Legendary</b><p>From 🔮 Obsidian, give up the title, restart at I and finish every task and bonus every day until L. Missing tasks 3 weekdays in a row loses it for good.</p></div>
         </div>
         <p className="note">Weeks run Sunday to Saturday. Days change at midnight{info ? `, ${info.rules.timezone} time` : ""}.</p>
       </section>

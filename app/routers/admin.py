@@ -13,6 +13,7 @@ from app.models import Adjustment, DayLog, Member, TaskDef
 from app.scoring import DEFAULT_SPECS, TaskSpec
 from app.security import hash_secret
 from app.services import get_settings_row, today_for
+from app.tiers import tier_for
 from app.sheet_import import parse_sheet
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -99,7 +100,8 @@ def add_member(body: MemberIn, _: Viewer = Depends(require_admin), db: Session =
     taken = {c.lower() for c in db.scalars(select(Member.code))}
     code = body.code.strip() if body.code else _make_code(body.name.strip(), taken)
     m = Member(name=body.name.strip(), code=code, base_honor=body.base_honor, sort_order=last + 1,
-               pin_hash=hash_secret(body.pin) if body.pin else None)
+               pin_hash=hash_secret(body.pin) if body.pin else None,
+               seen_rank=tier_for(body.base_honor, False).key)  # climbs from here on get their rank-up show
     db.add(m)
     db.commit()
     return _member_out(m)

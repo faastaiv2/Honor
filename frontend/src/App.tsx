@@ -26,8 +26,8 @@ export default function App() {
   }, [viewer, changes]);
 
   useEffect(() => {
-    // Each member's chosen colour theme; the admin always sees the classic one.
-    document.documentElement.dataset.skin = viewer && !viewer.is_admin ? info?.viewer.theme || "classic" : "classic";
+    // Each member's chosen colour theme (Bronze until they pick one); the admin always sees the classic one.
+    document.documentElement.dataset.skin = viewer && !viewer.is_admin ? info?.viewer.theme || "bronze" : "classic";
   }, [viewer, info]);
 
   if (loading) return <p className="band note">Loading…</p>;
@@ -73,7 +73,7 @@ export default function App() {
             <Route path="/profile" element={viewer.is_admin ? <Navigate to="/admin" /> : <ProfilePage info={info} />} />
             <Route path="/benefits" element={<Benefits info={info} />} />
             <Route path="/rules" element={<Navigate to="/benefits" />} />
-            <Route path="/admin" element={viewer.is_admin ? <Admin /> : <Navigate to="/" />} />
+            <Route path="/admin" element={viewer.is_admin ? <Admin info={info} /> : <Navigate to="/" />} />
             <Route path="/tasks" element={viewer.is_admin ? <Tasks /> : <Navigate to="/" />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

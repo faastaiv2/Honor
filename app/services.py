@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import scoring
@@ -16,9 +17,12 @@ from app.tiers import tier_for
 def get_settings_row(db: Session) -> AppSettings:
     row = db.get(AppSettings, 1)
     if row is None:
-        row = AppSettings(id=1)
-        db.add(row)
-        db.commit()
+        try:
+            db.add(AppSettings(id=1))
+            db.commit()
+        except IntegrityError:  # another request created it at the same moment
+            db.rollback()
+        row = db.get(AppSettings, 1)
     return row
 
 

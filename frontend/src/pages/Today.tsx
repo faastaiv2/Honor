@@ -98,7 +98,7 @@ export default function Today(_: { info: TodayInfo | null }) {
     }
     save(next, excuse).then((saved) => {
       const s = saved?.score;
-      if (on && s && s.done === s.of && s.gain) { setToast("All tasks done — Honor received! 🏆"); confetti(); }
+      if (on && s && s.done === s.of && s.gain) { setToast("All tasks done! Your Honor arrives at midnight 🌙"); confetti(); }
       else if (on && saved?.mode === "makeup") setToast("Made up ✔");
     });
   }
@@ -113,6 +113,7 @@ export default function Today(_: { info: TodayInfo | null }) {
   const isMe = viewer?.kind === "member" && viewer.id === view.member.id;
 
   const canTick = (t: TaskItem, isBonus = false) => {
+    if (isBonus && !t.done && !s.gain) return false; // the bonus opens once every task is done
     if (view.mode === "open" || view.mode === "admin") return true;
     if (!makeup) return false;
     if (isBonus) return false;
@@ -148,7 +149,7 @@ export default function Today(_: { info: TodayInfo | null }) {
         <div className="big">{s.done}/{s.of}</div>
         <div style={{ flex: 1 }}>
           <p>
-            {s.delta > 0 ? "+" : ""}{s.delta} Honor {isToday ? "so far" : "this day"}
+            {s.delta > 0 ? "+" : ""}{s.delta} Honor {isToday ? (s.delta > 0 ? "· arrives at midnight 🌙" : "so far · tick until 11:59 PM") : "this day"}
             {s.excused ? " · excused" : ""}{view.weekend ? " · weekend, optional" : s.cut ? " · Honor cut 👺" : ""}
             {view.before_scoring ? " · before scoring started" : ""}
           </p>
@@ -161,11 +162,11 @@ export default function Today(_: { info: TodayInfo | null }) {
       {view.pledge ? row(view.pledge, "gate") : <p className="note" style={{ margin: "0 0 6px" }}>🎮 Weekend: games and YouTube allowed.</p>}
       {view.groups.map((g) => (
         <div key={g.name}>
-          <div className="grp">{g.name}{g.name === "Fitness" && s.excused ? " · excused" : ""}</div>
+          {g.name !== "Learning & home" && <div className="grp">{g.name}{g.name === "Fitness" && s.excused ? " · excused" : ""}</div>}
           {g.tasks.map((t) => row(t))}
         </div>
       ))}
-      <div className="grp">Bonus</div>
+      <div className="grp">Bonus{!s.gain && !view.bonus.done ? " · 🔒 finish every task first" : ""}</div>
       {row({ key: "bonus", label: "", done: view.bonus.done }, "bonus",
         <>{view.bonus.count} <span className="ar">{view.bonus.dhikr}</span></>, <em>+1 Honor</em>, true)}
       <form className="row" style={{ marginTop: 14 }} onSubmit={(e) => { e.preventDefault(); save(view, excuse.trim()).then((ok) => ok && setToast(excuse.trim() ? "Excuse saved" : "Excuse cleared")); }}>

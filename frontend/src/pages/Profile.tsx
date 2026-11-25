@@ -39,7 +39,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const nextMin = info?.tiers.find((x) => x.name === p.next?.name)?.min ?? null;
   const pct = p.legendary || !p.next || nextMin === null || t.min === null ? 100 : Math.max(6, Math.min(100, ((p.level - t.min) / (nextMin - t.min)) * 100));
   const items = tab === "frame" ? p.frames : tab === "theme" ? p.themes : p.avatars;
-  const current = tab === "frame" ? p.member.frame || "plain" : tab === "theme" ? p.member.theme || "classic" : p.member.avatar;
+  const current = tab === "frame" ? p.member.frame || "plain" : tab === "theme" ? p.member.theme || "bronze" : p.member.avatar;
 
   return (
     <div className="profile">
@@ -83,13 +83,13 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
             const locked = !it.available;
             const forSale = locked && it.price > 0;
             return (
-              <div key={it.key} className={`shop-item${inUse ? " on" : ""}${locked ? " locked" : ""}`}>
+              <div key={it.key} className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}`}>
                 <span className="shop-face">
                   {tab === "frame" ? <Avatar avatar={p.member.avatar} color={t.color} frame={it.key} size={54} />
                     : tab === "theme" ? <span className="swatch" style={{ background: `linear-gradient(135deg, ${(THEME_SWATCH[it.key] ?? ["#0b4a3a", "#c9962b"])[0]} 50%, ${(THEME_SWATCH[it.key] ?? ["#0b4a3a", "#c9962b"])[1]} 50%)` }} />
-                    : <span className="emoji-face">{it.key}</span>}
+                    : <Avatar avatar={it.key} color={t.color} size={64} />}
                 </span>
-                {tab !== "avatar" && <span className="shop-name">{it.name}</span>}
+                <span className="shop-name">{it.name}</span>
                 {inUse ? <span className="shop-act on">In use ✓</span>
                   : it.available ? <button className="shop-act" onClick={() => use(tab, it.key, it.name)}>Use</button>
                   : forSale ? <button className="shop-act buy" disabled={p.gems.balance < it.price} onClick={() => buy(tab, it)}>💎 {it.price}</button>

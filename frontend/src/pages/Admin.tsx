@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, ApiError, type AdminMember, type BoardRow, type Settings } from "../api";
 import Avatar from "../lib/Avatar";
+import type { Tier, TodayInfo } from "../api";
+import RankUp from "./RankUp";
 import { notifyChanged, useToast } from "../lib/events";
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
@@ -112,7 +114,8 @@ function MemberRow({ m, row, onDone, onChanged, onError }: { m: AdminMember; row
   );
 }
 
-export default function Admin() {
+export default function Admin({ info }: { info?: TodayInfo | null }) {
+  const [preview, setPreview] = useState<Tier | null>(null);
   const [members, setMembers] = useState<AdminMember[]>([]);
   const [rows, setRows] = useState<BoardRow[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -193,6 +196,16 @@ export default function Admin() {
           </form>
         </details>
       </section>
+      <section className="card">
+        <h2>Celebrations preview</h2>
+        <p className="note">What members see when they reach a new rank. Each rank's show is bigger than the last.</p>
+        <div className="chips">
+          {(info?.tiers ?? []).filter((t) => t.key !== "low").map((t) => (
+            <button key={t.key} className="chip" onClick={() => setPreview(t)}>{t.emoji} {t.name}</button>
+          ))}
+        </div>
+      </section>
+      {preview && <RankUp tier={preview} name="Preview" profile={null} reward={(info?.gems.per_rank ?? 50) + (info?.gems.per_level ?? 10)} onClose={() => setPreview(null)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );

@@ -38,6 +38,8 @@ class Member(Base):
     frame: Mapped[str] = mapped_column(String(16), default="")  # picture frame on the leaderboard
     theme: Mapped[str] = mapped_column(String(16), default="")  # colour theme of the app for this member
     quest_starts: Mapped[list] = mapped_column(JSON, default=list)  # days a Legendary quest was started
+    seen_rank: Mapped[str] = mapped_column(String(16), default="")  # last rank whose show was played ("" = not yet set)
+    seen_level_gems: Mapped[int] = mapped_column(Integer, default=0)  # level/rank gems already shown at that show
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 

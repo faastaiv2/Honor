@@ -45,7 +45,7 @@ TIERS: list[Tier] = [
     Tier("platinum", 13, 18, "💠", "Platinum", "#5f9eb0", "20 mins / Sunday (after finishing tasks)",
          "Can miss up to 1 task and make up next day + miss a task on Thursday and make up on Fri or Sat",
          next_day=1, mid_days=(THU,), mid_cap=1),
-    Tier("emerald", 19, 24, "💚", "Emerald", "#1e9e6a", "25 mins / Sunday + Monday (after finishing tasks)",
+    Tier("emerald", 19, 24, "🍀", "Emerald", "#1e9e6a", "25 mins / Sunday + Monday (after finishing tasks)",
          "Can miss up to 1 task and make up next day + miss a task on Thursday and make up on Fri or Sat",
          next_day=1, mid_days=(THU,), mid_cap=1),
     Tier("sapphire", 25, 31, "🔷", "Sapphire", "#1f5fbf", "30 mins / Sunday + Monday (after finishing tasks)",
@@ -57,7 +57,7 @@ TIERS: list[Tier] = [
     Tier("diamond", 40, 46, "💎", "Diamond", "#3ba7cf", "50 mins / Sunday + Monday + Tuesday (after finishing tasks)",
          "Can miss up to 2 tasks and make up next day + miss a task on Wed or Thursday and make up on Fri or Sat + Mehmed",
          next_day=2, mid_days=(WED, THU), mid_cap=1),
-    Tier("obsidian", 47, 49, "🖤", "Obsidian", "#3a2c52", "60 mins / Sunday + Monday + Tuesday (after finishing tasks)",
+    Tier("obsidian", 47, 49, "🔮", "Obsidian", "#3a2c52", "60 mins / Sunday + Monday + Tuesday (after finishing tasks)",
          "Can miss up to 3 tasks and make up next day + miss up to 2 tasks on Wed and Thu and make up on Fri and Sat + Mehmed",
          next_day=3, mid_days=(WED, THU), mid_cap=2, mid_each=True),
     Tier("legendary", 50, None, "👑", "Legendary", "#b8860b", "Unlimited / day (before finishing tasks, anytime)",
@@ -149,8 +149,21 @@ THEMES: list[tuple[str, str, str | None, int]] = [
     ("desert", "Desert dusk", None, 300),
     ("midnight", "Midnight", None, 350),
 ]
-FREE_AVATARS = ["🦁", "🐯", "🦅", "🐺", "🐎", "🦊", "🐪", "🐆", "🦉", "🐬", "🐢", "🐘", "⚔️", "🛡️", "🏹", "🌙", "⭐", "🔥", "⚽", "🏏"]
-SHOP_AVATARS: list[tuple[str, int]] = [("🐼", 100), ("🧸", 100), ("🦄", 150), ("🦖", 150), ("🚀", 200), ("🐉", 250)]
+# Drawn pictures (frontend/src/lib/Pictures.tsx): (key, name), and (key, name, gems) for the shop.
+FREE_PICTURES: list[tuple[str, str]] = [
+    ("lion", "Lion"), ("tiger", "Tiger"), ("eagle", "Eagle"), ("wolf", "Wolf"), ("fox", "Fox"), ("owl", "Owl"),
+    ("bear", "Bear"), ("cat", "Cat"), ("turtle", "Turtle"), ("dolphin", "Dolphin"), ("knight", "Knight"),
+    ("lantern", "Lantern"), ("crescent", "Crescent"), ("football", "Football"),
+]
+SHOP_PICTURES: list[tuple[str, str, int]] = [
+    ("panda", "Panda", 100), ("penguin", "Penguin", 100), ("koala", "Koala", 120), ("unicorn", "Unicorn", 150),
+    ("dino", "Dino", 150), ("astronaut", "Astronaut", 200), ("robot", "Robot", 200), ("ninja", "Ninja", 220),
+    ("phoenix", "Phoenix", 300), ("dragon", "Dragon", 350), ("kinglion", "Lion King", 400),
+    ("cosmiccat", "Cosmic cat", 450),
+]
+FREE_AVATARS = [k for k, _ in FREE_PICTURES]
+SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c in SHOP_PICTURES]
+_PICTURE_NAMES = {k: n for k, n in FREE_PICTURES} | {k: n for k, n, _ in SHOP_PICTURES}
 
 TIER_ORDER = [t.key for t in TIERS]
 FRAME_KEYS = {f[0] for f in FRAMES}
@@ -185,8 +198,9 @@ def price_of(kind: str, key: str) -> int | None:
 
 def catalogue(kind: str, current: Tier, owned: set[str]) -> list[dict]:
     if kind == "avatar":
-        free = [{"key": a, "name": a, "available": True, "price": 0, "tier": None} for a in FREE_AVATARS]
-        return free + [{"key": a, "name": a, "available": shop_key("avatar", a) in owned, "price": c, "tier": None}
+        free = [{"key": a, "name": _PICTURE_NAMES[a], "available": True, "price": 0, "tier": None} for a in FREE_AVATARS]
+        return free + [{"key": a, "name": _PICTURE_NAMES[a], "available": shop_key("avatar", a) in owned, "price": c,
+                        "tier": None}
                        for a, c in SHOP_AVATARS]
     table = FRAMES if kind == "frame" else THEMES
     return [{"key": k, "name": n, "available": item_available(kind, k, current, owned), "price": c,

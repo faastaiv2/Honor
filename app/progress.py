@@ -1,12 +1,12 @@
 """Walk a member's days in order and work out their level, Legendary status and quest.
 
 Rules (from the family's Honor rules):
-- Without Legendary the highest level is XLIX (🖤 Obsidian).
-- To earn 👑 Legendary an 🖤 Obsidian member gives up the title, restarts at I (🥉 Bronze),
+- Without Legendary the highest level is XLIX (🔮 Obsidian).
+- To earn 👑 Legendary an 🔮 Obsidian member gives up the title, restarts at I (🥉 Bronze),
   and must finish every task and the bonus on every single day until reaching L.
   One imperfect day breaks the quest: they keep climbing normally, capped at XLIX again.
 - A Legendary member who does not complete their tasks on 3 days in a row (weekdays; the weekend
-  is optional) is demoted to 🖤 Obsidian (XLVII) and can never receive Legendary again.
+  is optional) is demoted to 🔮 Obsidian (XLVII) and can never receive Legendary again.
 
 Gems: 5 for each task and the bonus ticked; 10 for each level reached for the first time; 50 more for
 each rank reached for the first time; 500 for Legendary. Falling and climbing back earns nothing twice.
@@ -42,6 +42,7 @@ class Progress:
     gems_tasks: int = 0  # gems from ticked tasks
     gems_levels: int = 0  # gems from reaching new levels and ranks
     best_level: int = 0  # highest level ever reached
+    pending: int = 0  # Honor earned today; it arrives when the day ends (members can tick until 11:59 PM)
     streak: int = 0  # days in a row with every task done (weekends and excused days don't break it)
     today_tasks_gems: int = 0
     history: dict = field(default_factory=dict)  # date -> change that day
@@ -70,7 +71,10 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
         p.gems_tasks += ticked
         if d == today:
             p.today_tasks_gems = ticked
-        change = s.delta + adjustments.get(d, 0)
+        earned = s.delta
+        if d == today:  # today's Honor is held until midnight
+            p.pending, earned = s.delta, 0
+        change = earned + adjustments.get(d, 0)
         before = p.level
         p.level += change
 

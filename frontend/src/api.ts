@@ -8,7 +8,7 @@ export interface Score { gain: number; bonus: number; cut: number; delta: number
 export interface Tier { key: string; min: number | null; max: number | null; emoji: string; name: string; color: string; range: string; games: string; benefits: string }
 export interface Week { number: number; start: string; days_left: number }
 export interface Status {
-  level: number; label: string; tier: Tier; legendary: boolean; banned: boolean;
+  level: number; label: string; tier: Tier; legendary: boolean; banned: boolean; pending: number;
   quest: { active: boolean; start: string | null; days: number; broken_on: string | null };
   can_start_quest: boolean;
   next: { emoji: string; name: string; needed: number } | null;
@@ -39,6 +39,7 @@ export interface Profile extends Status {
   gems: { balance: number; earned: number; spent: number; today: number; from_tasks: number; from_levels: number };
   next_level_reward: { level: string; gems: number } | null;
   frames: ShopItem[]; themes: ShopItem[]; avatars: ShopItem[];
+  celebrate: { tier: string; reward: number } | null; // a rank-up show not watched yet
 }
 export interface Board { week: Week; rows: BoardRow[]; weekly: { member_id: string; week_delta: number }[] }
 export interface History {
@@ -99,6 +100,7 @@ export const api = {
   leaderboard: () => request<Board>("/board/leaderboard"),
   setAvatar: (avatar: string) => request<{ avatar: string }>("/board/avatar", send("PUT", { avatar })),
   profile: () => request<Profile>("/board/profile"),
+  celebrated: () => request<Profile>("/board/profile/celebrated", send("POST", {})),
   saveProfile: (body: { avatar?: string; frame?: string; theme?: string }) => request<Profile>("/board/profile", send("PUT", body)),
   buy: (kind: "frame" | "theme" | "avatar", key: string) => request<Profile>("/board/shop/buy", send("POST", { kind, key })),
   startQuest: (member_id: string) => request<Status>("/board/quest", send("POST", { member_id })),

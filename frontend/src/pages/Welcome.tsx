@@ -4,6 +4,7 @@ import { api, type DayView, type Profile, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
 import { confetti } from "../lib/confetti";
 import { useChangeCounter } from "../lib/events";
+import RankUp from "./RankUp";
 
 /** A gem-shaped badge in the rank's colour with the level inside. */
 export function RankBadge({ color, label, size = 56 }: { color: string; label: string; size?: number }) {
@@ -49,6 +50,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
   const [p, setP] = useState<Profile | null>(null);
   const [day, setDay] = useState<DayView | null>(null);
   const [levelUp, setLevelUp] = useState<{ label: string; gems: number; rank?: string } | null>(null);
+  const [rankUp, setRankUp] = useState<{ tier: Profile["tier"]; reward: number } | null>(null);
   const changes = useChangeCounter();
   const memberId = info?.viewer.id;
   const prev = useRef<Profile | null>(null);
@@ -57,12 +59,18 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
     if (!memberId) return;
     api.profile().then((np) => {
       const old = prev.current;
-      // Celebrate a new level (once per level, remembered on this device).
+      // A new rank gets its own show, once, on whichever device opens next (the server remembers).
+      const climbedRank = !!np.celebrate;
+      if (np.celebrate) {
+        const tier = info?.tiers.find((x) => x.key === np.celebrate!.tier) ?? np.tier;
+        setRankUp({ tier, reward: np.celebrate.reward });
+      }
+      // A new level within the same rank: the smaller celebration.
       const key = `honor.seen.${memberId}`;
       let seen = NaN;
       try { seen = Number(localStorage.getItem(key)); } catch { /* private mode */ }
-      if (old && np.level > old.level && !(np.level <= seen)) {
-        setLevelUp({ label: np.label, gems: old.next_level_reward?.gems ?? 0, rank: np.tier.key !== old.tier.key ? `${np.tier.emoji} ${np.tier.name}` : undefined });
+      if (!climbedRank && old && np.level > old.level && !(np.level <= seen)) {
+        setLevelUp({ label: np.label, gems: old.next_level_reward?.gems ?? 0 });
         confetti([np.tier.color, "#ffffff", "#f1d48a"]);
       }
       try { localStorage.setItem(key, String(np.level)); } catch { /* private mode */ }
@@ -70,7 +78,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       setP(np);
     }).catch(() => undefined);
     api.day(memberId).then(setDay).catch(() => undefined);
-  }, [memberId, changes]);
+  }, [memberId, changes, info?.tiers.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!p) return <section className="welcome-card skeleton" aria-busy="true" />;
   const t = p.tier;
@@ -103,10 +111,12 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
         <div className="stat"><span className="stat-ico">📈</span><b>{p.week_delta > 0 ? "+" : ""}{p.week_delta}</b><small>Honor this week</small></div>
       </div>
 
+      {p.pending > 0 && <p className="wc-pending">🌙 <b>+{p.pending} Honor</b> on its way — it arrives at midnight.</p>}
+
       <div className="wc-progress">
         <div className="wc-progress-head">
           <span>{t.emoji} {t.name}</span>
-          <span>{p.next ? `${p.next.emoji} ${p.next.name}` : p.legendary ? "👑 Legendary" : "🖤 Top of the climb"}</span>
+          <span>{p.next ? `${p.next.emoji} ${p.next.name}` : p.legendary ? "👑 Legendary" : "🔮 Top of the climb"}</span>
         </div>
         <div className="fat-bar"><i style={{ width: `${pct}%` }} /></div>
         <p className="wc-note">
@@ -116,6 +126,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       </div>
       <p className="wc-cheer">{cheer(done, of, !!day?.weekend)}</p>
 
+      {rankUp && <RankUp tier={rankUp.tier} name={p.member.name} profile={p} reward={rankUp.reward} onClose={() => { setRankUp(null); api.celebrated().then(setP).catch(() => undefined); }} />}
       {levelUp && (
         <div className="levelup" role="dialog" aria-modal="true" aria-label="Level up" onClick={() => setLevelUp(null)}>
           <div className="levelup-card" onClick={(e) => e.stopPropagation()}>
@@ -123,7 +134,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
             <h2>Level up!</h2>
             {levelUp.rank && <p className="levelup-rank">New rank: {levelUp.rank} — new frame and theme unlocked!</p>}
             {levelUp.gems > 0 && <p className="levelup-gems">+{levelUp.gems} 💎</p>}
-            <button className="primary" onClick={() => setLevelUp(null)}>Alhamdulillah!</button>
+            <button className="primary" onClick={() => setLevelUp(null)}>Awesome! 🎉</button>
           </div>
         </div>
       )}

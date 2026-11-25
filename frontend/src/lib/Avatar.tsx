@@ -1,8 +1,233 @@
-/** A member's picture (their emoji, or a person silhouette) inside the frame they chose. Never initials. */
+import { useId, type ReactNode } from "react";
+import Picture, { isPicture } from "./Pictures";
+
+/**
+ * A member's picture (their emoji, or a person silhouette) inside the frame they chose. Never initials.
+ *
+ * Frames are game-style crests drawn in SVG: a metallic ring plus ornaments for each rank, and animated
+ * frames from the shop. The SVG reaches a little past the picture so crowns, wings and flames can stick out.
+ * Units: the picture is a circle of radius 41 at the centre of a 120 × 120 view box.
+ */
+
+const R = 45; // middle of the ring
+const W = 8; // ring width
+
+const polar = (r: number, deg: number): [number, number] => [r * Math.cos((deg * Math.PI) / 180), r * Math.sin((deg * Math.PI) / 180)];
+
+function Rivets({ n, r = R, fill, size = 2.2 }: { n: number; r?: number; fill: string; size?: number }) {
+  return <g>{Array.from({ length: n }, (_, i) => { const [x, y] = polar(r, (360 / n) * i - 90); return <circle key={i} cx={x} cy={y} r={size} fill={fill} stroke="#0005" strokeWidth=".6" />; })}</g>;
+}
+
+/** Laurel leaves up both sides from the bottom. */
+function Laurel({ fill, from = 100, to = 230, n = 7 }: { fill: string; from?: number; to?: number; n?: number }) {
+  const leaves: ReactNode[] = [];
+  for (const side of [1, -1]) for (let i = 0; i < n; i++) {
+    const a = from + ((to - from) / (n - 1)) * i;
+    const ang = side === 1 ? a : 180 - a;
+    const [x, y] = polar(R + 7, ang);
+    const rot = ang + (side === 1 ? 90 : -90) + side * 28;
+    leaves.push(<ellipse key={`${side}${i}`} cx={x} cy={y} rx="6.4" ry="2.6" transform={`rotate(${rot} ${x} ${y})`} fill={fill} stroke="#0004" strokeWidth=".5" />);
+  }
+  return <g>{leaves}</g>;
+}
+
+function Spikes({ n, len, fill, start = -90, width = 6, base = R + W / 2 - 1 }: { n: number; len: number; fill: string; start?: number; width?: number; base?: number }) {
+  return (
+    <g>
+      {Array.from({ length: n }, (_, i) => {
+        const a = start + (360 / n) * i;
+        const [x1, y1] = polar(base, a - width), [x2, y2] = polar(base, a + width), [tx, ty] = polar(base + len, a);
+        return <polygon key={i} points={`${x1},${y1} ${tx},${ty} ${x2},${y2}`} fill={fill} stroke="#0004" strokeWidth=".5" />;
+      })}
+    </g>
+  );
+}
+
+function Gem({ x, y, s, fill }: { x: number; y: number; s: number; fill: string }) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <polygon points={`0,${-s} ${s * 0.75},0 0,${s} ${-s * 0.75},0`} fill={fill} stroke="#fff" strokeWidth="1.1" />
+      <polygon points={`0,${-s} ${s * 0.75},0 0,0`} fill="#fff" opacity=".45" />
+    </g>
+  );
+}
+
+function Crown({ y = -52, scale = 1, fill, gem }: { y?: number; scale?: number; fill: string; gem: string }) {
+  return (
+    <g transform={`translate(0 ${y}) scale(${scale})`}>
+      <path d="M-15 6 L-17 -9 L-8 -1 L0 -13 L8 -1 L17 -9 L15 6 Z" fill={fill} stroke="#7a5a00" strokeWidth="1.2" strokeLinejoin="round" />
+      <circle cx="-17" cy="-9" r="2.2" fill={fill} stroke="#7a5a00" strokeWidth=".8" />
+      <circle cx="0" cy="-13" r="2.4" fill={fill} stroke="#7a5a00" strokeWidth=".8" />
+      <circle cx="17" cy="-9" r="2.2" fill={fill} stroke="#7a5a00" strokeWidth=".8" />
+      <rect x="-15" y="2" width="30" height="4.5" rx="1" fill="#7a5a00" opacity=".35" />
+      <Gem x={0} y={0} s={3.4} fill={gem} />
+    </g>
+  );
+}
+
+function Flames({ n, from, to, fill, inner, len = 14 }: { n: number; from: number; to: number; fill: string; inner: string; len?: number }) {
+  return (
+    <g className="fx-flicker">
+      {Array.from({ length: n }, (_, i) => {
+        const a = from + ((to - from) / Math.max(1, n - 1)) * i;
+        const l = len * (0.75 + 0.25 * Math.sin(i * 2.1) ** 2);
+        return (
+          <g key={i} transform={`rotate(${a + 90}) translate(0 ${-(R + 2)})`}>
+            <path d={`M-5 0 C-6 ${-l * 0.5} -1 ${-l * 0.7} 0 ${-l} C1 ${-l * 0.7} 6 ${-l * 0.5} 5 0 Z`} fill={fill} />
+            <path d={`M-2.6 0 C-3 ${-l * 0.35} -0.5 ${-l * 0.45} 0 ${-l * 0.62} C0.5 ${-l * 0.45} 3 ${-l * 0.35} 2.6 0 Z`} fill={inner} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+function Twinkles({ pts, fill }: { pts: [number, number, number][]; fill: string }) {
+  return (
+    <g>
+      {pts.map(([x, y, s], i) => (
+        <path key={i} className="fx-twinkle" style={{ animationDelay: `${i * 0.45}s` }}
+          d={`M${x} ${y - s} L${x + s * 0.28} ${y - s * 0.28} L${x + s} ${y} L${x + s * 0.28} ${y + s * 0.28} L${x} ${y + s} L${x - s * 0.28} ${y + s * 0.28} L${x - s} ${y} L${x - s * 0.28} ${y - s * 0.28} Z`} fill={fill} />
+      ))}
+    </g>
+  );
+}
+
+/** A ring split into coloured arcs (rainbow, diamond facets). */
+function Segments({ colors, r = R, w = W }: { colors: string[]; r?: number; w?: number }) {
+  const n = colors.length, step = 360 / n;
+  return (
+    <g>
+      {colors.map((c, i) => {
+        const [x1, y1] = polar(r, i * step - 90), [x2, y2] = polar(r, (i + 1) * step - 90 + 0.6);
+        return <path key={i} d={`M${x1} ${y1} A${r} ${r} 0 0 1 ${x2} ${y2}`} stroke={c} strokeWidth={w} fill="none" />;
+      })}
+    </g>
+  );
+}
+
+interface Art { ring?: string[]; glow?: string; back?: (id: string) => ReactNode; front?: (id: string) => ReactNode; ringNode?: ReactNode }
+
+const GOLD = ["#8a6100", "#ffe9a0", "#c9962b", "#fff6d0", "#a87a1e"];
+
+const ART: Record<string, Art> = {
+  bronze: { ring: ["#5e3512", "#e9a865", "#8a5a2b", "#f3c590", "#6e4018"], front: () => <Rivets n={8} fill="#f3c590" /> },
+  silver: { ring: ["#69747f", "#ffffff", "#9aa6b2", "#f4f6f8", "#7d8a96"], back: () => <Laurel fill="#dfe6ee" />, front: () => <Rivets n={4} fill="#fff" size={1.8} /> },
+  gold: {
+    ring: GOLD, glow: "#f1c34a",
+    back: () => <Laurel fill="#e7b93a" n={8} from={95} to={250} />,
+    front: () => <><Gem x={0} y={-R} s={5.5} fill="#ffcf3a" /><Rivets n={8} fill="#fff6d0" size={1.4} /></>,
+  },
+  platinum: {
+    ring: ["#5f9eb0", "#ffffff", "#9fd3e0", "#e8f6fa", "#6fa8b8"], glow: "#9fd3e0",
+    back: () => <><Spikes n={12} len={10} fill="#e8f6fa" width={5} /><Spikes n={12} len={6} fill="#9fd3e0" width={4} start={-75} /></>,
+  },
+  emerald: {
+    ring: ["#0b4a3a", "#7fe0b0", "#1e9e6a", "#c8f5df", "#0f6b47"], glow: "#2fd38a",
+    back: () => <><Laurel fill="#2fa37f" n={8} from={100} to={265} /></>,
+    front: () => <><Gem x={0} y={-R} s={6} fill="#22c27e" /><Gem x={-R} y={0} s={3.6} fill="#22c27e" /><Gem x={R} y={0} s={3.6} fill="#22c27e" /></>,
+  },
+  sapphire: {
+    ring: ["#0e2a6a", "#8ab4ff", "#1f5fbf", "#dbe8ff", "#133a8a"], glow: "#4d8fe0",
+    back: () => <g>{Array.from({ length: 16 }, (_, i) => { const [x, y] = polar(R + 5, i * 22.5); return <circle key={i} cx={x} cy={y} r="3.4" fill="#2c6fd6" stroke="#dbe8ff" strokeWidth=".8" />; })}</g>,
+    front: () => <>{[-90, 0, 90, 180].map((a) => { const [x, y] = polar(R, a); return <Gem key={a} x={x} y={y} s={5} fill="#2f7bff" />; })}</>,
+  },
+  ruby: {
+    ring: ["#4e0a20", "#ff8fa8", "#c0294a", "#ffd0da", "#6e1230"], glow: "#ff3d5a",
+    back: () => <Flames n={9} from={-170} to={-10} fill="#ff5a36" inner="#ffd26b" />,
+    front: () => <><Gem x={0} y={-R} s={6} fill="#e3214a" /><Rivets n={10} fill="#ffd0da" size={1.3} /></>,
+  },
+  diamond: {
+    glow: "#b9e6ff",
+    ringNode: <Segments colors={["#b9f2ff", "#ffffff", "#c9e7ff", "#f0d9ff", "#ffffff", "#b9f2ff", "#e9d6ff", "#ffffff", "#c9e7ff", "#f0d9ff", "#ffffff", "#ffe9a8"]} />,
+    back: () => <Spikes n={8} len={9} fill="#e6f8ff" width={7} start={-67.5} />,
+    front: () => <><Gem x={0} y={-R - 2} s={8} fill="#9fe6ff" /><Twinkles pts={[[-38, -40, 6], [40, -30, 5], [44, 32, 6], [-42, 30, 5]]} fill="#fff" /></>,
+  },
+  obsidian: {
+    ring: ["#0a0612", "#7d5fd0", "#1a1426", "#b69cff", "#120c1c"], glow: "#9b6bff",
+    back: () => <><g className="fx-spin-slow"><circle r={R + 10} fill="none" stroke="#b69cff" strokeWidth="1.4" strokeDasharray="1 5 6 5" opacity=".9" /></g>
+      <Spikes n={8} len={13} fill="#1a1426" width={5} /><Spikes n={8} len={7} fill="#7d5fd0" width={4} start={-67.5} /></>,
+    front: () => <Gem x={0} y={-R} s={6} fill="#6a3fd0" />,
+  },
+  crown: {
+    ring: GOLD, glow: "#ffd24a",
+    back: (id) => <>
+      {[1, -1].map((s) => <g key={s} transform={`scale(${s} 1)`}>
+        {[0, 1, 2, 3].map((i) => <path key={i} d={`M${R + 2} ${-6 + i * 7} q${16 - i * 2} ${-10 + i * 2} ${22 - i * 3} ${-4 + i * 4} q-10 ${4} -${20 - i * 3} ${8}z`} fill={`url(#${id}-ring)`} stroke="#7a5a00" strokeWidth=".7" />)}
+      </g>)}
+    </>,
+    front: () => <><Crown fill="#ffd24a" gem="#e3214a" y={-50} scale={1.15} /><Twinkles pts={[[-44, -36, 5], [46, 34, 5]]} fill="#fff8d6" /></>,
+  },
+  star: {
+    ring: GOLD, glow: "#ffe58a",
+    back: () => <g className="fx-spin">{Array.from({ length: 6 }, (_, i) => { const [x, y] = polar(R + 9, i * 60); return <Twinkles key={i} pts={[[x, y, 6]]} fill="#ffe58a" />; })}</g>,
+  },
+  ribbon: {
+    ring: ["#0a5a62", "#7fe0e8", "#0d7680", "#c8f5f7", "#0a5a62"],
+    front: () => <g transform="translate(0 46)">
+      <path d="M-40 -4 L-52 4 L-44 7 L-52 12 L-34 10 Z" fill="#0b5f67" /><path d="M40 -4 L52 4 L44 7 L52 12 L34 10 Z" fill="#0b5f67" />
+      <path d="M-38 -7 Q0 3 38 -7 L36 5 Q0 15 -36 5 Z" fill="#14a3ad" stroke="#c8f5f7" strokeWidth="1" />
+      <Twinkles pts={[[0, 2, 3.5]]} fill="#fff" />
+    </g>,
+  },
+  sun: {
+    ring: ["#c96f00", "#ffe08a", "#ff9f1a", "#fff2c0", "#d97a00"], glow: "#ffb02e",
+    back: () => <g className="fx-spin"><Spikes n={16} len={10} fill="#ffc23a" width={5} /><Spikes n={16} len={6} fill="#ff8a00" width={4} start={-78.75} /></g>,
+  },
+  rainbow: {
+    glow: "#ff9bf0",
+    ringNode: <g className="fx-spin"><Segments colors={["#ff5e5e", "#ffb84d", "#ffe94d", "#5ee07a", "#4dc3ff", "#8a6bff", "#ff5ec8"]} /></g>,
+    front: () => <Twinkles pts={[[-40, -38, 5], [42, -36, 4], [0, 52, 4]]} fill="#fff" />,
+  },
+  fire: {
+    ring: ["#7a1500", "#ffb347", "#ff3d00", "#ffe08a", "#a32100"], glow: "#ff6d00",
+    back: () => <><Flames n={14} from={-180} to={0} fill="#ff3d00" inner="#ffd54f" len={18} /><Flames n={10} from={20} to={160} fill="#ff6d00" inner="#ffd54f" len={8} /></>,
+  },
+  galaxy: {
+    ring: ["#1b1040", "#b69cff", "#6a2c91", "#7fb0ff", "#1f1050"], glow: "#8a6bff",
+    back: () => <>
+      <g className="fx-spin"><ellipse rx={R + 12} ry={R - 12} fill="none" stroke="#b69cff" strokeWidth="1.5" strokeDasharray="2 4" transform="rotate(-25)" />
+        <circle cx={R + 8} cy={-14} r="3" fill="#7fb0ff" /><circle cx={-R - 8} cy={14} r="2.2" fill="#ff9bf0" /></g>
+      <Twinkles pts={[[-36, -44, 5], [44, -24, 4], [30, 46, 5], [-48, 22, 4]]} fill="#fff" />
+    </>,
+  },
+};
+
+export const FRAME_ART_KEYS = Object.keys(ART);
+
+function FrameArt({ frame }: { frame: string }) {
+  const art = ART[frame];
+  const uid = useId().replace(/:/g, "");
+  if (!art) return null;
+  const id = `fx${uid}`;
+  const ring = art.ring;
+  return (
+    <svg className="fx-svg" viewBox="-60 -60 120 120" aria-hidden="true">
+      <defs>
+        {ring && (
+          <linearGradient id={`${id}-ring`} x1="0" y1="0" x2="1" y2="1">
+            {ring.map((c, i) => <stop key={i} offset={i / (ring.length - 1)} stopColor={c} />)}
+          </linearGradient>
+        )}
+        {art.glow && <filter id={`${id}-glow`} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4" /></filter>}
+      </defs>
+      {art.glow && <circle r={R} fill="none" stroke={art.glow} strokeWidth={W + 4} filter={`url(#${id}-glow)`} opacity=".75" className="fx-pulse" />}
+      {art.back?.(id)}
+      {art.ringNode ?? <circle r={R} fill="none" stroke={`url(#${id}-ring)`} strokeWidth={W} />}
+      <circle r={R + W / 2} fill="none" stroke="#0006" strokeWidth=".8" />
+      <circle r={R - W / 2 + 0.6} fill="none" stroke="#fff" strokeWidth="1" opacity=".75" />
+      <path d={`M${-R * 0.7} ${-R * 0.7} A${R} ${R} 0 0 1 ${R * 0.7} ${-R * 0.7}`} fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" opacity=".55" />
+      {art.front?.(id)}
+    </svg>
+  );
+}
+
 export default function Avatar({ avatar, color, frame, size = 48 }: { avatar?: string; color: string; frame?: string; size?: number }) {
+  const framed = !!frame && frame !== "plain" && frame in ART;
+  const drawn = isPicture(avatar);
   const tile = (
-    <span className={`avatar${frame && frame !== "plain" ? " in-frame" : ""}`} style={{ width: size, height: size, background: avatar ? `color-mix(in srgb, ${color} 18%, #fff)` : color, fontSize: size * 0.55 }} aria-hidden="true">
-      {avatar || (
+    <span className={`avatar${framed ? " in-frame" : ""}${drawn ? " drawn" : ""}`} style={{ width: size, height: size, background: avatar ? `color-mix(in srgb, ${color} 18%, #fff)` : color, fontSize: size * 0.55 }} aria-hidden="true">
+      {drawn ? <Picture name={avatar!} /> : avatar || (
         <svg viewBox="0 0 40 40" width="78%" height="78%">
           <circle cx="20" cy="14" r="8" fill="#fff" />
           <path d="M5 40c0-9 6.7-15 15-15s15 6 15 15z" fill="#fff" />
@@ -10,5 +235,13 @@ export default function Avatar({ avatar, color, frame, size = 48 }: { avatar?: s
       )}
     </span>
   );
-  return frame && frame !== "plain" ? <span className={`frame frame-${frame}`}>{tile}</span> : tile;
+  if (!framed) return tile;
+  // The box is the ring's outer edge; ornaments (crowns, wings, flames) reach a little beyond it.
+  const box = Math.round(size * (R + W / 2) / 41);
+  return (
+    <span className={`fx fx-${frame}`} style={{ width: box, height: box }}>
+      {tile}
+      <FrameArt frame={frame!} />
+    </span>
+  );
 }
