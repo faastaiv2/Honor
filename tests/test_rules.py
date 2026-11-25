@@ -84,9 +84,11 @@ def test_one_imperfect_day_breaks_the_quest():
     assert not p.legendary and p.level == 49 and p.quest_broken_on == THU and p.quest_start is None
 
 
-def test_quest_needs_diamond():
+def test_a_recorded_quest_start_always_restarts_at_one():
+    # Only Obsidian members can start the quest (the server checks when it starts), so a recorded start is trusted:
+    # it restarts at I even if a parent's change that same morning is what made them Obsidian.
     p = run(40, [FULL] * 2, quest=[MON])
-    assert p.level == 44 and p.quest_start is None
+    assert p.level == 5 and p.quest_start == MON
 
 
 def test_legendary_is_lost_after_three_missed_weekdays_and_never_returns():

@@ -80,15 +80,19 @@ def member_start(cfg: AppSettings, m: Member) -> date:
     return max(cfg.score_from, created.astimezone(zone(cfg)).date())
 
 
+def quest_start(s: str) -> tuple[date, datetime | None]:
+    """A stored quest start: "2026-11-25" (older) or "2026-11-25@2026-11-25T14:03:00+00:00" (day, then the moment)."""
+    day, _, moment = s.partition("@")
+    return date.fromisoformat(day), (datetime.fromisoformat(moment) if moment else None)
+
+
 def progress_for(db: Session, cfg: AppSettings, members: list[Member], today: date) -> dict[str, Progress]:
     logs = logs_between(db, cfg.score_from, today)
     tz = zone(cfg)
-    adj: dict[str, dict[date, int]] = {}
+    adj_rows: dict[str, list[tuple[date, datetime, int]]] = {}
     for a in db.scalars(select(Adjustment)):
         created = a.created_at if a.created_at.tzinfo else a.created_at.replace(tzinfo=ZoneInfo("UTC"))
-        d = created.astimezone(tz).date()
-        adj.setdefault(a.member_id, {}).setdefault(d, 0)
-        adj[a.member_id][d] += a.delta
+        adj_rows.setdefault(a.member_id, []).append((created.astimezone(tz).date(), created, a.delta))
     week_from = week_start(today)
     tasks = load_tasks(db)
     periods = load_periods(db)
@@ -96,9 +100,15 @@ def progress_for(db: Session, cfg: AppSettings, members: list[Member], today: da
     for m in members:
         start = member_start(cfg, m)
         mine = {d: (l.tasks, l.excuse, l.task_excuses or {}) for (mid, d), l in logs.items() if mid == m.id}
-        starts = [date.fromisoformat(s) for s in (m.quest_starts or [])]
-        out[m.id] = simulate(m.base_honor, mine, adj.get(m.id, {}), starts, start, today, cfg.cut_misses, week_from,
-                             tasks, periods)
+        quests = [quest_start(s) for s in (m.quest_starts or [])]
+        starts = [d for d, _ in quests]
+        adj: dict[date, int] = {}
+        for d, created, delta in adj_rows.get(m.id, []):
+            # Starting the quest wipes the slate: changes made earlier that day no longer count.
+            if any(d == qd and (at is None or created < at) for qd, at in quests):
+                continue
+            adj[d] = adj.get(d, 0) + delta
+        out[m.id] = simulate(m.base_honor, mine, adj, starts, start, today, cfg.cut_misses, week_from, tasks, periods)
     return out
 
 

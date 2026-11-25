@@ -56,7 +56,10 @@ def _score_out(s: scoring.DayScore) -> dict:
 
 
 def _level_label(p: Progress) -> str:
-    return "L" if p.legendary else roman(p.level)
+    """The level in Roman numerals; a + marks a member on the Legendary quest (e.g. +III)."""
+    if p.legendary:
+        return "L"
+    return ("+" if p.quest_start is not None else "") + roman(p.level)
 
 
 def _status(p: Progress) -> dict:
@@ -97,7 +100,7 @@ def today_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db
         "task_count": len(load_tasks(db)),
         "avatars": AVATARS,
         "viewer": {"kind": v.kind, "id": v.id, "name": v.name, "is_admin": v.is_admin,
-                   "theme": (db.get(Member, v.id).theme if v.kind == "member" else "") or "bronze"},
+                   "theme": _theme_of(db.get(Member, v.id)) if v.kind == "member" else "bronze"},
         "gems": {"per_task": GEMS_PER_TASK, "full_day": GEMS_FOR_FULL_DAY, "per_level": GEMS_PER_LEVEL, "per_rank": RANK_GEMS},
     }
 
@@ -321,6 +324,11 @@ def set_avatar(body: AvatarIn, v: Viewer = Depends(current_viewer), db: Session 
 _RANK_ORDER = [t.key for t in TIERS]
 
 
+def _theme_of(m: Member) -> str:
+    """The member's theme; Bronze until they pick one (or if theirs no longer exists, like the old Classic)."""
+    return m.theme if m.theme in THEME_KEYS else "bronze"
+
+
 def _celebration(db: Session, m: Member, tier, p) -> dict | None:
     """The rank-up show still owed to this member, if any.
 
@@ -374,7 +382,7 @@ def _profile(db: Session, m: Member) -> dict:
     nxt = p.best_level + 1
     reward = 0 if p.legendary or nxt > CAP_WITHOUT_LEGENDARY else GEMS_PER_LEVEL + (
         RANK_GEMS[tier_for(nxt, False).key] if tier_for(nxt, False).min == nxt else 0)
-    return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "theme": m.theme or "bronze"},
+    return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "theme": _theme_of(m)},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
             "gems": {"balance": gems_earned(p) + claimed + from_achievements - spent,
                      "earned": gems_earned(p) + claimed + from_achievements, "spent": spent, "claimed": claimed,
@@ -558,6 +566,6 @@ def start_quest(body: QuestIn, v: Viewer = Depends(current_viewer), db: Session 
     p = progress_for(db, cfg, [m], today)[m.id]
     if not can_start_quest(p):
         raise HTTPException(400, "Only an 🔮 Obsidian member can start the Legendary quest")
-    m.quest_starts = [*(m.quest_starts or []), today.isoformat()]
+    m.quest_starts = [*(m.quest_starts or []), f"{today.isoformat()}@{datetime.now(timezone.utc).isoformat()}"]
     db.commit()
     return _status(progress_for(db, cfg, [m], today)[m.id])

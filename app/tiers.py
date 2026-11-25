@@ -144,7 +144,6 @@ FRAMES: list[tuple[str, str, str | None, int]] = [
     ("galaxy", "Galaxy", None, 600),
 ]
 THEMES: list[tuple[str, str, str | None, int]] = [
-    ("classic", "Classic emerald", "low", 0),
     ("bronze", "Bronze", "bronze", 0),
     ("silver", "Silver", "silver", 0),
     ("gold", "Gold", "gold", 0),

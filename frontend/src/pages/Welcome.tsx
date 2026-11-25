@@ -93,14 +93,14 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
   const memberId = info?.viewer.id;
   const prev = useRef<Profile | null>(null);
   const [claimMsg, setClaimMsg] = useState("");
-  const [reward, setReward] = useState<{ amount: number; from: number; title: string; chest: boolean } | null>(null);
+  const [reward, setReward] = useState<{ amount: number; from: number; title: string; chest: boolean; jewel?: string } | null>(null);
   const [place, setPlace] = useState<{ rank: number; of: number; ahead: string | null; gap: number } | null>(null);
   async function claim() {
     try {
       const before = p?.gems.balance ?? 0;
       const np = await api.claimDaily();
       setClaimMsg("");
-      setReward({ amount: np.daily.gems, from: before, title: `${np.tier.name} streak chest`, chest: true });
+      setReward({ amount: np.daily.gems, from: before, title: `${np.tier.name} streak chest`, chest: true, jewel: np.tier.color });
       prev.current = np;
       setP(np);
     } catch (e) { setClaimMsg(e instanceof Error ? e.message : "Could not open the chest"); }
@@ -217,7 +217,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       </div>
       <p className="wc-cheer">{cheer(done, of, !!day?.weekend)}</p>
 
-      {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} onDone={() => setReward(null)} />}
+      {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} jewel={reward.jewel} onDone={() => setReward(null)} />}
       {rankUp && <RankUp tier={rankUp.tier} name={p.member.name} profile={p} reward={rankUp.reward} onClose={() => { setRankUp(null); api.celebrated().then(setP).catch(() => undefined); }} />}
       {levelUp && (
         <div className="levelup" role="dialog" aria-modal="true" aria-label="Level up" onClick={() => setLevelUp(null)}>

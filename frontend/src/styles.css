@@ -1253,3 +1253,51 @@ button.shop-face:disabled { cursor: default; opacity: 1; }
   background: linear-gradient(180deg, #fff3b8, #f0c040 55%, #c99a1e); box-shadow: inset 0 -5px 0 #0003; }
 @keyframes fr-card { from { opacity: 0; transform: translateX(30px) scale(.96); } }
 @media (prefers-reduced-motion: reduce) { .fr *, .fr { animation: none !important; } }
+.gem-ico { display: inline-block; width: 1.1em; height: 1em; vertical-align: -.14em; }
+.gem-ico .gem-art { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1px 1.5px #0b3d7a55); }
+.gem-glint { transform-box: fill-box; transform-origin: center; animation: gem-glint 2.4s ease-in-out infinite; }
+@keyframes gem-glint { 0%, 60%, 100% { opacity: 0; scale: .3; } 75% { opacity: 1; scale: 1.2; } }
+
+/* ---- Gem reward v2: night stage, treasure chest, brilliant gems ---- */
+.gr { background: #050b1c; color: #fff; }
+.gr-stage { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(circle at 50% 52%, #1f5aa8 0%, #0c2550 38%, #050b1c 78%); }
+.gr-rays { position: absolute; left: 50%; top: 52%; width: 220vmax; height: 220vmax; translate: -50% -50%; opacity: .35;
+  background: repeating-conic-gradient(from 0deg, #7fd0ff33 0deg 6deg, transparent 6deg 18deg); animation: ru-spin 40s linear infinite;
+  -webkit-mask: radial-gradient(circle, #000 0%, transparent 60%); mask: radial-gradient(circle, #000 0%, transparent 60%); }
+.gr-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.gr-card { position: relative; z-index: 2; }
+.gr-title { color: #9fd0ff; }
+.gr-amount { display: inline-flex; align-items: center; gap: 8px; color: #fff; font-size: clamp(40px, 9vw, 56px);
+  text-shadow: 0 0 18px #4ab8ff, 0 3px 0 #0c3a7a; }
+.gr-amount .gem-ico { width: 1em; height: .9em; }
+.gr-opening { font-size: .6em; color: #ffe9a8; text-shadow: 0 0 16px #ffb000; animation: ru-pulse 1s ease-in-out infinite; }
+.gr-heap { position: relative; width: min(82vw, 320px); height: min(68vw, 270px); margin-top: 6px; }
+.gr-pedestal { position: absolute; left: 50%; bottom: -4%; width: 96%; height: 34px; translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(ellipse, #7fd0ff66 0%, #1f5aa833 55%, transparent 72%); animation: gr-shadow .6s both; }
+.gr-shadow { display: none; }
+.gr-gem { width: 21%; filter: drop-shadow(0 4px 6px #0006) drop-shadow(0 0 6px #4ab8ff55); }
+.gr-gem .gem-art { display: block; width: 100%; height: auto; overflow: visible; }
+.gr-heap:has(.tc) .gr-gem { animation-name: gr-burst; animation-duration: .9s; }
+.tc { position: absolute; left: 50%; bottom: -2%; width: 88%; translate: -50% 0; overflow: visible; }
+.tc-beams, .tc-mouth { opacity: 0; }
+.tc-seam { opacity: 0; filter: blur(2px); }
+.tc-shaking { animation: tc-shake 1.7s ease-in both; transform-origin: 50% 90%; }
+.tc-shaking .tc-seam { animation: tc-seam 1.7s ease-in both; }
+.tc .tc-lid, .tc .tc-lock { transform-box: view-box; transform-origin: 110px 104px; transition: transform .45s cubic-bezier(.2,1.4,.4,1), opacity .45s; }
+.tc-open .tc-lid { transform: translateY(-34px) rotate(-14deg) scaleY(.82); }
+.tc-open .tc-lock { transform: translateY(-30px) rotate(-14deg); opacity: 0; }
+.tc-open .tc-mouth { opacity: 1; transition: opacity .2s; }
+.tc-open .tc-beams { opacity: 1; transform-box: view-box; transform-origin: 110px 104px; animation: tc-beams 2.6s ease-out both; }
+.gr-is-fly .tc { animation: tc-sink .6s ease-in forwards; }
+.gr-collect { background: linear-gradient(180deg, #fff3b8, #f0c040 55%, #c99a1e); color: #2a1a00; box-shadow: 0 5px 0 #8a6400, 0 0 24px #ffd24a66; }
+.gr-collect:active { box-shadow: 0 1px 0 #8a6400; }
+.gr-wallet { background: linear-gradient(180deg, #ffffff, #e6f3ff); color: #1478c8; box-shadow: 0 0 0 2px #7fd0ff66, 0 4px 14px #0006; z-index: 3; }
+@keyframes tc-shake {
+  0% { transform: translateY(-60vh) scale(.6); } 18% { transform: none; }
+  30%, 40%, 50% { rotate: 0deg; } 34% { rotate: -2deg; } 45% { rotate: 3deg; }
+  60% { rotate: -4deg; translate: -2px 0; } 66% { rotate: 5deg; translate: 3px -2px; } 72% { rotate: -6deg; translate: -3px 0; }
+  78% { rotate: 7deg; translate: 4px -4px; } 84% { rotate: -8deg; translate: -4px -2px; } 90% { rotate: 8deg; translate: 4px -6px; }
+  95% { rotate: -6deg; scale: 1.06; } 100% { rotate: 0deg; scale: 1.1; } }
+@keyframes tc-seam { 0%, 40% { opacity: 0; } 100% { opacity: 1; filter: blur(3px) drop-shadow(0 0 8px #bfeaff); } }
+@keyframes tc-beams { 0% { opacity: 0; transform: scale(.4); } 20% { opacity: 1; transform: scale(1.05); } 100% { opacity: .8; transform: scale(1) rotate(6deg); } }
+@keyframes tc-sink { to { opacity: .0; transform: translateY(30px) scale(.9); } }

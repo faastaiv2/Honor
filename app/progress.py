@@ -71,7 +71,7 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
     best = p.level
     reached = {t for t in _ranks_upto(best)}
     for d in scoring.date_range(score_from, today):
-        if d in starts and not p.legendary and not p.banned and p.level >= OBSIDIAN_FLOOR:
+        if d in starts and not p.legendary and not p.banned:  # checked when the quest was started
             p.level = 1
             quest_active, p.quest_start, p.quest_broken_on, p.quest_days = True, d, None, 0
         entry = logs.get(d, ([], ""))

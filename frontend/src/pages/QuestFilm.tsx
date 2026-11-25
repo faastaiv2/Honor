@@ -122,7 +122,7 @@ export default function QuestFilm({ name, onClose, preview = false }: { name: st
         </div>
       )}
 
-      {stage === "gems" && <GemReward amount={reward} chest title={preview ? "To Be a Legend · preview" : "To Be a Legend"} onDone={onClose} />}
+      {stage === "gems" && <GemReward amount={reward} chest jewel="#ffd24a" title={preview ? "To Be a Legend · preview" : "To Be a Legend"} onDone={onClose} />}
     </div>
   );
 }

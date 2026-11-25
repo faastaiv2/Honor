@@ -3,6 +3,7 @@ import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import { api, ApiError, type Profile, type ShopItem, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
+import Brazier from "../lib/Brazier";
 import ThemePreview from "../lib/ThemePreview";
 import { confetti } from "../lib/confetti";
 import { notifyChanged, useToast } from "../lib/events";
@@ -59,7 +60,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
         <p className="note" style={{ margin: 0 }}>{p.next ? <>{p.next.needed} more to <RankIcon rank={p.next.name} /> {p.next.name}</> : p.legendary ? <><RankIcon rank="legendary" /> You hold Legendary</> : "XLIX is the top without the Legendary quest"}</p>
         <div className="wc-stats" style={{ width: "100%" }}>
           <div className="stat"><span className="stat-ico"><Gem /></span><b>{p.gems.balance}</b><small>gems</small></div>
-          <div className="stat"><span className="stat-ico">🔥</span><b>{p.streak}</b><small>day streak</small></div>
+          <div className="stat"><span className="stat-ico"><Brazier lit={p.streak > 0} /></span><b>{p.streak}</b><small>day streak</small></div>
           <div className="stat"><span className="stat-ico">🏅</span><b>{p.gems.earned}</b><small>gems earned</small></div>
         </div>
         <div className="perks-mini">

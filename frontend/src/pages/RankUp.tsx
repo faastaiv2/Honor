@@ -294,7 +294,7 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
       )}
 
       {stage === "gems" && (
-        <GemReward amount={reward} chest title={`Reaching ${tier.name}`}
+        <GemReward amount={reward} chest jewel={tier.color} title={`Reaching ${tier.name}`}
           from={profile ? Math.max(0, profile.gems.balance - reward) : undefined} onDone={onClose} />
       )}
     </div>

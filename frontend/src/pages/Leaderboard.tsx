@@ -20,7 +20,7 @@ function TickingLevel({ row, run }: { row: BoardRow; run: boolean }) {
     }, 45);
     return () => clearInterval(id);
   }, [run, row.level, row.legendary]);
-  return <span className="lv2-num">{row.legendary ? "L" : roman(n)}</span>;
+  return <span className="lv2-num">{row.legendary ? "L" : `${row.quest.active ? "+" : ""}${roman(n)}`}</span>;
 }
 
 /** Ranks from the top (Legendary) down; Low Honor only when someone is there. */

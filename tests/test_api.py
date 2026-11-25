@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import patch
 
 from app import scoring
@@ -350,7 +350,7 @@ def test_profile_frames_and_themes_unlock_by_rank(client, family):
         frames = {f["key"]: f["available"] for f in prof["frames"]}
         themes = {t["key"]: t["available"] for t in prof["themes"]}
         assert frames["plain"] and frames["silver"] and frames["gold"] and not frames["ruby"] and not frames["galaxy"]
-        assert themes["classic"] and themes["gold"] and not themes["obsidian"] and not themes["ocean"]
+        assert "classic" not in themes and themes["bronze"] and themes["gold"] and not themes["obsidian"] and not themes["ocean"]
         assert client.put("/api/board/profile", headers=h, json={"frame": "silver", "avatar": "eagle", "theme": "gold"}).status_code == 200
         assert client.put("/api/board/profile", headers=h, json={"frame": "ruby"}).status_code == 403
         assert client.put("/api/board/profile", headers=h, json={"theme": "ocean"}).status_code == 403
@@ -570,3 +570,27 @@ def test_oath_needs_i_swear_and_the_tour_is_remembered(client, family):
         assert client.post("/api/board/oath", headers=h, json={"words": "  i   swear "}).json()["oath"] is True
         assert client.post("/api/board/toured", headers=h).json()["toured"] is True
         assert client.post("/api/board/oath", headers=auth(client, admin=True), json={"words": "I SWEAR"}).status_code == 400
+
+
+def test_quest_resets_to_one_even_after_a_parent_raised_them_today(client, family, db):
+    ha = auth(client, admin=True)
+    m = family["B"]  # Bravo, base 5
+    a, b = at_today()
+    with a, b, patch("app.routers.admin.today_for", return_value=TODAY):
+        client.post("/api/admin/adjustments", headers=ha, json={"member_id": m.id, "delta": 44, "note": "to Obsidian"})
+        from app.models import Adjustment
+        for adj in db.query(Adjustment).all():  # made this morning (the test clock is fixed on TODAY)
+            adj.created_at = datetime(TODAY.year, TODAY.month, TODAY.day, 9, tzinfo=timezone.utc)
+        db.commit()
+        h = auth(client, m)
+        me = next(r for r in client.get("/api/board/leaderboard", headers=h).json()["rows"] if r["is_me"])
+        assert me["tier"]["key"] == "obsidian" and me["can_start_quest"]
+        q = client.post("/api/board/quest", headers=h, json={"member_id": m.id}).json()
+        assert q["level"] == 1 and q["tier"]["key"] == "bronze" and q["quest"]["active"] and q["label"] == "+I"
+        # A parent's change after the quest started still counts.
+        client.post("/api/admin/adjustments", headers=ha, json={"member_id": m.id, "delta": 2, "note": "well done"})
+        late = db.query(Adjustment).filter(Adjustment.delta == 2).one()
+        late.created_at = datetime.now(timezone.utc)  # after the quest started
+        db.commit()
+        me = next(r for r in client.get("/api/board/leaderboard", headers=h).json()["rows"] if r["is_me"])
+        assert me["level"] == 3
