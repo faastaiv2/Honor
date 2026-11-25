@@ -368,6 +368,9 @@ def test_shop_spends_gems(client, family, db):
         # earn: 18 ticks a day = 90 gems a day (Monday filled in by the admin), plus any new-level rewards
         put_day(client, auth(client, admin=True), family["S"], date(2026, 11, 23), ALL)
         put_day(client, h, family["S"], TODAY, ALL)
+        from app.models import DailyClaim
+        db.add(DailyClaim(member_id=family["S"].id, day=TODAY - timedelta(days=5), gems=100))  # an earlier streak chest
+        db.commit()
         prof = client.get("/api/board/profile", headers=h).json()
         earned = prof["gems"]["earned"]
         assert prof["gems"]["today"] == 90 and prof["gems"]["balance"] == earned
@@ -375,7 +378,7 @@ def test_shop_spends_gems(client, family, db):
         assert too_dear.status_code == 400 and "more gems" in too_dear.json()["detail"]
         assert client.post("/api/board/shop/buy", headers=h, json={"kind": "frame", "key": "gold"}).status_code == 400  # earned, not sold
         r = client.post("/api/board/shop/buy", headers=h, json={"kind": "avatar", "key": "panda"})
-        assert r.status_code == 200 and r.json()["gems"]["balance"] == earned - 100 and r.json()["member"]["avatar"] == "panda"
+        assert r.status_code == 200 and r.json()["gems"]["balance"] == earned - 200 and r.json()["member"]["avatar"] == "panda"
         assert client.post("/api/board/shop/buy", headers=h, json={"kind": "avatar", "key": "panda"}).status_code == 400
         # unticking tasks takes their gems back
         put_day(client, h, family["S"], TODAY, [])

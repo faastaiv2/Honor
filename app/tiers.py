@@ -136,12 +136,12 @@ FRAMES: list[tuple[str, str, str | None, int]] = [
     ("diamond", "Diamond", "diamond", 0),
     ("obsidian", "Obsidian", "obsidian", 0),
     ("crown", "Royal crown", "legendary", 0),
-    ("star", "Starlight", None, 150),
-    ("ribbon", "Teal ribbon", None, 150),
-    ("sun", "Sunburst", None, 200),
-    ("rainbow", "Rainbow", None, 400),
-    ("fire", "Fire", None, 500),
-    ("galaxy", "Galaxy", None, 600),
+    ("star", "Starlight", None, 300),
+    ("ribbon", "Teal ribbon", None, 300),
+    ("sun", "Sunburst", None, 400),
+    ("rainbow", "Rainbow", None, 800),
+    ("fire", "Fire", None, 1000),
+    ("galaxy", "Galaxy", None, 1200),
 ]
 THEMES: list[tuple[str, str, str | None, int]] = [
     ("bronze", "Bronze", "bronze", 0),
@@ -154,10 +154,10 @@ THEMES: list[tuple[str, str, str | None, int]] = [
     ("diamond", "Diamond", "diamond", 0),
     ("obsidian", "Obsidian night", "obsidian", 0),
     ("legendary", "Legendary gold", "legendary", 0),
-    ("rose", "Rose garden", None, 250),
-    ("ocean", "Ocean", None, 250),
-    ("desert", "Desert dusk", None, 300),
-    ("midnight", "Midnight", None, 350),
+    ("rose", "Rose garden", None, 500),
+    ("ocean", "Ocean", None, 500),
+    ("desert", "Desert dusk", None, 600),
+    ("midnight", "Midnight", None, 700),
 ]
 # Drawn pictures (frontend/src/lib/Pictures.tsx): (key, name), and (key, name, gems) for the shop.
 FREE_PICTURES: list[tuple[str, str]] = [
@@ -165,10 +165,10 @@ FREE_PICTURES: list[tuple[str, str]] = [
     ("bear", "Bear"), ("cat", "Cat"), ("turtle", "Turtle"), ("dolphin", "Dolphin"), ("knight", "Knight"),
 ]
 SHOP_PICTURES: list[tuple[str, str, int]] = [
-    ("panda", "Panda", 100), ("penguin", "Penguin", 100), ("koala", "Koala", 120), ("unicorn", "Unicorn", 150),
-    ("dino", "Dino", 150), ("astronaut", "Astronaut", 200), ("robot", "Robot", 200), ("ninja", "Ninja", 220),
-    ("phoenix", "Phoenix", 300), ("dragon", "Dragon", 350), ("kinglion", "Lion King", 400),
-    ("cosmiccat", "Cosmic cat", 450),
+    ("panda", "Panda", 200), ("penguin", "Penguin", 200), ("koala", "Koala", 240), ("unicorn", "Unicorn", 300),
+    ("dino", "Dino", 300), ("astronaut", "Astronaut", 400), ("robot", "Robot", 400), ("ninja", "Ninja", 440),
+    ("phoenix", "Phoenix", 600), ("dragon", "Dragon", 700), ("kinglion", "Lion King", 800),
+    ("cosmiccat", "Cosmic cat", 900),
 ]
 FREE_AVATARS = [k for k, _ in FREE_PICTURES]
 SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c in SHOP_PICTURES]
