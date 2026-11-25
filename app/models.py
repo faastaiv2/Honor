@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, LargeBinary, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -93,6 +93,32 @@ class Period(Base):
     end: Mapped[date] = mapped_column(Date)
     off: Mapped[list] = mapped_column(JSON, default=list)  # task keys that are paused
     numbers: Mapped[dict] = mapped_column(JSON, default=dict)  # task key -> fixed number during the period
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Event(Base):
+    """A tournament the admin sets up for a day (usually a Saturday), with a theme for the kids."""
+    __tablename__ = "events"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    day: Mapped[date] = mapped_column(Date, unique=True)
+    title: Mapped[str] = mapped_column(String(80))
+    prompt: Mapped[str] = mapped_column(String(200), default="")  # the theme, e.g. "Draw your favourite animal"
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class EventEntry(Base):
+    """A member's picture in a Saturday art tournament; parents pick 1st, 2nd and 3rd."""
+    __tablename__ = "event_entries"
+    __table_args__ = (UniqueConstraint("event_day", "member_id", name="uq_event_member"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    event_day: Mapped[date] = mapped_column(Date, index=True)  # the Saturday
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(80), default="")
+    mime: Mapped[str] = mapped_column(String(20), default="image/jpeg")
+    image: Mapped[bytes] = mapped_column(LargeBinary)
+    place: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1, 2 or 3
+    gems: Mapped[int] = mapped_column(Integer, default=0)
+    win_seen: Mapped[bool] = mapped_column(Boolean, default=False)  # the winner has seen their celebration
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

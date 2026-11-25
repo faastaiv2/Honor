@@ -42,7 +42,7 @@ export interface Profile extends Status {
   frames: ShopItem[]; themes: ShopItem[]; avatars: ShopItem[];
   celebrate: { tier: string; reward: number } | null; // a rank-up show not watched yet
   daily: { gems: number; claimed_today: boolean; available: boolean }; // the daily streak chest
-  achievements_ready: number; oath: boolean; oath_note: string; toured: boolean;
+  achievements_ready: number; event_win: { id: string; place: number; gems: number; day: string; title: string } | null; oath: boolean; oath_note: string; toured: boolean;
   week_days: { date: string; state: "done" | "open" | "missed" | "rest" | "excused" | "future" | "pre"; today: boolean }[];
 }
 export interface Board { week: Week; rows: BoardRow[]; weekly: { member_id: string; week_delta: number }[] }
@@ -55,6 +55,12 @@ export interface Adjustment { id: string; member_id: string; delta: number; note
 export interface TaskDef { key: string; label: string; group: string; fitness: boolean; next_day: boolean; not_before: string | null; number_today: number | null; step: number; every: number; shown_today: string; shown_tomorrow: string }
 export interface Achievement { key: string; name: string; text: string; group: string; icon: string; tier: string; gems: number; goal: number; progress: number; unlocked: boolean; claimed: boolean }
 export interface Achievements { member: { id: string; name: string }; items: Achievement[]; unlocked: number; total: number }
+export interface EventEntry { id: string; member: { id: string; name: string; avatar: string }; title: string; place: number | null; gems: number; day: string }
+export interface ArtEvent { id: string; day: string; title: string; prompt: string }
+export interface EventsInfo {
+  today: string; open: boolean; prizes: Record<string, number>; event: ArtEvent | null; next: ArtEvent | null; upcoming: ArtEvent[];
+  suggested_day: string; current: EventEntry[]; mine: EventEntry | null; past: (ArtEvent & { judged: boolean; entries: EventEntry[] })[];
+}
 export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number> }
 export interface Period extends PeriodIn { id: string }
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
@@ -113,6 +119,20 @@ export const api = {
   claimAchievement: (key: string) => request<Achievements>(`/board/achievements/${encodeURIComponent(key)}/claim`, send("POST", {})),
   oath: (words: string) => request<Profile>("/board/oath", send("POST", { words })),
   toured: () => request<Profile>("/board/toured", send("POST", {})),
+  events: () => request<EventsInfo>("/events"),
+  submitArt: (title: string, image: string) => request<EventsInfo>("/events/entry", send("POST", { title, image })),
+  withdrawArt: () => request<EventsInfo>("/events/entry/mine", send("DELETE")),
+  createEvent: (day: string, title: string, prompt: string) => request<EventsInfo>("/events/create", send("POST", { day, title, prompt })),
+  deleteEvent: (id: string) => request<EventsInfo>(`/events/${encodeURIComponent(id)}`, send("DELETE")),
+  judge: (day: string, first?: string, second?: string, third?: string) => request<EventsInfo>("/events/judge", send("POST", { day, first, second, third })),
+  winSeen: (id: string) => request<{ ok: boolean }>(`/events/seen/${encodeURIComponent(id)}`, send("POST", {})),
+  /** A tournament picture as a blob URL (pictures need the sign-in token, so <img src> can't fetch them directly). */
+  artUrl: async (id: string): Promise<string> => {
+    const t = token.get();
+    const res = await fetch(`${BASE}/api/events/image/${encodeURIComponent(id)}`, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+    if (!res.ok) throw new ApiError(res.status, "Picture not found");
+    return URL.createObjectURL(await res.blob());
+  },
   claimDaily: () => request<Profile>("/board/claim", send("POST", {})),
   celebrated: () => request<Profile>("/board/profile/celebrated", send("POST", {})),
   saveProfile: (body: { avatar?: string; frame?: string; theme?: string }) => request<Profile>("/board/profile", send("PUT", body)),

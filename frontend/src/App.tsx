@@ -1,3 +1,4 @@
+import Events from "./pages/Events";
 import AdminHome from "./pages/AdminHome";
 import FirstRun from "./pages/FirstRun";
 import Achievements from "./pages/Achievements";
@@ -58,6 +59,7 @@ export default function App() {
             <NavLink to="/" end>Today</NavLink>
             <NavLink to="/leaderboard">Leaderboard</NavLink>
             {!viewer.is_admin && <NavLink to="/achievements">Achievements</NavLink>}
+            <NavLink to="/events">Events</NavLink>
             {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Profile</NavLink>}
             <NavLink to="/benefits">Benefits</NavLink>
             {viewer.is_admin && <NavLink to="/tasks">Tasks</NavLink>}
@@ -77,6 +79,7 @@ export default function App() {
             <Route path="/history" element={viewer.is_admin ? <HistoryPage /> : <Navigate to="/profile" />} />
             <Route path="/profile" element={viewer.is_admin ? <Navigate to="/admin" /> : <ProfilePage info={info} />} />
             <Route path="/benefits" element={<Benefits info={info} />} />
+            <Route path="/events" element={<Events />} />
             <Route path="/achievements" element={viewer.is_admin ? <Navigate to="/" /> : <Achievements />} />
             <Route path="/rules" element={<Navigate to="/benefits" />} />
             <Route path="/admin" element={viewer.is_admin ? <Admin info={info} /> : <Navigate to="/" />} />

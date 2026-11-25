@@ -652,3 +652,44 @@ def test_same_level_earlier_finisher_ranks_higher(client, family, db):
         rows = client.get("/api/board/leaderboard", headers=ha).json()["rows"]
     order = [r["member"]["name"] for r in rows]
     assert order[:2] == ["Sierra", "Bravo"] and rows[0]["rank"] == 1 and rows[1]["rank"] == 2
+
+
+PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+
+
+def test_art_tournament(client, family):
+    sat = date(2026, 11, 28)
+    hs = {c: auth(client, family[c]) for c in ("A", "B", "S")}
+    ha = auth(client, admin=True)
+    a, b = at_today()  # Tuesday
+    with a, b, patch("app.routers.events.today_for", return_value=TODAY):
+        info = client.get("/api/events", headers=hs["A"]).json()
+        assert info["open"] is False and info["next"] is None and info["suggested_day"] == sat.isoformat()
+        assert client.post("/api/events/create", headers=hs["A"], json={"day": sat.isoformat()}).status_code == 403
+        r = client.post("/api/events/create", headers=ha, json={"day": sat.isoformat(), "title": "Art Tournament", "prompt": "Your favourite animal"})
+        assert r.status_code == 200 and r.json()["next"]["prompt"] == "Your favourite animal"
+        assert client.post("/api/events/create", headers=ha, json={"day": sat.isoformat()}).status_code == 400  # one per day
+        assert client.post("/api/events/entry", headers=hs["A"], json={"title": "Sun", "image": PNG}).status_code == 403
+    a, b = at_today(sat)
+    with a, b, patch("app.routers.events.today_for", return_value=sat):
+        for c, t in (("A", "Sunset"), ("B", "Cat"), ("S", "Mosque")):
+            assert client.post("/api/events/entry", headers=hs[c], json={"title": t, "image": PNG}).status_code == 200
+        assert client.post("/api/events/entry", headers=hs["A"], json={"title": "x", "image": "data:text/html;base64,PGI+"}).status_code == 400
+        info = client.get("/api/events", headers=hs["A"]).json()
+        assert info["open"] and info["event"]["title"] == "Art Tournament" and len(info["current"]) == 3 and info["mine"]["title"] == "Sunset"
+        ids = {e["member"]["name"]: e["id"] for e in info["current"]}
+        img = client.get(f"/api/events/image/{ids['Bravo']}", headers=hs["A"])
+        assert img.status_code == 200 and img.headers["content-type"] == "image/png"
+        before = client.get("/api/board/profile", headers=hs["S"]).json()["gems"]["balance"]
+        assert client.post("/api/events/judge", headers=hs["A"], json={"day": sat.isoformat(), "first": ids["Sierra"]}).status_code == 403
+        client.post("/api/events/judge", headers=ha, json={"day": sat.isoformat(), "first": ids["Sierra"], "second": ids["Alpha"], "third": ids["Bravo"]})
+        prof = client.get("/api/board/profile", headers=hs["S"]).json()
+        assert prof["gems"]["balance"] == before + 100 and prof["event_win"]["place"] == 1
+        ach = {x["key"]: x for x in client.get("/api/board/achievements", headers=hs["S"]).json()["items"]}
+        assert ach["art1"]["unlocked"] and not ach["art2"]["unlocked"]
+        assert {x["key"]: x for x in client.get("/api/board/achievements", headers=hs["B"]).json()["items"]}["art3"]["unlocked"]
+        client.post(f"/api/events/seen/{prof['event_win']['id']}", headers=hs["S"])
+        assert client.get("/api/board/profile", headers=hs["S"]).json()["event_win"] is None
+        assert client.post("/api/events/entry", headers=hs["S"], json={"title": "again", "image": PNG}).status_code == 400  # judged
+        ev = client.get("/api/events", headers=ha).json()["event"]
+        assert client.delete(f"/api/events/{ev['id']}", headers=ha).status_code == 400  # has art in it

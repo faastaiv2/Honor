@@ -1409,3 +1409,63 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .sd-pick input { flex: 1; min-width: 0; }
 .sd-ask { padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--gold) 14%, var(--paper)); border: 2px solid color-mix(in srgb, var(--gold) 50%, var(--line)); }
 .sd-ask p { margin: 0 0 6px; } .sd-ask ul { margin: 0 0 10px; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+
+/* ---- Events: art tournaments ---- */
+.ev { display: grid; gap: 16px; }
+.ev-hero { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; padding: 20px 22px; border-radius: 24px; color: #fff;
+  background: radial-gradient(circle at 12% 20%, #ffffff22, transparent 45%), linear-gradient(135deg, #8a2f9a, #3a1f80 55%, #1f2f80); box-shadow: inset 0 -5px 0 #0003; }
+.ev-hero.live { background: radial-gradient(circle at 12% 20%, #ffffff33, transparent 45%), linear-gradient(135deg, #e0479a, #8a2fd0 55%, #2f5fd0); }
+.ev-hero-art { font-size: 64px; filter: drop-shadow(0 6px 12px #0006); animation: ach-bob 2.4s ease-in-out infinite; }
+.ev-kicker { margin: 0; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; font-size: 13px; color: #ffe9a8; }
+.ev-hero.live .ev-kicker { color: #fff; animation: ru-pulse 1.4s ease-in-out infinite; }
+.ev-hero h1 { margin: 2px 0; font: clamp(28px, 6vw, 40px)/1.1 Marcellus, Georgia, serif; }
+.ev-theme { margin: 4px 0; font-size: 16px; } .ev-theme b { color: #ffe9a8; }
+.ev-sub { margin: 4px 0 10px; opacity: .92; font-weight: 600; }
+.ev-prizes { display: flex; flex-wrap: wrap; gap: 8px; }
+.ev-prizes > span { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 999px; font-weight: 800; background: #ffffff22; box-shadow: inset 0 0 0 1px #ffffff44; }
+.ev-prizes .gold { background: linear-gradient(180deg, #fff3b8, #f0c040); color: #4a2c00; }
+@media (max-width: 560px) { .ev-hero { grid-template-columns: 1fr; text-align: center; justify-items: center; } .ev-prizes { justify-content: center; } }
+.ev-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.ev-head h2 { margin: 0; }
+.ev-closed { text-align: center; } .ev-closed h2 { margin-top: 0; }
+.ev-count { display: flex; justify-content: center; gap: 10px; margin: 12px 0; }
+.ev-count > span { display: grid; min-width: 74px; padding: 10px; border-radius: 16px; background: var(--soft); }
+.ev-count b { font: 34px/1 Marcellus, Georgia, serif; color: var(--em2); } .ev-count small { font-weight: 700; color: var(--mute); }
+.ev-up { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.ev-up li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--soft); }
+.ev-up small { display: block; color: var(--mute); }
+.ev-submit, .ev-mine { display: grid; gap: 10px; margin-bottom: 18px; }
+.ev-mine { grid-template-columns: 140px 1fr; align-items: center; } .ev-mine h2 { margin: 0; }
+.ev-drop { display: grid; justify-items: center; gap: 4px; padding: 28px 16px; border-radius: 20px; border: 3px dashed color-mix(in srgb, #8a2fd0 45%, var(--line));
+  background: color-mix(in srgb, #8a2fd0 6%, var(--paper)); color: var(--ink); }
+.ev-drop span { font-size: 44px; } .ev-drop b { font-size: 18px; } .ev-drop small { color: var(--mute); }
+.ev-title { width: 100%; }
+.art { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; background: var(--soft2); }
+.art-wait { animation: ru-pulse 1.2s ease-in-out infinite; }
+.ev-preview { max-width: 320px; aspect-ratio: auto; max-height: 360px; object-fit: contain; }
+.ev-gallery { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.ev-item { display: grid; gap: 6px; }
+.ev-pic { position: relative; padding: 0; border: 3px solid transparent; border-radius: 20px; background: transparent; min-height: 0; overflow: hidden; }
+.ev-pic:disabled { opacity: 1; cursor: default; }
+.ev-item.judging .ev-pic { cursor: pointer; border-color: var(--line); }
+.ev-item.placed.p1 .ev-pic { border-color: #f0c040; box-shadow: 0 0 18px #f0c04088; }
+.ev-item.placed.p2 .ev-pic { border-color: #b9c4ce; } .ev-item.placed.p3 .ev-pic { border-color: #c98a4e; }
+.ev-badge { position: absolute; top: 8px; left: 8px; padding: 2px 10px; border-radius: 999px; background: #fff; color: #3a2a00; font-weight: 800; font-size: 13px; box-shadow: 0 2px 6px #0003; }
+.ev-cap { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; } .ev-cap small { color: var(--mute); }
+.ev-judge-btn { margin-top: 12px; min-height: 46px; padding: 0 18px; border-radius: 14px; font-weight: 800; }
+.ev-judge { margin-top: 12px; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--gold) 14%, var(--paper)); }
+.ev-judge p { margin: 0 0 8px; }
+.ev-more summary { cursor: pointer; font-weight: 700; margin: 8px 0; }
+.podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 10px; margin: 6px 0 14px; }
+.pod { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.pod .pod-art { width: 100%; max-width: 160px; }
+.pod-gold .pod-art { max-width: 190px; box-shadow: 0 0 0 4px #f0c040, 0 0 24px #f0c04088; }
+.pod-silver .pod-art { box-shadow: 0 0 0 3px #b9c4ce; } .pod-bronze .pod-art { box-shadow: 0 0 0 3px #c98a4e; }
+.pod small { color: var(--mute); }
+.pod-empty { font-size: 28px; color: var(--mute); padding: 30px 0; }
+.pod-step { width: 100%; display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border-radius: 14px 14px 4px 4px; font-weight: 800; color: #3a2a00; }
+.pod-gold .pod-step { min-height: 96px; background: linear-gradient(180deg, #fff3b8, #f0c040); }
+.pod-silver .pod-step { min-height: 70px; background: linear-gradient(180deg, #ffffff, #c8d2dc); }
+.pod-bronze .pod-step { min-height: 54px; background: linear-gradient(180deg, #f6dcc0, #c98a4e); }
+.pod-medal { font-size: 26px; } .pod-step em { font-style: normal; font-size: 13px; }
+@media (max-width: 560px) { .ev-mine { grid-template-columns: 1fr; } }

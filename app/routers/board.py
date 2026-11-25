@@ -12,6 +12,7 @@ from app.makeup import check_week, remaining, week_start
 from app.models import AchievementClaim, DailyClaim, DayLog, Member, Purchase
 from app.achievements import BY_KEY as ACHIEVEMENT_BY_KEY, Facts, evaluate as evaluate_achievements
 from app.progress import Progress, gems_earned
+from app.routers.events import placings, unseen_win
 from app.services import (achievement_gems, active_members, clock_for, chests_opened, load_periods, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
 from app.tiers import (CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
@@ -426,6 +427,7 @@ def _profile(db: Session, m: Member) -> dict:
             "daily": {"gems": daily_gems, "claimed_today": claimed_today,
                       "available": daily_gems > 0 and p.streak > 0 and not claimed_today},
             "week_days": _week_days(db, cfg, m, today),
+            "event_win": unseen_win(db, m.id),
             "oath": m.oath_at is not None, "oath_note": m.oath_note or "", "toured": bool(m.toured),
             "achievements_ready": sum(1 for a in _achievements(db, m, p) if a["unlocked"] and not a["claimed"])}
 
@@ -501,7 +503,7 @@ def _achievements(db: Session, m: Member, p: Progress) -> list[dict]:
     _, got = achievement_gems(db, m.id)
     purchases = len(owned_items(db, m.id))
     facts = Facts(p=p, gems_earned=gems_earned(p) + gems_claimed(db, m.id), purchases=purchases, chests=chests_opened(db, m.id),
-                  quests=len(m.quest_starts or []))
+                  quests=len(m.quest_starts or []), **dict(zip(("first", "second", "third"), placings(db, m.id).values())))
     return evaluate_achievements(facts, got)
 
 

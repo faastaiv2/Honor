@@ -133,8 +133,10 @@ def owned_items(db: Session, member_id: str) -> set[str]:
 def gems_claimed(db: Session, member_id: str) -> int:
     from sqlalchemy import func
 
-    from app.models import DailyClaim
-    return int(db.scalar(select(func.coalesce(func.sum(DailyClaim.gems), 0)).where(DailyClaim.member_id == member_id)) or 0)
+    from app.models import DailyClaim, EventEntry
+    chests = db.scalar(select(func.coalesce(func.sum(DailyClaim.gems), 0)).where(DailyClaim.member_id == member_id)) or 0
+    prizes = db.scalar(select(func.coalesce(func.sum(EventEntry.gems), 0)).where(EventEntry.member_id == member_id)) or 0
+    return int(chests) + int(prizes)  # streak chests and tournament prizes
 
 
 def achievement_gems(db: Session, member_id: str) -> tuple[int, set[str]]:

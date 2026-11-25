@@ -17,6 +17,9 @@ class Facts:
     purchases: int
     chests: int
     quests: int = 0  # Legendary quests started
+    first: int = 0  # art tournaments won (1st place)
+    second: int = 0
+    third: int = 0
 
 
 @dataclass(frozen=True)
@@ -69,6 +72,10 @@ ACHIEVEMENTS: list[Achievement] = [
     Achievement("quest", "To Be a Legend", "Give up Obsidian and start the Legendary quest", "Ranks", "crest:legendary", "legend", 1,
                 lambda f: f.quests, reward=500),
     Achievement("legendary", "Legend", "Earn Legendary Honor", "Ranks", "crest:legendary", "legend", 1, _rank("legendary")),
+    # Events
+    Achievement("art1", "Champion Artist", "Win 1st place in an art tournament", "Events", "star", "gold", 1, lambda f: f.first),
+    Achievement("art2", "Silver Brush", "Come 2nd in an art tournament", "Events", "star", "silver", 1, lambda f: f.second),
+    Achievement("art3", "Bronze Brush", "Come 3rd in an art tournament", "Events", "star", "bronze", 1, lambda f: f.third),
     # Treasure
     Achievement("gems500", "Treasure Hunter", "Earn 500 gems", "Treasure", "gem", "silver", 500, lambda f: f.gems_earned),
     Achievement("gems2000", "Dragon's Hoard", "Earn 2,000 gems", "Treasure", "gem", "gold", 2000, lambda f: f.gems_earned),
