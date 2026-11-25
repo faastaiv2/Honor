@@ -162,13 +162,13 @@ THEMES: list[tuple[str, str, str | None, int]] = [
 # Drawn pictures (frontend/src/lib/Pictures.tsx): (key, name), and (key, name, gems) for the shop.
 FREE_PICTURES: list[tuple[str, str]] = [
     ("lion", "Lion"), ("tiger", "Tiger"), ("eagle", "Eagle"), ("wolf", "Wolf"), ("fox", "Fox"), ("owl", "Owl"),
-    ("bear", "Bear"), ("cat", "Cat"), ("turtle", "Turtle"), ("dolphin", "Dolphin"), ("knight", "Knight"),
+    ("bear", "Bear"), ("cat", "Cat"), ("turtle", "Turtle"), ("dolphin", "Dolphin"),
 ]
 SHOP_PICTURES: list[tuple[str, str, int]] = [
     ("panda", "Panda", 200), ("penguin", "Penguin", 200), ("koala", "Koala", 240), ("unicorn", "Unicorn", 300),
     ("dino", "Dino", 300), ("astronaut", "Astronaut", 400), ("robot", "Robot", 400), ("ninja", "Ninja", 440),
     ("phoenix", "Phoenix", 600), ("dragon", "Dragon", 700), ("kinglion", "Lion King", 800),
-    ("cosmiccat", "Cosmic cat", 900),
+    ("cosmiccat", "Cosmic cat", 900), ("knight", "Legendary Knight", 1500),
 ]
 FREE_AVATARS = [k for k, _ in FREE_PICTURES]
 SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c in SHOP_PICTURES]

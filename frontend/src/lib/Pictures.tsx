@@ -126,14 +126,42 @@ const PICS: Record<string, Pic> = {
     <circle cx="58" cy="50" r="4" fill="#1f2f40" /><circle cx="59.5" cy="48.5" r="1.5" fill="#fff" />
     <path d="M72 64 Q78 66 84 63" fill="none" stroke="#1f5a8a" strokeWidth="1.6" strokeLinecap="round" />
   </> },
-  knight: { bg: ["#e8ecf2", "#7d8a9e"], draw: (id) => <>
-    <defs><linearGradient id={`${id}k`} x1="0" x2="1"><stop offset="0" stopColor="#8e9aa8" /><stop offset=".45" stopColor="#f4f6f8" /><stop offset="1" stopColor="#7d8a96" /></linearGradient></defs>
-    <Body fill="#3d5a8a" />
-    <path d="M50 8 q10 6 6 20 q-6 -10 -12 -2 q-2 -12 6 -18z" fill="#d6283a" />
-    <path d="M26 46 Q26 20 50 20 Q74 20 74 46 V74 Q62 82 50 82 Q38 82 26 74Z" fill={`url(#${id}k)`} stroke="#5a6676" strokeWidth="1.6" />
-    <rect x="30" y="44" width="40" height="7" rx="3" fill="#1f2630" />
-    <path d="M50 51 v26 M42 58 h16 M42 66 h16" stroke="#5a6676" strokeWidth="1.6" />
-    <circle cx="40" cy="47.5" r="1.6" fill="#ffe08a" /><circle cx="60" cy="47.5" r="1.6" fill="#ffe08a" />
+  knight: { bg: ["#6a3fb0", "#140828"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff6c8" /><stop offset=".35" stopColor="#ffd24a" /><stop offset=".7" stopColor="#d99a10" /><stop offset="1" stopColor="#7a4a00" /></linearGradient>
+      <linearGradient id={`${id}gv`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff2a8" /><stop offset=".55" stopColor="#f0b820" /><stop offset="1" stopColor="#8a5a00" /></linearGradient>
+      <linearGradient id={`${id}p`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ff6a7a" /><stop offset="1" stopColor="#9a0a2a" /></linearGradient>
+      <radialGradient id={`${id}h`}><stop offset="0" stopColor="#fff2b8" stopOpacity=".9" /><stop offset="1" stopColor="#ffd24a" stopOpacity="0" /></radialGradient>
+      <radialGradient id={`${id}v`}><stop offset="0" stopColor="#ffffff" /><stop offset=".4" stopColor="#7fe8ff" /><stop offset="1" stopColor="#1a8ad8" stopOpacity="0" /></radialGradient>
+    </defs>
+    {/* rays and halo */}
+    <g opacity=".55">{Array.from({ length: 16 }, (_, i) => <path key={i} d="M50 40 L47 -10 H53 Z" fill="#ffd24a" transform={`rotate(${i * 22.5} 50 40)`} opacity={i % 2 ? 0.5 : 1} />)}</g>
+    <circle cx="50" cy="40" r="30" fill={`url(#${id}h)`} />
+    {/* pauldrons and breastplate */}
+    <path d="M10 100 Q12 78 30 74 Q50 70 70 74 Q88 78 90 100 Z" fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth="1.2" />
+    <path d="M14 86 Q22 74 34 76 Q30 84 32 92 Q22 88 14 92 Z M86 86 Q78 74 66 76 Q70 84 68 92 Q78 88 86 92 Z" fill={`url(#${id}gv)`} stroke="#6a4200" strokeWidth="1" />
+    <path d="M40 80 H60 L62 88 Q50 100 38 88 Z" fill="#5a2fc0" stroke="#fff2b8" strokeWidth="1.4" />
+    <path d="M50 82 l1.6 3.4 3.7.5 -2.7 2.6 .7 3.7 -3.3 -1.8 -3.3 1.8 .7 -3.7 -2.7 -2.6 3.7 -.5z" fill="#ffd24a" />
+    {/* plume */}
+    <path d="M52 14 C66 2 86 6 90 20 C82 14 72 14 66 20 C76 18 84 24 84 32 C76 26 66 26 60 30 Z" fill={`url(#${id}p)`} stroke="#6a0a1a" strokeWidth=".8" />
+    <path d="M58 22 C68 14 78 14 84 18 M60 28 C68 22 76 24 80 28" stroke="#ffb0b8" strokeWidth="1" fill="none" opacity=".7" />
+    {/* great helm */}
+    <path d="M28 50 Q28 22 50 20 Q72 22 72 50 V70 Q62 78 50 78 Q38 78 28 70 Z" fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth="1.6" />
+    <path d="M50 21 V77" stroke="#fff6c8" strokeWidth="1.6" opacity=".7" />
+    <path d="M34 30 Q42 24 50 23" stroke="#fff" strokeWidth="2.4" fill="none" opacity=".7" strokeLinecap="round" />
+    {/* glowing visor */}
+    <path d="M31 44 Q50 40 69 44 L68 52 Q50 48 32 52 Z" fill="#160a28" />
+    <ellipse cx="50" cy="47" rx="17" ry="4" fill={`url(#${id}v)`} />
+    <path d="M38 47 h6 M56 47 h6" stroke="#e6fbff" strokeWidth="2" strokeLinecap="round" />
+    {/* breaths and rivets */}
+    {[58, 63, 68].map((y) => <path key={y} d={`M40 ${y} H60`} stroke="#6a4200" strokeWidth="1.6" strokeLinecap="round" />)}
+    {[[33, 58], [67, 58], [36, 66], [64, 66]].map(([x, y]) => <circle key={`${x}${y}`} cx={x} cy={y} r="1.5" fill="#fff6c8" />)}
+    {/* crown */}
+    <path d="M36 22 L34 10 L42 16 L50 6 L58 16 L66 10 L64 22 Z" fill={`url(#${id}gv)`} stroke="#6a4200" strokeWidth="1.2" strokeLinejoin="round" />
+    <circle cx="50" cy="16" r="2.4" fill="#e3214a" stroke="#fff" strokeWidth=".8" />
+    <circle cx="41" cy="18" r="1.5" fill="#2f7bff" /><circle cx="59" cy="18" r="1.5" fill="#22c27e" />
+    {/* sparkles */}
+    {[[16, 22, 4], [84, 52, 3.4], [20, 62, 2.6]].map(([x, y, r]) => <path key={`${x}`} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#fff6c8" />)}
   </> },
   lantern: { bg: ["#2a3a6b", "#0f1838"], draw: (id) => <>
     <defs><radialGradient id={`${id}l`}><stop offset="0" stopColor="#fff6c0" /><stop offset=".6" stopColor="#ffc23a" /><stop offset="1" stopColor="#ff8a00" stopOpacity="0" /></radialGradient></defs>
