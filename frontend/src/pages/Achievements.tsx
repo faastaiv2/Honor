@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type Achievement, type Achievements as AchievementsData } from "../api";
 import Gem from "../lib/Gem";
 import Medal from "../lib/Medal";
-import { confetti } from "../lib/confetti";
+import GemReward from "../lib/GemReward";
 import { notifyChanged, useToast } from "../lib/events";
 
 const TIER_NAME: Record<string, string> = { bronze: "Bronze", silver: "Silver", gold: "Gold", legend: "Legend" };
@@ -33,21 +33,25 @@ export default function Achievements() {
   const [data, setData] = useState<AchievementsData | null>(null);
   const [error, setError] = useState("");
   const [toast, setToast] = useToast();
+  const [reward, setReward] = useState<{ amount: number; title: string } | null>(null);
   const [filter, setFilter] = useState<"all" | "ready" | "done" | "todo">("all");
 
   const load = useCallback(() => { api.achievements().then(setData).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load")); }, []);
   useEffect(load, [load]);
 
-  async function claim(a: Achievement) {
+  async function claim(a: Achievement, show = true): Promise<number> {
     try {
       setData(await api.claimAchievement(a.key));
-      setToast(`${a.name}: +${a.gems} gems!`);
-      confetti(a.tier === "gold" || a.tier === "legend" ? ["#ffd24a", "#fff2b8", "#ffffff", "#c070ff"] : ["#7fd6ff", "#ffffff", "#ffd24a"]);
+      if (show) setReward({ amount: a.gems, title: `Achievement · ${a.name}` });
       notifyChanged();
-    } catch (e) { setError(e instanceof ApiError ? e.message : "Could not collect"); }
+      return a.gems;
+    } catch (e) { setError(e instanceof ApiError ? e.message : "Could not collect"); return 0; }
   }
   async function claimAll() {
-    for (const a of data?.items.filter((x) => x.unlocked && !x.claimed) ?? []) await claim(a);
+    const ready = data?.items.filter((x) => x.unlocked && !x.claimed) ?? [];
+    let total = 0;
+    for (const a of ready) total += await claim(a, false);
+    if (total) setReward({ amount: total, title: `${ready.length} achievement${ready.length === 1 ? "" : "s"}` });
   }
 
   if (!data) return <section className="card"><p className={error ? "err" : "note"}>{error || "Loading…"}</p></section>;
@@ -87,6 +91,7 @@ export default function Achievements() {
           <ul className="ach-grid">{shown.filter((a) => a.group === g).map((a) => <Card key={a.key} a={a} onClaim={claim} />)}</ul>
         </section>
       ))}
+      {reward && <GemReward amount={reward.amount} title={reward.title} onDone={() => { setReward(null); setToast("Gems added to your wallet"); }} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );

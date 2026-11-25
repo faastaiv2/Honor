@@ -156,6 +156,7 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
         "bonus": {"key": "bonus", "count": count, "dhikr": dhikr, "done": "bonus" in done},
         "excuse": excuse,
         "task_excuses": skip,
+        "gems_today": p.today_tasks_gems if d == today else None,
         "periods": [{"name": x.name, "end": x.end.isoformat()} for x in periods],
         "score": _score_out(s),
         "mode": mode,

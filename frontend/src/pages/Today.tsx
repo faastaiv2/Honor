@@ -3,6 +3,7 @@ import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import Brazier from "../lib/Brazier";
 import QuestFilm from "./QuestFilm";
+import GemReward from "../lib/GemReward";
 import { api, ApiError, type DayView, type SignInMember, type TaskItem, type TodayInfo } from "../api";
 import { useAuth } from "../auth";
 import { addDays, fmt } from "../lib/dates";
@@ -48,8 +49,31 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
       {st.can_start_quest && canAct && (
         <div className="quest">
           <p style={{ margin: "0 0 8px" }}><RankIcon rank="legendary" /> <b>Legendary quest.</b> Give up <RankIcon rank={st.tier.key} /> {st.tier.name}, start again from <RankIcon rank="bronze" /> Bronze I, and finish <b>every task and every bonus, every day</b> until L. One missed day ends the quest.</p>
-          <button className="primary" onClick={() => (sure ? onQuest() : setSure(true))}>{sure ? "Yes, give up my Obsidian title and start" : "Start the Legendary quest"}</button>
-          {sure && <button className="link" onClick={() => setSure(false)}>Not now</button>}
+          <button className="primary" onClick={() => setSure(true)}>Start the Legendary quest</button>
+        </div>
+      )}
+      {sure && (
+        <div className="qc" role="dialog" aria-modal="true" aria-labelledby="qc-title">
+          <div className="qc-sky" aria-hidden="true" />
+          <div className="qc-card">
+            <div className="qc-crests" aria-hidden="true">
+              <span className="qc-from"><RankIcon rank={st.tier.key} className="ru-crest" /></span>
+              <span className="qc-arrow">→</span>
+              <span className="qc-to"><RankIcon rank="bronze" className="ru-crest" /></span>
+              <span className="qc-arrow">→</span>
+              <span className="qc-goal"><RankIcon rank="legendary" className="ru-crest" /></span>
+            </div>
+            <p className="qc-kicker">The Legendary quest</p>
+            <h2 id="qc-title">Give up {st.tier.name}?</h2>
+            <ul className="qc-rules">
+              <li><span>⬇️</span><span>Your {st.tier.name} title is gone. You start again at <b>Bronze I</b>.</span></li>
+              <li><span>✅</span><span>Finish <b>every task and the bonus, every day</b>, all the way to L.</span></li>
+              <li><span>⚠️</span><span><b>One missed day</b> ends the quest.</span></li>
+              <li><span>👑</span><span>Reach L and you become <b>Legendary</b>, the highest honor.</span></li>
+            </ul>
+            <button className="qc-yes" onClick={() => { setSure(false); onQuest(); }}>Yes, give up my {st.tier.name} title and start</button>
+            <button className="qc-no" onClick={() => setSure(false)}>Not now</button>
+          </div>
         </div>
       )}
     </div>
@@ -83,6 +107,7 @@ export default function Today({ info }: { info: TodayInfo | null }) {
 
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [questFilm, setQuestFilm] = useState(false);
+  const [dayReward, setDayReward] = useState(0);
   const [excusing, setExcusing] = useState<{ key: string; reason: string } | null>(null);
 
   function save(next: DayView, nextExcuse: string, taskExcuses?: Record<string, string>): Promise<DayView | undefined> {
@@ -97,6 +122,7 @@ export default function Today({ info }: { info: TodayInfo | null }) {
 
   function toggle(key: string, on: boolean) {
     if (!view) return;
+    const isMeNow = viewer?.kind === "member" && viewer.id === view.member.id;
     setError("");
     const next = withToggled(view, key, on);
     setView(next);
@@ -107,7 +133,11 @@ export default function Today({ info }: { info: TodayInfo | null }) {
     }
     save(next, excuse).then((saved) => {
       const s = saved?.score;
-      if (on && s && s.done === s.of && s.gain) { setToast("All tasks done! Your Honor arrives at midnight 🌙"); confetti(); }
+      const gained = (saved?.gems_today ?? 0) - (view.gems_today ?? 0);
+      if (on && s && s.done === s.of && s.gain) {
+        setToast("All tasks done! Your Honor arrives at midnight 🌙");
+        if (isMeNow && gained > 0) setDayReward(gained); else confetti();
+      }
       else if (on && saved?.mode === "makeup") setToast("Made up ✔");
     });
   }
@@ -252,6 +282,7 @@ export default function Today({ info }: { info: TodayInfo | null }) {
       {error && <p className="err" role="alert">{error}</p>}
       <Perks view={view} canAct={isMe || !!viewer?.is_admin}
         onQuest={async () => { try { await api.startQuest(view.member.id); load(); if (isMe) setQuestFilm(true); else { notifyChanged(); setToast("The Legendary quest has begun"); } } catch (e) { setError(e instanceof ApiError ? e.message : "Could not start"); } }} />
+      {dayReward > 0 && <GemReward amount={dayReward} title="Day complete!" onDone={() => setDayReward(0)} />}
       {questFilm && <QuestFilm name={view.member.name} onClose={() => { setQuestFilm(false); notifyChanged(); }} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </section>

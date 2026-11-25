@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Gem from "../lib/Gem";
+import GemReward from "../lib/GemReward";
 import Brazier from "../lib/Brazier";
 import type { Profile, Tier } from "../api";
 import Avatar from "../lib/Avatar";
@@ -147,7 +148,6 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
   const [act, setAct] = useState(0);
   const [ready, setReady] = useState(false);
   const [shake, setShake] = useState(0);
-  const [gemCount, setGemCount] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
   const engine = useRef<Particles | null>(null);
   const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -200,21 +200,6 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
     return () => ts.forEach(clearTimeout);
   }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Gems count up, with gems flying out.
-  useEffect(() => {
-    if (stage !== "gems") return;
-    if (reduced) { setGemCount(reward); return; }
-    engine.current?.burst("gem", 60, ["#7fb0ff", "#b9f2ff", "#4dc3ff", "#ffffff"]);
-    const start = performance.now(), len = 1400;
-    let raf = 0;
-    const step = (t: number) => {
-      const k = Math.min(1, (t - start) / len);
-      setGemCount(Math.round(reward * (1 - Math.pow(1 - k, 3))));
-      if (k < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [stage, reward, reduced]);
 
   const frameKey = tier.key === "legendary" ? "crown" : tier.key;
   const frameName = profile?.frames.find((f) => f.key === frameKey)?.name ?? `${tier.name} frame`;
@@ -245,6 +230,7 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
       <div className="ru-rings">{Array.from({ length: Math.min(4, 2 + Math.floor(lvl / 4)) }, (_, i) => <i key={i} style={{ animationDelay: `${0.5 + i * 0.35}s` }} />)}</div>
       <div className="ru-flash" />
       <canvas ref={canvas} className="ru-canvas" />
+      {name === "Preview" && <p className="film-preview">Preview only · nothing changes</p>}
 
       {stage === "show" && (
         <div className="ru-stage">
@@ -308,13 +294,8 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
       )}
 
       {stage === "gems" && (
-        <div className="ru-panel gems">
-          <div className="ru-gem"><Gem size={110} /></div>
-          <div className="ru-gemcount">+{gemCount}</div>
-          <p className="ru-kicker dark">gems for reaching {tier.name}</p>
-          {profile && <p className="note">You now have {profile.gems.balance} <Gem />. Spend them in your Profile's shop.</p>}
-          <button className="ru-honor show" onClick={onClose}>Awesome! 🎉</button>
-        </div>
+        <GemReward amount={reward} chest title={`Reaching ${tier.name}`}
+          from={profile ? Math.max(0, profile.gems.balance - reward) : undefined} onDone={onClose} />
       )}
     </div>
   );

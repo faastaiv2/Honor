@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import Gem from "../lib/Gem";
+import GemReward from "../lib/GemReward";
 import Medal from "../lib/Medal";
 import RankIcon from "../lib/RankIcon";
 import { notifyChanged } from "../lib/events";
@@ -15,11 +16,10 @@ const GOLDS = ["#ffd24a", "#fff2b8", "#c99a1e", "#ffffff", "#ff9f1a"];
 const BRONZE = ["#e0a466", "#f6c896", "#b0703a", "#fff1dc"];
 const TITLE = "THE LEGENDARY QUEST";
 
-export default function QuestFilm({ name, onClose }: { name: string; onClose: () => void }) {
+export default function QuestFilm({ name, onClose, preview = false }: { name: string; onClose: () => void; preview?: boolean }) {
   const [act, setAct] = useState(1);
   const [stage, setStage] = useState<"film" | "medal" | "gems">("film");
   const [shake, setShake] = useState(0);
-  const [count, setCount] = useState(0);
   const [reward, setReward] = useState(500);
   const canvas = useRef<HTMLCanvasElement>(null);
   const engine = useRef<Particles | null>(null);
@@ -65,21 +65,10 @@ export default function QuestFilm({ name, onClose }: { name: string; onClose: ()
 
   useEffect(() => {
     if (stage === "medal") engine.current?.burst("sparkle", 160, GOLDS);
-    if (stage !== "gems") return;
-    if (reduced) { setCount(reward); return; }
-    engine.current?.burst("gem", 90, ["#7fb0ff", "#b9f2ff", "#4dc3ff", "#ffffff"]);
-    const start = performance.now(), len = 1800;
-    let raf = 0;
-    const step = (t: number) => {
-      const k = Math.min(1, (t - start) / len);
-      setCount(Math.round(reward * (1 - Math.pow(1 - k, 3))));
-      if (k < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [stage, reward, reduced]);
+  }, [stage]);
 
   async function claim() {
+    if (preview) { setStage("gems"); return; }
     try {
       const data = await api.claimAchievement("quest");
       const q = data.items.find((x) => x.key === "quest");
@@ -96,6 +85,7 @@ export default function QuestFilm({ name, onClose }: { name: string; onClose: ()
       <div className="qf-beam" aria-hidden="true" />
       <canvas ref={canvas} className="ru-canvas" />
       <div className="ru-flash qf-flash" />
+      {preview && <p className="film-preview">Preview only · nothing changes</p>}
 
       {stage === "film" && (
         <div className="qf-stage" aria-live="polite">
@@ -132,14 +122,7 @@ export default function QuestFilm({ name, onClose }: { name: string; onClose: ()
         </div>
       )}
 
-      {stage === "gems" && (
-        <div className="ru-panel gems qf-gems">
-          <div className="ru-gem"><Gem size={110} /></div>
-          <div className="ru-gemcount">+{count}</div>
-          <p className="ru-kicker dark">for becoming a Legend in the making</p>
-          <button className="ru-honor show" onClick={onClose}>Begin the quest ⚔️</button>
-        </div>
-      )}
+      {stage === "gems" && <GemReward amount={reward} chest title={preview ? "To Be a Legend · preview" : "To Be a Legend"} onDone={onClose} />}
     </div>
   );
 }

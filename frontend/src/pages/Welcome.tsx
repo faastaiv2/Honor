@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import Brazier from "../lib/Brazier";
+import GemReward from "../lib/GemReward";
 import Medal from "../lib/Medal";
 import { Link } from "react-router-dom";
 import { api, type DayView, type Profile, type TodayInfo } from "../api";
@@ -92,12 +93,14 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
   const memberId = info?.viewer.id;
   const prev = useRef<Profile | null>(null);
   const [claimMsg, setClaimMsg] = useState("");
+  const [reward, setReward] = useState<{ amount: number; from: number; title: string; chest: boolean } | null>(null);
   const [place, setPlace] = useState<{ rank: number; of: number; ahead: string | null; gap: number } | null>(null);
   async function claim() {
     try {
+      const before = p?.gems.balance ?? 0;
       const np = await api.claimDaily();
-      setClaimMsg(`+${np.daily.gems} gems from your streak chest!`);
-      confetti(["#7fd6ff", "#ffffff", "#ffd24a", "#2f8fe0"]);
+      setClaimMsg("");
+      setReward({ amount: np.daily.gems, from: before, title: `${np.tier.name} streak chest`, chest: true });
       prev.current = np;
       setP(np);
     } catch (e) { setClaimMsg(e instanceof Error ? e.message : "Could not open the chest"); }
@@ -214,6 +217,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       </div>
       <p className="wc-cheer">{cheer(done, of, !!day?.weekend)}</p>
 
+      {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} onDone={() => setReward(null)} />}
       {rankUp && <RankUp tier={rankUp.tier} name={p.member.name} profile={p} reward={rankUp.reward} onClose={() => { setRankUp(null); api.celebrated().then(setP).catch(() => undefined); }} />}
       {levelUp && (
         <div className="levelup" role="dialog" aria-modal="true" aria-label="Level up" onClick={() => setLevelUp(null)}>
@@ -222,7 +226,10 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
             <h2>Level up!</h2>
             {levelUp.rank && <p className="levelup-rank">New rank: {levelUp.rank} — new frame and theme unlocked!</p>}
             {levelUp.gems > 0 && <p className="levelup-gems">+{levelUp.gems} <Gem /></p>}
-            <button className="primary" onClick={() => setLevelUp(null)}>Awesome! 🎉</button>
+            <button className="primary" onClick={() => {
+              if (levelUp.gems > 0 && p) setReward({ amount: levelUp.gems, from: Math.max(0, p.gems.balance - levelUp.gems), title: `Level ${levelUp.label}`, chest: false });
+              setLevelUp(null);
+            }}>Awesome! 🎉</button>
           </div>
         </div>
       )}
