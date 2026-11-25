@@ -14,7 +14,8 @@ def at_today(day=TODAY):
 
 
 def test_health_and_unknown_api(client):
-    assert client.get("/api/health").json()["status"] == "ok"
+    h = client.get("/api/health").json()
+    assert h["status"] == "ok" and h["database"] == "ok" and "postgres" not in str(h)
     assert client.get("/api/nope").status_code == 404
 
 
@@ -235,3 +236,12 @@ def test_migrations_run_on_a_fresh_database(tmp_path, monkeypatch):
         get_settings.cache_clear()
     cols = {c["name"] for c in inspect(create_engine(url)).get_columns("day_logs")}
     assert {"late", "tasks", "excuse"} <= cols
+
+
+def test_misconfigured_production_explains_itself(client, monkeypatch):
+    from app import main
+    monkeypatch.setattr(main, "STARTUP_PROBLEMS", ["SECRET_KEY is missing or shorter than 32 characters"])
+    h = client.get("/api/health").json()
+    assert h["status"] == "needs setup" and "SECRET_KEY" in h["problems"][0]
+    r = client.get("/api/auth/members")
+    assert r.status_code == 503 and "not set up" in r.json()["detail"]

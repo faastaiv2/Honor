@@ -15,8 +15,13 @@ from app.security import hash_secret
 
 settings = get_settings()
 
+# Problems found at start-up. They are shown (without secret values) at /api/health,
+# and the rest of the API refuses to work until they are fixed.
+STARTUP_PROBLEMS: list[str] = []
 if settings.is_production and (settings.secret_key == DEFAULT_SECRET or len(settings.secret_key) < 32):
-    raise RuntimeError("SECRET_KEY must be set to a long random value in production")
+    STARTUP_PROBLEMS.append("SECRET_KEY is missing or shorter than 32 characters")
+if settings.is_production and settings.database_url.startswith("sqlite"):
+    STARTUP_PROBLEMS.append("DATABASE_URL is not set (connect the Neon database to this project)")
 
 
 def ensure_first_admin() -> None:
@@ -45,12 +50,19 @@ def run_migrations() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    if settings.run_migrations:
+    log = logging.getLogger("honor")
+    if settings.run_migrations and not STARTUP_PROBLEMS:
         try:
             run_migrations()
-        except Exception:  # keep serving; the error shows in the logs and /api/health
-            logging.getLogger("honor").exception("Database migration failed")
-    ensure_first_admin()
+        except Exception as e:  # keep serving; the error shows in the logs and /api/health
+            log.exception("Database migration failed")
+            STARTUP_PROBLEMS.append(f"Database setup failed ({type(e).__name__}); see the Logs tab")
+    if not STARTUP_PROBLEMS:
+        try:
+            ensure_first_admin()
+        except Exception as e:
+            log.exception("Creating the first parent account failed")
+            STARTUP_PROBLEMS.append(f"Creating the first parent account failed ({type(e).__name__})")
     yield
 
 
@@ -70,6 +82,13 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+@app.middleware("http")
+async def refuse_when_misconfigured(request, call_next):
+    if STARTUP_PROBLEMS and request.url.path.startswith("/api/") and request.url.path != "/api/health":
+        return JSONResponse({"detail": "The server is not set up yet: " + "; ".join(STARTUP_PROBLEMS)}, status_code=503)
+    return await call_next(request)
+
 
 for r in (health.router, auth.router, board.router, admin.router):
     app.include_router(r, prefix="/api")
