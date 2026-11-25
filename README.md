@@ -9,7 +9,7 @@ Darood Sharif, Quran pages, exercise and more), earns **Honor**, and climbs the 
 | Website | React 19, TypeScript, Vite (`frontend/`) |
 | Backend | Python 3.13, FastAPI, SQLAlchemy, Alembic (`app/`, `alembic/`) |
 | Database | SQLite locally, PostgreSQL (Neon) in production |
-| Hosting | Vercel (free Hobby plan): the API as a Vercel Function, the website from the CDN |
+| Hosting | Vercel (free Hobby plan) with Vercel Services: `frontend` (Vite, CDN) at `/`, `app` (FastAPI) at `/api` |
 
 **What it does**
 

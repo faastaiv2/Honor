@@ -2,7 +2,7 @@
 
 | Piece | Service | Free plan |
 |---|---|---|
-| Website + API | **Vercel** (Hobby plan) | Free for personal, non-commercial use. No sleeping server: the API runs as a Vercel Function and the website is served from Vercel's CDN. |
+| Website + API | **Vercel** (Hobby plan) | Free for personal, non-commercial use. No sleeping server: two Vercel Services in one project, the React website from Vercel's CDN and the FastAPI API as a Vercel Function at `/api`. |
 | Database | **Neon** Postgres | Free with no time limit, no card needed: 1 GB storage, 100 compute-hours a month (the database pauses itself when nobody uses it, so a family board uses very little). |
 
 Every push to `main` on GitHub redeploys automatically. Database tables are created and updated
@@ -17,7 +17,9 @@ The button labels on Vercel and Neon change from time to time. If a label differ
 1. Go to **vercel.com** → **Sign Up** → **Continue with GitHub** (choose the free **Hobby** plan).
 2. **Add New… → Project** → find **faastaiv2/Honor** → **Import**.
    (If it is not listed, click **Adjust GitHub App Permissions** and allow the Honor repository.)
-3. Vercel detects **FastAPI** by itself. Leave the settings as they are (`vercel.json` already builds the website).
+3. Vercel shows **Application Preset: Services** with two parts, `frontend` (Vite) and `app` (FastAPI).
+   That is correct: `vercel.json` in the repository already configures them. The website is served from
+   Vercel's CDN, and every `/api/...` request goes to the FastAPI service. Leave Root Directory as `./`.
 4. **Don't click Deploy yet.** First add the database and settings (Steps 2–3). If you already deployed, that's fine; you will redeploy at the end.
 
 ## Step 2. Create the free Neon database
