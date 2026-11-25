@@ -223,6 +223,5 @@ i.late { margin-inline-start: auto; font-style: normal; font-size: 12px; font-we
 .parent-form h2 { text-align: center; }
 button.wide { width: 100%; }
 .arch button.link { color: #0b4a3a; margin-top: 6px; }
-.parent-link { margin-top: 20px !important; font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .pin-dots.shake { animation: none; } }
 @media (max-width: 420px) { .keypad { grid-template-columns: repeat(3, 64px); } .keypad button { height: 58px; } }

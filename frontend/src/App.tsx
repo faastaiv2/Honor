@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api, type TodayInfo } from "./api";
 import { useAuth } from "./auth";
 import { fmt } from "./lib/dates";
@@ -15,6 +15,7 @@ export default function App() {
   const { viewer, loading, signOut } = useAuth();
   const [info, setInfo] = useState<TodayInfo | null>(null);
   const changes = useChangeCounter();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     if (!viewer) { setInfo(null); return; }
@@ -22,7 +23,7 @@ export default function App() {
   }, [viewer, changes]);
 
   if (loading) return <p className="band note">Loading…</p>;
-  if (!viewer) return <SignIn />;
+  if (!viewer) return <SignIn key={pathname.startsWith("/admin") ? "admin" : "member"} admin={pathname.startsWith("/admin")} />;
 
   return (
     <>

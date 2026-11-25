@@ -19,18 +19,21 @@ function Star({ size = 64 }: { size?: number }) {
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "del", "0", "go"];
 
-export default function SignIn() {
+/** The main page signs members in; /admin shows only the parent (admin) sign-in. */
+export default function SignIn({ admin = false }: { admin?: boolean }) {
   const { signIn } = useAuth();
   const [members, setMembers] = useState<SignInMember[] | null>(null);
   const [pick, setPick] = useState<SignInMember | null>(null);
   const [pin, setPin] = useState("");
-  const [parent, setParent] = useState(false);
+  const parent = admin;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { api.signInList().then(setMembers).catch(() => setMembers([])); }, []);
+  useEffect(() => {
+    if (!admin) api.signInList().then(setMembers).catch(() => setMembers([]));
+  }, [admin]);
 
   const fail = (err: unknown) => setError(err instanceof ApiError ? err.message : "Could not reach the server. Try again.");
 
@@ -90,7 +93,7 @@ export default function SignIn() {
 
           {parent ? (
             <form className="parent-form" onSubmit={submitParent}>
-              <h2>Parent sign-in</h2>
+              <h2>Admin sign-in</h2>
               <label className="field"><span className="field-label">Email</span>
                 <input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
               </label>
@@ -98,7 +101,6 @@ export default function SignIn() {
                 <input id="pw" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
               </label>
               <button className="primary wide" disabled={busy}>Sign in</button>
-              <button type="button" className="link" onClick={() => { setParent(false); setError(""); }}>← Back to members</button>
             </form>
           ) : !pick ? (
             <>
@@ -136,9 +138,6 @@ export default function SignIn() {
           )}
 
           {error && <p className="err" role="alert">{error}</p>}
-          {!parent && !pick && (
-            <button type="button" className="link parent-link" onClick={() => { setParent(true); setError(""); }}>Parent sign-in</button>
-          )}
         </div>
       </div>
     </main>
