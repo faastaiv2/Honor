@@ -89,7 +89,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
             const locked = !it.available;
             const forSale = locked && it.price > 0;
             return (
-              <div key={it.key} className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}${it.price >= 1500 ? " legendary" : ""}`}>
+              <div key={it.key} className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}${it.price >= 1500 ? " legendary" : it.price >= 1000 ? " epic" : ""}`}>
                 <button type="button" className="shop-face" aria-label={forSale ? `Preview ${it.name}` : it.name} disabled={!forSale}
                   onClick={() => forSale && (tab === "theme" ? setTrying(trying?.key === it.key ? null : it) : setPeek({ kind: tab, item: it }))}>
                   {tab === "frame" ? <Avatar avatar={p.member.avatar} color={t.color} frame={it.key} size={54} />

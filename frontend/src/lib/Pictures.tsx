@@ -126,7 +126,44 @@ const PICS: Record<string, Pic> = {
     <circle cx="58" cy="50" r="4" fill="#1f2f40" /><circle cx="59.5" cy="48.5" r="1.5" fill="#fff" />
     <path d="M72 64 Q78 66 84 63" fill="none" stroke="#1f5a8a" strokeWidth="1.6" strokeLinecap="round" />
   </> },
-  knight: { bg: ["#6a3fb0", "#140828"], draw: (id) => <>
+  knight: { bg: ["#c8d6e6", "#4a5e78"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}s`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffffff" /><stop offset=".4" stopColor="#c4ced8" /><stop offset=".75" stopColor="#8a96a4" /><stop offset="1" stopColor="#4e5a68" /></linearGradient>
+    </defs>
+    <path d="M12 100 Q14 80 30 76 Q50 72 70 76 Q86 80 88 100 Z" fill="#2f5aa8" stroke="#1a3570" strokeWidth="1.2" />
+    <path d="M42 78 H58 V100 H42 Z" fill="#f0f2f5" /><path d="M50 80 V98 M44 88 H56" stroke="#d6283a" strokeWidth="3" />
+    <path d="M16 86 Q22 76 34 78 Q30 86 32 92 Q22 88 16 92 Z M84 86 Q78 76 66 78 Q70 86 68 92 Q78 88 84 92 Z" fill={`url(#${id}s)`} stroke="#4e5a68" strokeWidth="1" />
+    <path d="M50 10 C58 2 74 4 76 16 C68 12 60 14 56 22 Z" fill="#d6283a" stroke="#8a0a1a" strokeWidth=".8" />
+    <path d="M28 50 Q28 22 50 20 Q72 22 72 50 V70 Q62 78 50 78 Q38 78 28 70 Z" fill={`url(#${id}s)`} stroke="#4e5a68" strokeWidth="1.6" />
+    <path d="M50 21 V77" stroke="#ffffff" strokeWidth="1.4" opacity=".7" />
+    <path d="M34 30 Q42 24 50 23" stroke="#fff" strokeWidth="2.2" fill="none" opacity=".8" strokeLinecap="round" />
+    <path d="M31 44 Q50 40 69 44 L68 51 Q50 47 32 51 Z" fill="#1a2230" />
+    {[57, 62, 67].map((y) => <path key={y} d={`M40 ${y} H60`} stroke="#4e5a68" strokeWidth="1.6" strokeLinecap="round" />)}
+    {[[33, 58], [67, 58]].map(([x, y]) => <circle key={`${x}`} cx={x} cy={y} r="1.5" fill="#fff" />)}
+  </> },
+  knightepic: { bg: ["#3a4ab0", "#0a0c2a"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}d`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#c8b8ff" /><stop offset=".35" stopColor="#6a5ab0" /><stop offset=".75" stopColor="#3a2c70" /><stop offset="1" stopColor="#1a1238" /></linearGradient>
+      <linearGradient id={`${id}t`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#a8b4d0" /></linearGradient>
+      <radialGradient id={`${id}v`}><stop offset="0" stopColor="#ffffff" /><stop offset=".4" stopColor="#d08aff" /><stop offset="1" stopColor="#8a2ae0" stopOpacity="0" /></radialGradient>
+    </defs>
+    <g opacity=".4">{Array.from({ length: 12 }, (_, i) => <path key={i} d="M50 42 L48 -8 H52 Z" fill="#c8d4ff" transform={`rotate(${i * 30} 50 42)`} />)}</g>
+    <path d="M6 100 Q8 70 26 72 L50 96 L74 72 Q92 70 94 100 Z" fill="#5a1f9a" stroke="#2a0a50" strokeWidth="1" />
+    <path d="M12 100 Q14 80 30 76 Q50 72 70 76 Q86 80 88 100 Z" fill={`url(#${id}d)`} stroke="#14082a" strokeWidth="1.2" />
+    <path d="M14 86 Q22 74 34 76 Q30 84 32 92 Q22 88 14 92 Z M86 86 Q78 74 66 76 Q70 84 68 92 Q78 88 86 92 Z" fill={`url(#${id}d)`} stroke={`url(#${id}t)`} strokeWidth="1.4" />
+    <path d="M44 80 H56 L58 88 Q50 96 42 88 Z" fill="#14082a" stroke={`url(#${id}t)`} strokeWidth="1.2" />
+    <path d="M50 82 L53 88 L50 92 L47 88 Z" fill="#d08aff" />
+    <path d="M30 34 C20 28 16 16 20 6 C24 16 30 22 36 26 Z M70 34 C80 28 84 16 80 6 C76 16 70 22 64 26 Z" fill={`url(#${id}t)`} stroke="#4a4a6a" strokeWidth="1" />
+    <path d="M28 50 Q28 22 50 20 Q72 22 72 50 V70 Q62 78 50 78 Q38 78 28 70 Z" fill={`url(#${id}d)`} stroke={`url(#${id}t)`} strokeWidth="1.8" />
+    <path d="M50 21 V77" stroke="#c8b8ff" strokeWidth="1.4" opacity=".7" />
+    <path d="M34 30 Q42 24 50 23" stroke="#fff" strokeWidth="2" fill="none" opacity=".6" strokeLinecap="round" />
+    <path d="M31 44 Q50 40 69 44 L68 52 Q50 48 32 52 Z" fill="#06020e" />
+    <ellipse cx="50" cy="47" rx="17" ry="4" fill={`url(#${id}v)`} />
+    <path d="M39 47 h5 M56 47 h5" stroke="#f6e8ff" strokeWidth="2" strokeLinecap="round" />
+    {[58, 63, 68].map((y) => <path key={y} d={`M40 ${y} H60`} stroke="#c8b8ff" strokeWidth="1.4" strokeLinecap="round" opacity=".8" />)}
+    {[[16, 30, 3], [84, 60, 2.6]].map(([x, y, r]) => <path key={`${x}`} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#e6dcff" />)}
+  </> },
+  knightlegend: { bg: ["#6a3fb0", "#140828"], draw: (id) => <>
     <defs>
       <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff6c8" /><stop offset=".35" stopColor="#ffd24a" /><stop offset=".7" stopColor="#d99a10" /><stop offset="1" stopColor="#7a4a00" /></linearGradient>
       <linearGradient id={`${id}gv`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff2a8" /><stop offset=".55" stopColor="#f0b820" /><stop offset="1" stopColor="#8a5a00" /></linearGradient>

@@ -1355,3 +1355,8 @@ label.task > span:not(.gem-pop) { flex: 1 1 auto; min-width: 0; }
 .shop-item.legendary::before { content: "Legendary"; position: absolute; top: -10px; left: 50%; translate: -50% 0; padding: 1px 10px; border-radius: 999px;
   background: linear-gradient(180deg, #fff3b8, #f0c040); color: #4a2c00; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 2px 6px #0003; }
 .shop-item.legendary .shop-name { color: light-dark(#6a4200, #ffe08a); }
+.shop-item.epic { position: relative; border-color: #8a6ae0; background: linear-gradient(160deg, color-mix(in srgb, #8a6ae0 18%, var(--paper)), color-mix(in srgb, #2a3a9a 14%, var(--paper)));
+  box-shadow: 0 0 0 2px #8a6ae055, 0 0 18px #8a6ae044; }
+.shop-item.epic::before { content: "Epic"; position: absolute; top: -10px; left: 50%; translate: -50% 0; padding: 1px 10px; border-radius: 999px;
+  background: linear-gradient(180deg, #e6dcff, #a88aff); color: #2a0a50; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 2px 6px #0003; }
+.shop-item.epic .shop-name { color: light-dark(#4a2a90, #d8c8ff); }
