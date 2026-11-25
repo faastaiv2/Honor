@@ -8,7 +8,7 @@ export default function Rules({ info }: { info: TodayInfo | null }) {
       <div className="rules">
         <div><b>+1 Honor received</b><p>Tick the honor pledge and finish all 17 daily tasks.</p></div>
         <div><b>+1 Bonus</b><p>Complete the day's 300× dhikr (after the 99 Names, 1000× Astaghfar). On weekdays it needs the pledge ticked. It cannot be made up later.</p></div>
-        <div><b>−1 Honor cut 👺</b><p>A weekday ends with {info?.rules.cut_misses ?? 5} or more tasks missed and no excuse.</p></div>
+        <div><b>−1 Honor cut 👺</b><p>{(info?.rules.cut_misses ?? 1) <= 1 ? "A weekday ends with any task not completed (and no excuse)." : `A weekday ends with ${info?.rules.cut_misses} or more tasks missed and no excuse.`} Tasks made up later, as your rank allows, count as completed.</p></div>
         <div><b>Excused days</b><p>Write a reason on the day (sick, injury): fitness tasks are excused and no Honor is cut.</p></div>
         <div><b>Weekends (Fri &amp; Sat)</b><p>Games and YouTube allowed. Tasks are optional: you can still earn, never lose.</p></div>
         <div><b>Making up tasks</b><p>Higher ranks may tick missed tasks after the day, as their benefits say. Tasks ticked on the day can't be changed afterwards.</p></div>

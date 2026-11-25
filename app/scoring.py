@@ -145,7 +145,8 @@ class DayScore:
 
 
 def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, today: date, cut_misses: int) -> DayScore:
-    """+1 for the pledge and all 17 tasks, +1 for the bonus, -1 when a past weekday misses `cut_misses` or more.
+    """+1 for the pledge and all 17 tasks, +1 for the bonus, -1 when a finished weekday misses any task
+    (`cut_misses` is 1; a larger number would allow some misses).
 
     An excused day (a reason was written) excuses the fitness tasks and is never cut.
     Weekends: no pledge needed, nothing is cut. Today is never cut while it is still open.

@@ -73,60 +73,6 @@ function MemberRow({ m, row, onDone, onError }: { m: AdminMember; row?: BoardRow
   );
 }
 
-function ImportSheet({ members, onDone, onError }: { members: AdminMember[]; onDone: (s: string) => void; onError: (s: string) => void }) {
-  const [text, setText] = useState("");
-  const [found, setFound] = useState<{ letters: string[]; first: string | null; last: string | null; days: number } | null>(null);
-  const [map, setMap] = useState<Record<string, string>>({});
-  const [range, setRange] = useState({ start: "", end: "" });
-  const [result, setResult] = useState("");
-
-  async function read() {
-    try {
-      const p = await api.importPreview(text);
-      setFound(p);
-      setRange({ start: p.first ?? "", end: p.last ?? "" });
-      setResult("");
-    } catch (e) { onError(msg(e)); }
-  }
-  async function run(e: FormEvent) {
-    e.preventDefault();
-    try {
-      const r = await api.importSheet(text, range.start, range.end, Object.fromEntries(Object.entries(map).filter(([, v]) => v)));
-      setResult(`Imported ${r.entries} entries from ${r.days} days.${r.unknown_initials.length ? ` Skipped: ${r.unknown_initials.join(", ")}` : ""}`);
-      onDone("Import finished");
-    } catch (err) { onError(msg(err)); }
-  }
-
-  return (
-    <div>
-      <p className="note">Copy the rows from your old Google Sheet and paste them here.</p>
-      <textarea aria-label="Rows copied from the sheet" value={text} onChange={(e) => { setText(e.target.value); setFound(null); }} />
-      <div className="row" style={{ marginTop: 8 }}><button onClick={read} disabled={!text.trim()}>Read the sheet</button></div>
-      {found && (found.days === 0 ? <p className="err">No dated rows found. Copy whole rows, including the date column.</p> : (
-        <form onSubmit={run}>
-          <p className="note">Found {found.days} days. Who is each letter in the sheet?</p>
-          <div className="map-grid">
-            {found.letters.map((l) => (
-              <Field key={l} label={`“${l}” is`}>
-                <select value={map[l] ?? ""} onChange={(e) => setMap({ ...map, [l]: e.target.value })}>
-                  <option value="">Skip</option>
-                  {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-              </Field>
-            ))}
-          </div>
-          <div className="row" style={{ marginTop: 8 }}>
-            <Field label="From"><input type="date" required value={range.start} onChange={(e) => setRange({ ...range, start: e.target.value })} /></Field>
-            <Field label="To"><input type="date" required value={range.end} onChange={(e) => setRange({ ...range, end: e.target.value })} /></Field>
-          </div>
-          <button className="primary" style={{ marginTop: 8 }}>Import</button>
-          {result && <p className="note">{result}</p>}
-        </form>
-      ))}
-    </div>
-  );
-}
-
 export default function Admin() {
   const [members, setMembers] = useState<AdminMember[]>([]);
   const [rows, setRows] = useState<BoardRow[]>([]);
@@ -227,19 +173,11 @@ export default function Admin() {
             </Field>
             <details className="more">
               <summary>More settings</summary>
-              <Field label="Honor cut when this many tasks are missed"><input type="number" min={1} max={17} value={settings.cut_misses} onChange={(e) => setSettings({ ...settings, cut_misses: Number(e.target.value) })} /></Field>
               <Field label="Scoring started on" hint="Days before this are not counted"><input type="date" value={settings.score_from} onChange={(e) => setSettings({ ...settings, score_from: e.target.value })} /></Field>
             </details>
             <button className="primary">Save</button>
           </form>
         )}
-      </section>
-
-      <section className="card">
-        <details className="more">
-          <summary><h2 style={{ display: "inline" }}>Import from the old spreadsheet</h2></summary>
-          <ImportSheet members={members} onDone={done} onError={setError} />
-        </details>
       </section>
 
       <section className="card">

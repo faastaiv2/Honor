@@ -100,7 +100,4 @@ export const api = {
   deleteAdjustment: (id: string) => request<void>(`/admin/adjustments/${id}`, { method: "DELETE" }),
   settings: () => request<Settings>("/admin/settings"),
   saveSettings: (body: Partial<Settings>) => request<Settings>("/admin/settings", send("PUT", body)),
-  importPreview: (text: string) => request<{ days: number; first: string | null; last: string | null; letters: string[] }>("/admin/import/preview", send("POST", { text })),
-  importSheet: (text: string, start: string, end: string, mapping: Record<string, string>) =>
-    request<{ days: number; entries: number; unknown_initials: string[] }>("/admin/import", send("POST", { text, start, end, mapping })),
 };

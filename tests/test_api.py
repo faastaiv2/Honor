@@ -293,3 +293,15 @@ def test_import_with_letter_mapping(client, family, db):
     assert r.json() == {"days": 1, "entries": 1, "unknown_initials": ["S"]}
     log = db.query(DayLog).filter_by(member_id=family["B"].id).one()
     assert set(log.tasks) == set(scoring.SHEET_COLUMNS)
+
+
+def test_one_missed_task_cuts_honor(client, family):
+    """Default rule: a finished weekday with any task not done is −1 Honor."""
+    h = auth(client, admin=True)
+    nearly = [k for k in ALL if k not in ("mulk", "bonus")]  # pledge + 16 of 17 tasks
+    a, b = at_today()
+    with a, b:
+        r = client.put("/api/board/day", headers=h, json={"member_id": family["B"].id, "date": "2026-11-23", "tasks": nearly})
+        assert r.json()["score"]["cut"] == -1 and r.json()["score"]["delta"] == -1
+        today = client.put("/api/board/day", headers=h, json={"member_id": family["B"].id, "date": TODAY.isoformat(), "tasks": nearly})
+        assert today.json()["score"]["cut"] == 0  # today is still open

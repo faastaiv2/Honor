@@ -14,8 +14,8 @@ Darood Sharif, Quran pages, exercise and more), earns **Honor**, and climbs the 
 **What it does**
 
 - **Members** sign in by tapping their name and typing a PIN. They tick their own tasks for today and yesterday.
-- **Parents** sign in with email and password, can mark any member's day, adjust Honor with a reason,
-  add members and set PINs, import from the spreadsheet, and change the rules.
+- **The admin** signs in at `/admin` with email and password, can mark any member's day, give or take
+  Honor with a reason, add members and set their PINs, and set the time zone.
 - Targets grow automatically, as in the sheet: Darood Sharif, pages, laps, jumping jacks, push-ups,
   sit-ups, plank and mountain climbers. The bonus is 300× one of the 99 Names each day, then 1000× Astaghfar.
 - **Top Honor** leaderboard grouped by rank (like a game's league table), with the week number, days left,
@@ -28,7 +28,7 @@ Darood Sharif, Quran pages, exercise and more), earns **Honor**, and climbs the 
 |---|---|
 | +1 Honor | Tick the pledge (no games/YouTube over the limit) **and** all 17 tasks |
 | +1 Bonus | Do the day's 300× dhikr (weekdays: needs the pledge too). Cannot be made up later |
-| −1 Honor cut | A weekday ends with 5 or more tasks missed and no excuse (the 5 is a setting) |
+| −1 Honor cut | A weekday ends with any task not completed and no excuse (made-up tasks count) |
 | Excused day | Write a reason on the day: fitness tasks are excused and nothing is cut |
 | Weekend (Fri, Sat) | Optional: you can earn, never lose |
 | Making up | Each rank may tick missed tasks after the day, as its benefits allow (see below) |

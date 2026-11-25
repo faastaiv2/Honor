@@ -59,19 +59,17 @@ Check `https://honor-xxxx.vercel.app/api/health` shows `{"status":"ok","env":"pr
 
 ## Step 5. First sign-in and settings
 
-1. Open the address, choose **Parent sign-in**, sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+1. Open the address with `/admin` at the end, and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 2. **Admin → Settings → Time zone**: set the family's time zone (for example `Asia/Riyadh`, `Asia/Karachi`,
    `Europe/London`). Days change at midnight there, and a day is only scored once it is over.
 3. **Admin → Your password**: change the password. You can then delete `ADMIN_PASSWORD` from Vercel
    (it is only used when no parent account exists yet).
 
-## Step 6. Add the members and import the sheet
+## Step 6. Add the members
 
-1. **Admin → Members**: add each person with the **initials used in the sheet**, their **Base** (their level
-   from the sheet on the day before scoring starts) and a 4–8 digit **PIN**. Set **Scoring starts** in Settings
-   to the day after those levels were recorded. (The family's names and levels are deliberately not kept in
-   this public repository.)
-2. **Admin → Import from the spreadsheet**: copy the sheet's rows, paste, choose the dates, **Import**.
+**Admin → Members → Add a member**: each person's **name**, a 4–8 digit **PIN**, and their **starting level**
+(their level from the old sheet, or 1 for someone new). Set **Scoring started on** (Settings → More settings)
+to the day after those levels were recorded.
 
 ## Step 7. Share it
 

@@ -70,5 +70,5 @@ class AppSettings(Base):
     __tablename__ = "app_settings"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
     score_from: Mapped[date] = mapped_column(Date, default=date(2026, 11, 22))
-    cut_misses: Mapped[int] = mapped_column(Integer, default=5)
+    cut_misses: Mapped[int] = mapped_column(Integer, default=1)  # 1 = any missed task cuts Honor
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")
