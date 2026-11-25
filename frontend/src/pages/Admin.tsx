@@ -1,15 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import RankIcon from "../lib/RankIcon";
 import { api, ApiError, type AdminMember, type BoardRow, type Settings } from "../api";
 import Avatar from "../lib/Avatar";
-import type { Tier, TodayInfo } from "../api";
-import RankUp from "./RankUp";
+import type { TodayInfo } from "../api";
 import { fmt } from "../lib/dates";
-import QuestFilm from "./QuestFilm";
 import { notifyChanged, useToast } from "../lib/events";
 import Guard from "../lib/Guard";
-import { playCrack, playQuestMusic, resetCrack, resetQuestMusic, stopQuestMusic } from "../lib/questMusic";
-import type { MusicInfo, SoundKey } from "../api";
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
 
@@ -181,70 +178,6 @@ function AddMember({ onAdded, onError }: { onAdded: (s: string) => void; onError
   );
 }
 
-/** The music for the Legendary quest film: uploaded here, kept in the family's own database. */
-function QuestMusic({ onError, onDone, kind = "quest-music" }: { onError: (s: string) => void; onDone: (s: string) => void; kind?: SoundKey }) {
-  const isCrack = kind === "quest-crack";
-  const reset = () => (isCrack ? resetCrack() : resetQuestMusic());
-  const [info, setInfo] = useState<MusicInfo | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [start, setStart] = useState("0");
-  const [vol, setVol] = useState(80);
-  const file = useRef<HTMLInputElement>(null);
-  const show = (i: MusicInfo) => { setInfo(i); setStart(String(i.start)); setVol(i.volume); };
-  useEffect(() => { api.musicInfo(kind).then(show).catch(() => undefined); return () => stopQuestMusic(0); }, [kind]);
-  const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-
-  async function upload(f?: File) {
-    if (!f) return;
-    if (f.size > 4_300_000) { onError(`That file is ${(f.size / 1_000_000).toFixed(1)} MB. The most is 4.3 MB`); return; }
-    setBusy(true);
-    try { stopQuestMusic(0); show(await api.uploadMusic(f, kind)); reset(); onDone(isCrack ? "Crack sound uploaded" : "Quest music uploaded 🎵"); }
-    catch (e) { onError(msg(e)); } finally { setBusy(false); }
-  }
-  async function save() {
-    try { show(await api.musicSettings(Math.max(0, Number(start) || 0), vol, kind)); reset(); onDone("Sound settings saved"); }
-    catch (e) { onError(msg(e)); }
-  }
-  async function test() {
-    if (isCrack) { reset(); await playCrack(); return; }
-    if (playing) { stopQuestMusic(600); setPlaying(false); return; }
-    resetQuestMusic();
-    setPlaying(await playQuestMusic());
-  }
-
-  return (
-    <section className="card qm">
-      <h2>{isCrack ? "💥 Crack sound" : "🎵 Quest music"}</h2>
-      <p className="note">{isCrack
-        ? "Plays once, the moment the Obsidian crest shatters (13 seconds into the film), on top of the music."
-        : "Plays during the Legendary quest film. It's kept privately in your own database and only played for your family."}</p>
-      {info?.has ? (
-        <div className="qm-has">
-          <span className="qm-disc" aria-hidden="true">🎶</span>
-          <div><b>{isCrack ? "Sound is set" : "Music is set"}</b><small>{(info.size / 1_000_000).toFixed(1)} MB · starts at {mmss(info.start)}</small></div>
-          <button onClick={test}>{playing ? "■ Stop" : "▶ Test"}</button>
-        </div>
-      ) : <p className="qm-none">{isCrack ? "No crack sound yet." : "No music yet: the film plays silently."}</p>}
-      {info?.has && (
-        <div className="ad-two">
-          <label className="field"><span className="field-label">Start at (seconds)</span>
-            <input type="number" min={0} max={3600} value={start} onChange={(e) => setStart(e.target.value)} /></label>
-          <label className="field"><span className="field-label">Volume · {vol}%</span>
-            <input type="range" min={10} max={100} step={5} value={vol} onChange={(e) => setVol(Number(e.target.value))} /></label>
-        </div>
-      )}
-      <div className="ad-actions">
-        <button className="primary" disabled={busy} onClick={() => file.current?.click()}>{busy ? "Uploading…" : info?.has ? "Replace" : isCrack ? "Upload sound" : "Upload music"}</button>
-        {info?.has && <button onClick={save}>Save</button>}
-        {info?.has && <button className="danger" onClick={async () => { stopQuestMusic(0); setPlaying(false); try { show(await api.removeMusic(kind)); reset(); onDone("Removed"); } catch (e) { onError(msg(e)); } }}>Remove</button>}
-      </div>
-      <p className="field-hint">MP3, M4A, OGG or WAV · up to 4.3 MB</p>
-      <input ref={file} type="file" accept="audio/*" hidden onChange={(e) => { upload(e.target.files?.[0]); e.currentTarget.value = ""; }} />
-    </section>
-  );
-}
-
 /** When Honor starts counting: a date, and a button to start again from today. */
 function StartDate({ settings, today, onSave }: { settings: Settings; today: string; onSave: (d: string) => void }) {
   const [pick, setPick] = useState(settings.score_from);
@@ -283,8 +216,6 @@ function StartDate({ settings, today, onSave }: { settings: Settings; today: str
 }
 
 export default function Admin({ info }: { info?: TodayInfo | null }) {
-  const [preview, setPreview] = useState<Tier | null>(null);
-  const [questPreview, setQuestPreview] = useState(false);
   const [members, setMembers] = useState<AdminMember[] | null>(null);
   const [rows, setRows] = useState<BoardRow[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -353,23 +284,12 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
             ) : <p className="note">Loading…</p>}
           </section>
 
-          <section className="card">
-            <h2>Rank-up shows</h2>
-            <p className="note">Watch what a member sees when they reach each rank.</p>
-            <button className="ad-show ad-quest" style={{ ["--tc" as string]: "#b8860b" }} onClick={() => { setQuestPreview(true); }}>
-              <RankIcon rank="legendary" size={28} />The Legendary quest begins
-            </button>
-            <div className="ad-shows">
-              {(info?.tiers ?? []).filter((t) => t.key !== "low").map((t) => (
-                <button key={t.key} className="ad-show" style={{ ["--tc" as string]: t.color }} onClick={() => setPreview(t)}>
-                  <RankIcon rank={t.key} size={28} />{t.name}
-                </button>
-              ))}
-            </div>
-          </section>
 
-          <QuestMusic onError={setError} onDone={(s) => { setError(""); setToast(s); }} />
-          <QuestMusic kind="quest-crack" onError={setError} onDone={(s) => { setError(""); setToast(s); }} />
+          <section className="card">
+            <h2>🎬 Animations</h2>
+            <p className="note">Rank-up films, the Legendary quest, chests and rewards, and their sounds, are on the Animations tab.</p>
+            <Link className="an-link" to="/animations">Open Animations →</Link>
+          </section>
 
           <section className="card">
             <details className="ad-details">
@@ -384,8 +304,6 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
         </aside>
       </div>
 
-      {preview && <RankUp tier={preview} name="Preview" profile={null} reward={(info?.gems.per_rank[preview.key] ?? 0) + (preview.key === "legendary" ? 0 : info?.gems.per_level ?? 10)} onClose={() => setPreview(null)} />}
-      {questPreview && <QuestFilm name="Preview" preview onClose={() => setQuestPreview(false)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );

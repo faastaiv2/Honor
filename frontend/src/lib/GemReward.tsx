@@ -3,17 +3,20 @@ import { createPortal } from "react-dom";
 import Gem from "./Gem";
 import GemArt from "./GemArt";
 import { Particles } from "./particles";
+import { playSound } from "./sounds";
+import type { SoundKey } from "../api";
 
 /**
- * The gem reward moment, on a night-blue stage with turning rays: a treasure chest shakes harder and harder
- * as light leaks from its seam, bursts open with beams and a fountain of gems, and the gems pile up in a
- * glittering heap while "+N" counts up. Collect sends them flying into your wallet.
+ * The gem reward moment, on a night-blue stage with turning rays: a treasure chest sits in the middle, glowing
+ * and breathing, until you tap it. Then the lid lifts smoothly, light pours out with a fountain of gems, and
+ * the gems pile up while "+N" counts up. Collect sends them flying into your wallet. Nothing jumps around:
+ * every part keeps its place on the screen.
  */
 
 const SPARK = ["#ffffff", "#bfe9ff", "#7fd0ff", "#ffe9a8"];
 
 /** A treasure chest: wood planks, gold bands and rivets, an ornate lock with a gem. View box 0 0 220 200. */
-function Chest({ state, jewel = "#e3214a" }: { state: "shaking" | "open"; jewel?: string }) {
+function Chest({ state, jewel = "#e3214a" }: { state: "closed" | "open"; jewel?: string }) {
   return (
     <svg className={`tc tc-${state}`} viewBox="0 0 220 200" aria-hidden="true">
       <defs>
@@ -87,14 +90,15 @@ export interface GemRewardProps {
   from?: number; // balance before, for the wallet count-up
   chest?: boolean;
   jewel?: string; // colour of the gem on the chest's lock (the rank's colour)
+  sound?: SoundKey; // a sound for this moment (an achievement, a tournament win), played as it appears
   onDone: () => void;
 }
 
-export default function GemReward({ amount, title, from, chest = false, jewel, onDone }: GemRewardProps) {
+export default function GemReward({ amount, title, from, chest = false, jewel, sound, onDone }: GemRewardProps) {
   const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const n = Math.max(6, Math.min(24, Math.round(Math.sqrt(amount) * 2.4)));
   const spots = useMemo(() => heapSpots(n), [n]);
-  const [phase, setPhase] = useState<"shaking" | "burst" | "heap" | "fly" | "done">(chest && !reduced ? "shaking" : "heap");
+  const [phase, setPhase] = useState<"ready" | "burst" | "heap" | "fly" | "done">(chest && !reduced ? "ready" : "heap");
   const [shown, setShown] = useState(reduced ? amount : 0);
   const [wallet, setWallet] = useState(from ?? 0);
   const [fly, setFly] = useState<{ dx: number; dy: number } | null>(null);
@@ -115,26 +119,30 @@ export default function GemReward({ amount, title, from, chest = false, jewel, o
     return () => { e.stop(); window.removeEventListener("resize", onResize); };
   }, [reduced]);
 
-  // The chest shakes harder and harder, then bursts open.
-  useEffect(() => {
-    if (phase !== "shaking") return;
-    const t = window.setTimeout(() => {
-      setPhase("burst");
-      const e = engine.current, h = heapRef.current?.getBoundingClientRect();
-      if (e && h) {
-        const at = { x: h.left + h.width / 2, y: h.top + h.height * 0.55 };
+  // Tap the chest: the lid lifts, light and gems pour out.
+  function open() {
+    if (phase !== "ready") return;
+    setPhase("burst");
+    void playSound("chest");
+    const e = engine.current, h = heapRef.current?.getBoundingClientRect();
+    if (e && h) {
+      const at = { x: h.left + h.width / 2, y: h.top + h.height * 0.6 };
+      window.setTimeout(() => {
         e.burst("sparkle", 160, SPARK, at);
         e.burst("ring", 48, ["#ffffff", "#9fdcff"], at);
         e.burst("firework", 70, ["#ffe9a8", "#ffffff"], at);
-      }
-    }, 1700);
+      }, 260);
+    }
+  }
+  useEffect(() => {
+    if (phase !== "burst") return;
+    const t = window.setTimeout(() => setPhase("heap"), 700);
     return () => clearTimeout(t);
   }, [phase]);
   useEffect(() => {
-    if (phase !== "burst") return;
-    const t = window.setTimeout(() => setPhase("heap"), 650);
-    return () => clearTimeout(t);
-  }, [phase]);
+    if (sound) void playSound(sound);
+    else if (!chest || reduced) void playSound("gems");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // "+N" counts up while the heap builds, with glints as gems land.
   useEffect(() => {
@@ -155,6 +163,7 @@ export default function GemReward({ amount, title, from, chest = false, jewel, o
   }, [phase, amount, n, reduced, spots]);
 
   function collect() {
+    void playSound("collect");
     if (reduced || !walletRef.current || !heapRef.current) { onDone(); return; }
     const w = walletRef.current.getBoundingClientRect(), h = heapRef.current.getBoundingClientRect();
     setFly({ dx: w.left + w.width / 2 - (h.left + h.width / 2), dy: w.top + w.height / 2 - (h.top + h.height * 0.7) });
@@ -182,9 +191,13 @@ export default function GemReward({ amount, title, from, chest = false, jewel, o
       </span>
       <div className="gr-card">
         {title && <p className="gr-title">{title}</p>}
-        <p className="gr-amount">{chest && !showGems ? <span className="gr-opening">Opening…</span> : <>+{shown} <Gem size={44} /></>}</p>
+        <p className="gr-amount">{chest && !showGems ? <span className="gr-opening">{phase === "ready" ? "Tap the chest to open" : "\u00a0"}</span> : <>+{shown} <Gem size={44} /></>}</p>
         <div className="gr-heap" ref={heapRef} style={fly ? { ["--dx" as string]: `${fly.dx}px`, ["--dy" as string]: `${fly.dy}px` } : undefined}>
-          {chest && <Chest state={phase === "shaking" ? "shaking" : "open"} jewel={jewel} />}
+          {chest && (
+            <button type="button" className="gr-chest-btn" onClick={open} disabled={phase !== "ready"} aria-label="Open the chest">
+              <Chest state={phase === "ready" ? "closed" : "open"} jewel={jewel} />
+            </button>
+          )}
           {showGems && <span className="gr-pedestal" />}
           {showGems && spots.map((s, i) => (
             <span key={i} className="gr-gem" style={{
@@ -193,7 +206,7 @@ export default function GemReward({ amount, title, from, chest = false, jewel, o
             }}><GemArt tone={s.tone} glint={i % 4 === 0} /></span>
           ))}
         </div>
-        {phase === "heap" && <button className="gr-collect" onClick={collect}>Collect</button>}
+        <button className={`gr-collect${phase === "heap" ? "" : " wait"}`} onClick={collect} disabled={phase !== "heap"} aria-hidden={phase !== "heap"}>Collect</button>
       </div>
     </div>,
     document.body,

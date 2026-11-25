@@ -769,4 +769,7 @@ def test_quest_music_upload_is_admin_only_and_served_to_family(client, family):
     got = client.get("/api/media/quest-music", headers=h)
     assert got.status_code == 200 and got.content == song and got.headers["content-type"] == "audio/mpeg"
     assert client.get("/api/media/quest-music").status_code == 401
+    every = client.get("/api/media", headers=h).json()
+    assert every["quest-music"]["has"] and every["quest-music"]["size"] == len(song) and not every["chest"]["has"]
+    assert client.put("/api/media/nonsense", headers={**ha, "Content-Type": "audio/mpeg"}, content=song).status_code == 404
     assert client.delete("/api/media/quest-music", headers=ha).json()["has"] is False

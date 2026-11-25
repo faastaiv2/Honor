@@ -224,7 +224,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       </div>
       <p className="wc-cheer">{cheer(done, of, !!day?.weekend)}</p>
 
-      {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} jewel={reward.jewel}
+      {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} jewel={reward.jewel} sound={reward.win ? "event-win" : undefined}
         onDone={() => { if (reward.win) api.winSeen(reward.win).catch(() => undefined); setReward(null); }} />}
       {rankUp && <RankUp tier={rankUp.tier} name={p.member.name} profile={p} reward={rankUp.reward} onClose={() => { setRankUp(null); api.celebrated().then(setP).catch(() => undefined); }} />}
       {levelUp && (

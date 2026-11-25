@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -13,7 +14,17 @@ from app.models import Media
 
 router = APIRouter(prefix="/media", tags=["media"])
 
-KEYS = {"quest-music", "quest-crack"}  # the film music, and the sound when the crest breaks
+# Every sound slot on the Animations page (Admin). Music plays through a whole film; the others play once.
+KEYS = {
+    "quest-music",   # Legendary quest film: music
+    "quest-crack",   # Legendary quest film: the crest shatters
+    "rankup-music",  # rank-up film: music
+    "chest",         # a treasure chest is tapped open
+    "gems",          # gems pour onto the heap (day complete)
+    "collect",       # gems fly into the wallet
+    "achievement",   # an achievement is collected
+    "event-win",     # winning a place in an art tournament
+}
 MAX_BYTES = 4_300_000  # the host accepts uploads up to about 4.5 MB
 AUDIO = {"audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/x-wav", "audio/aac", "audio/mp4", "audio/x-m4a", "audio/webm"}
 
@@ -28,6 +39,15 @@ def _info(m: Media | None) -> dict:
     if not m:
         return {"has": False, "start": 0, "volume": 80, "size": 0, "updated": None}
     return {"has": True, "start": m.start, "volume": m.volume, "size": len(m.data), "updated": m.updated_at.isoformat()}
+
+
+@router.get("")
+def all_info(_: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """Which sound slots have a file, and their settings (without the files themselves)."""
+    # Read only the small columns: the files can be several megabytes each.
+    rows = db.execute(select(Media.key, Media.start, Media.volume, Media.updated_at, func.length(Media.data))).all()
+    have = {k: {"has": True, "start": st, "volume": vol, "size": int(size or 0), "updated": up.isoformat()} for k, st, vol, up, size in rows}
+    return {k: have.get(k, _info(None)) for k in sorted(KEYS)}
 
 
 @router.get("/{key}/info")

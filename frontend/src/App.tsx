@@ -11,6 +11,7 @@ import { useChangeCounter } from "./lib/events";
 import Admin from "./pages/Admin";
 import HistoryPage from "./pages/History";
 import Leaderboard from "./pages/Leaderboard";
+import Animations from "./pages/Animations";
 import Guard from "./lib/Guard";
 import ProfilePage from "./pages/Profile";
 import Benefits from "./pages/Benefits";
@@ -64,6 +65,7 @@ export default function App() {
             {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Profile</NavLink>}
             <NavLink to="/benefits">Benefits</NavLink>
             {viewer.is_admin && <NavLink to="/tasks">Tasks</NavLink>}
+            {viewer.is_admin && <NavLink to="/animations">Animations</NavLink>}
             {viewer.is_admin && <NavLink to="/admin" end>Admin</NavLink>}
             <span className="who"><span>{viewer.name}</span><button onClick={signOut}>Sign out</button></span>
           </nav>
@@ -80,6 +82,7 @@ export default function App() {
             <Route path="/leaderboard" element={<Leaderboard info={info} full />} />
             <Route path="/history" element={viewer.is_admin ? <HistoryPage /> : <Navigate to="/profile" />} />
             <Route path="/profile" element={viewer.is_admin ? <Navigate to="/admin" /> : <ProfilePage info={info} />} />
+            <Route path="/animations" element={viewer.is_admin ? <Animations info={info} /> : <Navigate to="/" />} />
             <Route path="/benefits" element={<Benefits info={info} />} />
             <Route path="/events" element={<Events />} />
             <Route path="/achievements" element={viewer.is_admin ? <Navigate to="/" /> : <Achievements />} />

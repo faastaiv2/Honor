@@ -91,7 +91,7 @@ export default function Achievements() {
           <ul className="ach-grid">{shown.filter((a) => a.group === g).map((a) => <Card key={a.key} a={a} onClaim={claim} />)}</ul>
         </section>
       ))}
-      {reward && <GemReward amount={reward.amount} title={reward.title} onDone={() => { setReward(null); setToast("Gems added to your wallet"); }} />}
+      {reward && <GemReward amount={reward.amount} title={reward.title} sound="achievement" onDone={() => { setReward(null); setToast("Gems added to your wallet"); }} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );
