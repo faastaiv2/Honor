@@ -83,6 +83,50 @@ TASKS: list[Task] = [
 REQUIRED = [t.key for t in TASKS]
 ALL_KEYS = {"gate", "bonus", *REQUIRED}
 
+
+@dataclass(frozen=True)
+class TaskSpec:
+    """A task as the admin set it up. The number (if any) grows by `step` every `every` days from `start_day`."""
+    key: str
+    label: str  # "{n}" marks where the number goes, e.g. "{n} jumping jacks"
+    group: str
+    fitness: bool = False  # excused on sick days
+    number: int | None = None  # the number on start_day
+    step: int = 0
+    every: int = 1
+    start_day: date = PROGRAM_START
+
+    def number_on(self, d: date) -> int | None:
+        if self.number is None:
+            return None
+        return max(0, self.number + self.step * ((d - self.start_day).days // max(1, self.every)))
+
+    def label_on(self, d: date) -> str:
+        n = self.number_on(d)
+        return self.label.replace("{n}", str(n)) if n is not None else self.label.replace("{n}", "").strip()
+
+
+# The tasks as they were in the family's sheet (copied into the database on first start).
+DEFAULT_SPECS: list[TaskSpec] = [
+    TaskSpec("fajr", "Fajr", "Ibadah"),
+    TaskSpec("yaseen", "Yaseen Sharif", "Ibadah"),
+    TaskSpec("dalail", "Dalilul Khairat", "Ibadah"),
+    TaskSpec("darood", "{n} × Darood Sharif", "Ibadah", number=251, step=1, every=1, start_day=date(2026, 11, 12)),
+    TaskSpec("zikr", "5 minutes Zikr together", "Ibadah"),
+    TaskSpec("asr", "Asr ki 4 Sunnat", "Ibadah"),
+    TaskSpec("mulk", "Surah Mulk", "Ibadah"),
+    TaskSpec("pages", "{n} pages", "Learning & home", number=2, step=1, every=32, start_day=date(2026, 11, 12)),
+    TaskSpec("lang", "Language", "Learning & home"),
+    TaskSpec("milk", "Milk", "Learning & home"),
+    TaskSpec("assist", "Assistance", "Learning & home"),
+    TaskSpec("lap", "{n} laps", "Fitness", True, number=2, step=1, every=55, start_day=date(2026, 11, 16)),
+    TaskSpec("jj", "{n} jumping jacks", "Fitness", True, number=100, step=1, every=1, start_day=date(2026, 10, 27)),
+    TaskSpec("push", "{n} push-ups", "Fitness", True, number=10, step=1, every=4, start_day=date(2026, 10, 25)),
+    TaskSpec("sit", "{n} sit-ups", "Fitness", True, number=1, step=1, every=4, start_day=date(2026, 10, 25)),
+    TaskSpec("plank", "{n} s plank", "Fitness", True, number=10, step=1, every=1, start_day=date(2026, 10, 27)),
+    TaskSpec("mc", "{n} s mountain climbers", "Fitness", True, number=10, step=1, every=1, start_day=date(2026, 10, 27)),
+]
+
 # Column order of the sheet after the date: pledge, the 17 tasks, bonus.
 SHEET_COLUMNS = ["gate", "fajr", "yaseen", "dalail", "darood", "pages", "zikr", "lang", "asr", "milk",
                  "assist", "mulk", "lap", "jj", "push", "sit", "plank", "mc", "bonus"]
@@ -144,7 +188,8 @@ class DayScore:
         return self.gain + self.bonus + self.cut
 
 
-def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, today: date, cut_misses: int) -> DayScore:
+def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, today: date, cut_misses: int,
+              tasks: list | None = None) -> DayScore:
     """+1 for the pledge and all 17 tasks, +1 for the bonus, -1 when a finished weekday misses any task
     (`cut_misses` is 1; a larger number would allow some misses).
 
@@ -154,7 +199,7 @@ def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, to
     done = set(done or [])
     excused = bool(excuse and excuse.strip())
     weekend = is_weekend(d)
-    req = [t.key for t in TASKS if not (excused and t.fitness)]
+    req = [t.key for t in (tasks if tasks is not None else TASKS) if not (excused and t.fitness)]
     missed = sum(1 for k in req if k not in done)
     pledge = weekend or "gate" in done
     gain = 1 if pledge and missed == 0 else 0

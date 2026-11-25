@@ -51,6 +51,15 @@ def logs_between(db: Session, start: date, end: date, member_id: str | None = No
     return {(r.member_id, r.day): r for r in db.scalars(q)}
 
 
+def load_tasks(db: Session) -> list[scoring.TaskSpec]:
+    """The daily tasks as the admin set them up (the sheet's tasks if none are stored)."""
+    from app.models import TaskDef
+    rows = list(db.scalars(select(TaskDef).order_by(TaskDef.sort_order, TaskDef.key)))
+    if not rows:
+        return list(scoring.DEFAULT_SPECS)
+    return [scoring.TaskSpec(r.key, r.label, r.group, r.fitness, r.number, r.step, r.every, r.start_day) for r in rows]
+
+
 def member_start(cfg: AppSettings, m: Member) -> date:
     """Scoring for a member starts on the board's start date, or the day they were added if later,
     so nobody loses Honor for days before they joined."""
@@ -70,12 +79,14 @@ def progress_for(db: Session, cfg: AppSettings, members: list[Member], today: da
         adj.setdefault(a.member_id, {}).setdefault(d, 0)
         adj[a.member_id][d] += a.delta
     week_from = week_start(today)
+    tasks = load_tasks(db)
     out = {}
     for m in members:
         start = member_start(cfg, m)
         mine = {d: (l.tasks, l.excuse) for (mid, d), l in logs.items() if mid == m.id}
         starts = [date.fromisoformat(s) for s in (m.quest_starts or [])]
-        out[m.id] = simulate(m.base_honor, mine, adj.get(m.id, {}), starts, start, today, cfg.cut_misses, week_from)
+        out[m.id] = simulate(m.base_honor, mine, adj.get(m.id, {}), starts, start, today, cfg.cut_misses, week_from,
+                             tasks)
     return out
 
 

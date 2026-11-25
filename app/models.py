@@ -85,3 +85,17 @@ class Purchase(Base):
     item: Mapped[str] = mapped_column(String(40))  # e.g. "frame:galaxy", "theme:ocean", "avatar:🐉"
     price: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class TaskDef(Base):
+    """One daily task, as the admin set it up in the Tasks tab."""
+    __tablename__ = "tasks"
+    key: Mapped[str] = mapped_column(String(24), primary_key=True)
+    label: Mapped[str] = mapped_column(String(120))  # "{n}" marks the number, e.g. "{n} jumping jacks"
+    group: Mapped[str] = mapped_column(String(40), default="Tasks")
+    fitness: Mapped[bool] = mapped_column(Boolean, default=False)  # excused on sick days
+    number: Mapped[int | None] = mapped_column(Integer, nullable=True)  # the number on start_day
+    step: Mapped[int] = mapped_column(Integer, default=0)  # added every `every` days
+    every: Mapped[int] = mapped_column(Integer, default=1)
+    start_day: Mapped[date] = mapped_column(Date)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)

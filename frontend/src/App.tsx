@@ -8,9 +8,10 @@ import Admin from "./pages/Admin";
 import HistoryPage from "./pages/History";
 import Leaderboard from "./pages/Leaderboard";
 import ProfilePage from "./pages/Profile";
-import Rules from "./pages/Rules";
+import Benefits from "./pages/Benefits";
 import SignIn from "./pages/SignIn";
 import Welcome from "./pages/Welcome";
+import Tasks from "./pages/Tasks";
 import Today from "./pages/Today";
 
 export default function App() {
@@ -54,8 +55,9 @@ export default function App() {
             <NavLink to="/" end>Today</NavLink>
             <NavLink to="/leaderboard">Leaderboard</NavLink>
             {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Profile</NavLink>}
-            <NavLink to="/rules">Rules</NavLink>
-            {viewer.is_admin && <NavLink to="/admin">Admin</NavLink>}
+            <NavLink to="/benefits">Benefits</NavLink>
+            {viewer.is_admin && <NavLink to="/tasks">Tasks</NavLink>}
+            {viewer.is_admin && <NavLink to="/admin" end>Admin</NavLink>}
             <span className="who"><span>{viewer.name}</span><button onClick={signOut}>Sign out</button></span>
           </nav>
         </div>
@@ -66,11 +68,13 @@ export default function App() {
             <Route path="/" element={viewer.is_admin
               ? <div className="main"><Today info={info} /><Leaderboard info={info} /></div>
               : <div className="home"><Welcome info={info} /><Today info={info} /></div>} />
-            <Route path="/leaderboard" element={<Leaderboard info={info} />} />
+            <Route path="/leaderboard" element={<Leaderboard info={info} full />} />
             <Route path="/history" element={viewer.is_admin ? <HistoryPage /> : <Navigate to="/profile" />} />
             <Route path="/profile" element={viewer.is_admin ? <Navigate to="/admin" /> : <ProfilePage info={info} />} />
-            <Route path="/rules" element={<Rules info={info} />} />
+            <Route path="/benefits" element={<Benefits info={info} />} />
+            <Route path="/rules" element={<Navigate to="/benefits" />} />
             <Route path="/admin" element={viewer.is_admin ? <Admin /> : <Navigate to="/" />} />
+            <Route path="/tasks" element={viewer.is_admin ? <Tasks /> : <Navigate to="/" />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from app import scoring as s
 from app.sheet_import import parse_sheet
@@ -81,3 +81,18 @@ def test_parse_handles_emoji_separators():
     assert d.excused == {"H"}
     assert parse_sheet("11/20/2026\tWeekend\tWeekend, A\tNone")[0].ticks == {"A": {"fajr"}}
     assert parse_sheet("10/27/2026\tNew\tA, H")[0].ticks == {"A": {"fajr"}, "H": {"fajr"}}
+
+
+def test_default_task_numbers_match_the_sheet_formulas():
+    by = {t.key: t for t in s.DEFAULT_SPECS}
+    for i in range(16, 200):  # Darood is linear from day 16
+        d = s.PROGRAM_START + timedelta(days=i)
+        assert by["darood"].label_on(d) == s.task_label("darood", i)
+    for i in range(0, 200):
+        d = s.PROGRAM_START + timedelta(days=i)
+        for k in ("jj", "push", "sit", "plank", "mc"):
+            assert by[k].label_on(d) == s.task_label(k, i), (k, i)
+    for i in (20, 74, 75, 120):
+        assert by["lap"].number_on(s.PROGRAM_START + timedelta(days=i)) == s.laps(i)
+    for i in (16, 47, 48, 79, 80):
+        assert by["pages"].number_on(s.PROGRAM_START + timedelta(days=i)) == s.pages(i)

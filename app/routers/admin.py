@@ -1,4 +1,5 @@
-from datetime import date
+import re
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
@@ -8,9 +9,10 @@ from zoneinfo import available_timezones
 
 from app.db import get_db
 from app.deps import Viewer, require_admin
-from app.models import Adjustment, DayLog, Member
+from app.models import Adjustment, DayLog, Member, TaskDef
+from app.scoring import DEFAULT_SPECS, TaskSpec
 from app.security import hash_secret
-from app.services import get_settings_row
+from app.services import get_settings_row, today_for
 from app.sheet_import import parse_sheet
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -215,3 +217,122 @@ def preview_sheet(body: PreviewIn, _: Viewer = Depends(require_admin)) -> dict:
     letters = sorted({w for d in days for w in (*d.ticks, *d.excused)}, key=lambda x: (x.lower(), x))
     return {"days": len(days), "first": min((d.day for d in days), default=None),
             "last": max((d.day for d in days), default=None), "letters": letters}
+
+
+# ------------------------------------------------------------------ daily tasks
+class TaskIn(BaseModel):
+    label: str = Field(min_length=1, max_length=120)
+    group: str = Field(default="Tasks", min_length=1, max_length=40)
+    fitness: bool = False
+    number_today: int | None = Field(default=None, ge=0, le=1_000_000)
+    step: int = Field(default=0, ge=-1000, le=1000)
+    every: int = Field(default=1, ge=1, le=365)
+
+
+class TaskPatch(BaseModel):
+    label: str | None = Field(default=None, min_length=1, max_length=120)
+    group: str | None = Field(default=None, min_length=1, max_length=40)
+    fitness: bool | None = None
+    number_today: int | None = Field(default=None, ge=0, le=1_000_000)
+    clear_number: bool = False
+    step: int | None = Field(default=None, ge=-1000, le=1000)
+    every: int | None = Field(default=None, ge=1, le=365)
+    move: int | None = Field(default=None, ge=-1, le=1)  # -1 up, +1 down
+
+
+def _task_out(t: TaskDef, today: date) -> dict:
+    spec = TaskSpec(t.key, t.label, t.group, t.fitness, t.number, t.step, t.every, t.start_day)
+    return {"key": t.key, "label": t.label, "group": t.group, "fitness": t.fitness, "number_today": spec.number_on(today),
+            "step": t.step, "every": t.every, "shown_today": spec.label_on(today),
+            "shown_tomorrow": spec.label_on(today + timedelta(days=1))}
+
+
+def _ensure_tasks(db: Session) -> list[TaskDef]:
+    rows = list(db.scalars(select(TaskDef).order_by(TaskDef.sort_order, TaskDef.key)))
+    if not rows:  # a board made before tasks were editable: store the sheet's tasks first
+        for i, t in enumerate(DEFAULT_SPECS):
+            db.add(TaskDef(key=t.key, label=t.label, group=t.group, fitness=t.fitness, number=t.number, step=t.step,
+                           every=t.every, start_day=t.start_day, sort_order=i))
+        db.commit()
+        rows = list(db.scalars(select(TaskDef).order_by(TaskDef.sort_order, TaskDef.key)))
+    return rows
+
+
+def _label_with_number(label: str, has_number: bool) -> str:
+    label = label.strip()
+    if has_number and "{n}" not in label:
+        label = "{n} " + label
+    return label
+
+
+@router.get("/tasks")
+def list_tasks(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
+    today = today_for(get_settings_row(db))
+    return [_task_out(t, today) for t in _ensure_tasks(db)]
+
+
+@router.post("/tasks", status_code=201)
+def add_task(body: TaskIn, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    rows = _ensure_tasks(db)
+    today = today_for(get_settings_row(db))
+    base = re.sub(r"[^a-z0-9]+", "", body.label.replace("{n}", "").lower())[:16] or "task"
+    key, i = base, 2
+    taken = {r.key for r in rows} | {"gate", "bonus"}
+    while key in taken:
+        key, i = f"{base[:14]}{i}", i + 1
+    t = TaskDef(key=key, label=_label_with_number(body.label, body.number_today is not None), group=body.group.strip(),
+                fitness=body.fitness, number=body.number_today, step=body.step, every=body.every, start_day=today,
+                sort_order=max((r.sort_order for r in rows), default=0) + 1)
+    db.add(t)
+    db.commit()
+    return _task_out(t, today)
+
+
+@router.patch("/tasks/{key}")
+def edit_task(key: str, body: TaskPatch, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    rows = _ensure_tasks(db)
+    t = next((r for r in rows if r.key == key), None)
+    if not t:
+        raise HTTPException(404, "Task not found")
+    today = today_for(get_settings_row(db))
+    if body.move:
+        i = rows.index(t)
+        j = i + body.move
+        if 0 <= j < len(rows):
+            rows[i], rows[j] = rows[j], rows[i]
+            for n, r in enumerate(rows):
+                r.sort_order = n
+    if body.clear_number:
+        t.number, t.step = None, 0
+        t.label = t.label.replace("{n}", "").strip()
+    if body.number_today is not None or body.step is not None or body.every is not None:
+        # Keep today's number unless a new one is given, and count the increase from today.
+        spec = TaskSpec(t.key, t.label, t.group, t.fitness, t.number, t.step, t.every, t.start_day)
+        current = spec.number_on(today)
+        t.number = body.number_today if body.number_today is not None else (current if current is not None else 0)
+        t.start_day = today
+        if body.step is not None:
+            t.step = body.step
+        if body.every is not None:
+            t.every = body.every
+    if body.label is not None:
+        t.label = body.label.strip()
+    if t.number is not None:
+        t.label = _label_with_number(t.label, True)
+    if body.group is not None:
+        t.group = body.group.strip()
+    if body.fitness is not None:
+        t.fitness = body.fitness
+    db.commit()
+    return _task_out(t, today)
+
+
+@router.delete("/tasks/{key}", status_code=204)
+def delete_task(key: str, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> None:
+    rows = _ensure_tasks(db)
+    t = next((r for r in rows if r.key == key), None)
+    if t:
+        if len(rows) <= 1:
+            raise HTTPException(400, "Keep at least one task")
+        db.delete(t)
+        db.commit()

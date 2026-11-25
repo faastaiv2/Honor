@@ -371,3 +371,43 @@ def test_shop_spends_gems(client, family, db):
         # unticking tasks takes their gems back
         put_day(client, h, family["S"], TODAY, [])
         assert client.get("/api/board/profile", headers=h).json()["gems"]["today"] == 0
+
+
+def test_admin_edits_tasks(client, family):
+    ha, hm = auth(client, admin=True), auth(client, family["A"])
+    assert client.get("/api/admin/tasks", headers=hm).status_code == 403
+    a, b = at_today()
+    with a, b, patch("app.routers.admin.today_for", return_value=TODAY):
+        tasks = client.get("/api/admin/tasks", headers=ha).json()
+        assert len(tasks) == 17 and tasks[3]["shown_today"] == "263 × Darood Sharif"
+        # Darood: 300 today, +2 every day
+        r = client.patch("/api/admin/tasks/darood", headers=ha, json={"number_today": 300, "step": 2}).json()
+        assert r["shown_today"] == "300 × Darood Sharif" and r["shown_tomorrow"] == "302 × Darood Sharif"
+        # push-ups: keep today's number, now +3 every day
+        r = client.patch("/api/admin/tasks/push", headers=ha, json={"step": 3, "every": 1}).json()
+        assert r["number_today"] == 17 and r["shown_tomorrow"] == "20 push-ups"
+        # new task with a number
+        new = client.post("/api/admin/tasks", headers=ha, json={"label": "Squats", "group": "Fitness", "fitness": True,
+                                                                "number_today": 10, "step": 1}).json()
+        assert new["shown_today"] == "10 Squats" and new["key"] == "squats"
+        client.patch("/api/admin/tasks/squats", headers=ha, json={"move": -1})
+        # remove a task; rename another
+        assert client.delete("/api/admin/tasks/milk", headers=ha).status_code == 204
+        client.patch("/api/admin/tasks/lang", headers=ha, json={"label": "Arabic class"})
+        view = client.get(f"/api/board/day?member_id={family['A'].id}", headers=hm).json()
+    labels = [t["label"] for g in view["groups"] for t in g["tasks"]]
+    assert "300 × Darood Sharif" in labels and "10 Squats" in labels and "Milk" not in labels and "Arabic class" in labels
+    assert labels.index("10 Squats") < labels.index("17 s mountain climbers".replace("17", "38"))
+    assert view["score"]["of"] == 17  # 17 - Milk + Squats
+
+
+def test_new_task_counts_for_the_day(client, family):
+    ha = auth(client, admin=True)
+    a, b = at_today()
+    with a, b, patch("app.routers.admin.today_for", return_value=TODAY):
+        client.post("/api/admin/tasks", headers=ha, json={"label": "Read a hadith"})
+        r = client.put("/api/board/day", headers=ha, json={"member_id": family["A"].id, "date": TODAY.isoformat(), "tasks": ALL})
+        assert r.json()["score"]["done"] == 17 and r.json()["score"]["of"] == 18 and r.json()["score"]["gain"] == 0
+        r = client.put("/api/board/day", headers=ha, json={"member_id": family["A"].id, "date": TODAY.isoformat(),
+                                                           "tasks": ALL + ["readahadith"]})
+        assert r.json()["score"]["gain"] == 1

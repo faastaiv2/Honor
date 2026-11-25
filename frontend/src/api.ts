@@ -17,7 +17,7 @@ export interface TodayInfo {
   today: string; day_number: number; weekend: boolean; week: Week;
   bonus: { count: string; dhikr: string };
   rules: { cut_misses: number; score_from: string; timezone: string };
-  tiers: Tier[]; avatars: string[]; viewer: Viewer;
+  tiers: Tier[]; avatars: string[]; viewer: Viewer; task_count: number;
   gems: { per_task: number; per_level: number; per_rank: number };
 }
 export interface TaskItem { key: string; label: string; done: boolean; fitness?: boolean; late?: boolean }
@@ -47,6 +47,7 @@ export interface History {
 }
 export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean; avatar: string }
 export interface Adjustment { id: string; member_id: string; delta: number; note: string; created_at: string; created_by: string }
+export interface TaskDef { key: string; label: string; group: string; fitness: boolean; number_today: number | null; step: number; every: number; shown_today: string; shown_tomorrow: string }
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 
 export class ApiError extends Error {
@@ -110,6 +111,10 @@ export const api = {
   adjustments: () => request<Adjustment[]>("/admin/adjustments"),
   addAdjustment: (member_id: string, delta: number, note: string) => request("/admin/adjustments", send("POST", { member_id, delta, note })),
   deleteAdjustment: (id: string) => request<void>(`/admin/adjustments/${id}`, { method: "DELETE" }),
+  tasks: () => request<TaskDef[]>("/admin/tasks"),
+  addTask: (body: { label: string; group: string; fitness: boolean; number_today: number | null; step: number; every: number }) => request<TaskDef>("/admin/tasks", send("POST", body)),
+  editTask: (key: string, body: Partial<{ label: string; group: string; fitness: boolean; number_today: number; clear_number: boolean; step: number; every: number; move: number }>) => request<TaskDef>(`/admin/tasks/${encodeURIComponent(key)}`, send("PATCH", body)),
+  deleteTask: (key: string) => request<void>(`/admin/tasks/${encodeURIComponent(key)}`, { method: "DELETE" }),
   settings: () => request<Settings>("/admin/settings"),
   saveSettings: (body: Partial<Settings>) => request<Settings>("/admin/settings", send("PUT", body)),
 };
