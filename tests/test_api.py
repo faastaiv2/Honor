@@ -221,7 +221,7 @@ def test_legendary_quest_flow(client, family, db):
         assert q["level"] == 1 and q["quest"]["active"] and q["tier"]["key"] == "bronze"
         assert client.post("/api/board/quest", headers=h, json={"member_id": m.id}).status_code == 400
         quest = next(x for x in client.get("/api/board/achievements", headers=h).json()["items"] if x["key"] == "quest")
-        assert quest["unlocked"] and quest["gems"] == 100  # starting the quest is the achievement
+        assert quest["unlocked"] and quest["gems"] == 500  # starting the quest is the greatest achievement
 
 
 def test_avatar(client, family):

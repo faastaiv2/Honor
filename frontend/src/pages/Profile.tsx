@@ -89,15 +89,15 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
             const forSale = locked && it.price > 0;
             return (
               <div key={it.key} className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}`}>
-                <button type="button" className="shop-face" aria-label={`Preview ${it.name}`}
-                  onClick={() => (tab === "theme" ? setTrying(trying?.key === it.key ? null : it) : setPeek({ kind: tab, item: it }))}>
+                <button type="button" className="shop-face" aria-label={forSale ? `Preview ${it.name}` : it.name} disabled={!forSale}
+                  onClick={() => forSale && (tab === "theme" ? setTrying(trying?.key === it.key ? null : it) : setPeek({ kind: tab, item: it }))}>
                   {tab === "frame" ? <Avatar avatar={p.member.avatar} color={t.color} frame={it.key} size={54} />
                     : tab === "theme" ? <ThemePreview k={it.key} />
                     : <Avatar avatar={it.key} color={t.color} size={64} />}
-                  <span className="shop-peek" aria-hidden="true">👁</span>
+                  {forSale && <span className="shop-peek" aria-hidden="true">👁</span>}
                 </button>
                 <span className="shop-name">{it.name}</span>
-                {tab === "theme" && !inUse && (
+                {tab === "theme" && forSale && (
                   <button className={`shop-try${trying?.key === it.key ? " on" : ""}`} onClick={() => setTrying(trying?.key === it.key ? null : it)}>
                     {trying?.key === it.key ? "Stop preview" : "👁 Try it"}
                   </button>

@@ -29,10 +29,11 @@ class Achievement:
     tier: str  # bronze, silver, gold, legend
     goal: int
     measure: Callable[[Facts], int]
+    reward: int | None = None  # overrides the tier's usual reward
 
     @property
     def gems(self) -> int:
-        return REWARD[self.tier]
+        return self.reward if self.reward is not None else REWARD[self.tier]
 
 
 def _rank(key: str) -> Callable[[Facts], int]:
@@ -65,8 +66,8 @@ ACHIEVEMENTS: list[Achievement] = [
     Achievement("emerald", "Evergreen", "Reach the Emerald rank", "Ranks", "crest:emerald", "silver", 1, _rank("emerald")),
     Achievement("diamond", "Unbreakable", "Reach the Diamond rank", "Ranks", "crest:diamond", "gold", 1, _rank("diamond")),
     Achievement("obsidian", "Into the Dark", "Reach the Obsidian rank", "Ranks", "crest:obsidian", "gold", 1, _rank("obsidian")),
-    Achievement("quest", "To Be a Legend", "Give up Obsidian and start the Legendary quest", "Ranks", "crest:legendary", "gold", 1,
-                lambda f: f.quests),
+    Achievement("quest", "To Be a Legend", "Give up Obsidian and start the Legendary quest", "Ranks", "crest:legendary", "legend", 1,
+                lambda f: f.quests, reward=500),
     Achievement("legendary", "Legend", "Earn Legendary Honor", "Ranks", "crest:legendary", "legend", 1, _rank("legendary")),
     # Treasure
     Achievement("gems500", "Treasure Hunter", "Earn 500 gems", "Treasure", "gem", "silver", 500, lambda f: f.gems_earned),

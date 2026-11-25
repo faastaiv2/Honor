@@ -4,6 +4,7 @@ import { api, ApiError, type AdminMember, type BoardRow, type Settings } from ".
 import Avatar from "../lib/Avatar";
 import type { Tier, TodayInfo } from "../api";
 import RankUp from "./RankUp";
+import QuestFilm from "./QuestFilm";
 import { notifyChanged, useToast } from "../lib/events";
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
@@ -177,6 +178,7 @@ function AddMember({ onAdded, onError }: { onAdded: (s: string) => void; onError
 
 export default function Admin({ info }: { info?: TodayInfo | null }) {
   const [preview, setPreview] = useState<Tier | null>(null);
+  const [questPreview, setQuestPreview] = useState(false);
   const [members, setMembers] = useState<AdminMember[] | null>(null);
   const [rows, setRows] = useState<BoardRow[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -246,6 +248,9 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
           <section className="card">
             <h2>Rank-up shows</h2>
             <p className="note">Watch what a member sees when they reach each rank.</p>
+            <button className="ad-show ad-quest" style={{ ["--tc" as string]: "#b8860b" }} onClick={() => setQuestPreview(true)}>
+              <RankIcon rank="legendary" size={28} />The Legendary quest begins
+            </button>
             <div className="ad-shows">
               {(info?.tiers ?? []).filter((t) => t.key !== "low").map((t) => (
                 <button key={t.key} className="ad-show" style={{ ["--tc" as string]: t.color }} onClick={() => setPreview(t)}>
@@ -269,6 +274,7 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
       </div>
 
       {preview && <RankUp tier={preview} name="Preview" profile={null} reward={(info?.gems.per_rank[preview.key] ?? 0) + (preview.key === "legendary" ? 0 : info?.gems.per_level ?? 10)} onClose={() => setPreview(null)} />}
+      {questPreview && <QuestFilm name="Preview" onClose={() => setQuestPreview(false)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );

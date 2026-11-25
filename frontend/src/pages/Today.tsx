@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import Brazier from "../lib/Brazier";
+import QuestFilm from "./QuestFilm";
 import { api, ApiError, type DayView, type SignInMember, type TaskItem, type TodayInfo } from "../api";
 import { useAuth } from "../auth";
 import { addDays, fmt } from "../lib/dates";
@@ -81,6 +82,7 @@ export default function Today({ info }: { info: TodayInfo | null }) {
   useEffect(load, [load]);
 
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [questFilm, setQuestFilm] = useState(false);
   const [excusing, setExcusing] = useState<{ key: string; reason: string } | null>(null);
 
   function save(next: DayView, nextExcuse: string, taskExcuses?: Record<string, string>): Promise<DayView | undefined> {
@@ -249,7 +251,8 @@ export default function Today({ info }: { info: TodayInfo | null }) {
       {view.mode === "locked" && <p className="note">This day is locked. {view.date < today ? "Your rank does not allow making it up now; a parent can still change it." : ""}</p>}
       {error && <p className="err" role="alert">{error}</p>}
       <Perks view={view} canAct={isMe || !!viewer?.is_admin}
-        onQuest={async () => { try { await api.startQuest(view.member.id); notifyChanged(); load(); setToast("The Legendary quest has begun 👑"); } catch (e) { setError(e instanceof ApiError ? e.message : "Could not start"); } }} />
+        onQuest={async () => { try { await api.startQuest(view.member.id); load(); if (isMe) setQuestFilm(true); else { notifyChanged(); setToast("The Legendary quest has begun"); } } catch (e) { setError(e instanceof ApiError ? e.message : "Could not start"); } }} />
+      {questFilm && <QuestFilm name={view.member.name} onClose={() => { setQuestFilm(false); notifyChanged(); }} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </section>
   );
