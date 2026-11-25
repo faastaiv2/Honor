@@ -6,14 +6,19 @@ import { notifyChanged, useToast } from "../lib/events";
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
 const days = (n: number) => (n === 1 ? "day" : `${n} days`);
 
-interface Draft { label: string; group: string; hasNum: boolean; num: string; step: string; every: string; fitness: boolean; nextDay: boolean }
+interface Draft { numLast?: boolean; label: string; group: string; hasNum: boolean; num: string; step: string; every: string; fitness: boolean; nextDay: boolean }
 
 const fromTask = (t: TaskDef): Draft => ({
-  label: t.label.replace("{n}", "#"), group: t.group, hasNum: t.number_today !== null,
+  // The name box holds only the words; the number is set separately and goes before them
+  // (or after, if the task was written that way, like "Read pages {n}").
+  label: t.label.replace("{n}", "").replace(/\s+/g, " ").trim(), numLast: t.label.trim().endsWith("{n}") && !t.label.trim().startsWith("{n}"),
+  group: t.group, hasNum: t.number_today !== null,
   num: String(t.number_today ?? 10), step: String(t.step || 1), every: String(t.every), fitness: t.fitness, nextDay: t.next_day,
 });
 /** "#" in the name marks where the number goes ("# push-ups"); without one the number goes first. */
-const labelOut = (d: Draft) => (d.hasNum ? d.label.replace("#", "{n}") : d.label.replace("#", "").replace(/\s+/g, " ").trim());
+const words = (d: Draft) => d.label.replace(/\{n\}|#/g, "").replace(/\s+/g, " ").trim();
+const labelOut = (d: Draft) => (d.hasNum ? (d.numLast ? `${words(d)} {n}` : `{n} ${words(d)}`) : words(d));
+const shownAs = (d: Draft) => (d.hasNum ? (d.numLast ? `${words(d)} ${Number(d.num) || 0}` : `${Number(d.num) || 0} ${words(d)}`) : words(d));
 const EMPTY: Draft = { label: "", group: "Ibadah", hasNum: false, num: "10", step: "1", every: "1", fitness: false, nextDay: false };
 
 /** A yes/no choice shown as a tappable card. */
@@ -34,8 +39,8 @@ function Editor({ d, set, groups, onSubmit, submit, children }: { d: Draft; set:
     <form className="tk-editor" onSubmit={onSubmit}>
       <div className="tk-two">
         <label className="field"><span className="field-label">Task name</span>
-          <input required autoFocus maxLength={110} value={d.label} onChange={(e) => set({ ...d, label: e.target.value })} placeholder={d.hasNum ? "e.g. # push-ups" : "e.g. Fajr"} />
-          {d.hasNum && <span className="field-hint"># shows where the number goes</span>}
+          <input required autoFocus maxLength={110} value={d.label} onChange={(e) => set({ ...d, label: e.target.value })} placeholder={d.hasNum ? "e.g. push-ups (just the words)" : "e.g. Fajr"} />
+          {d.hasNum && <span className="field-hint">Just the words. Set the number below.</span>}
         </label>
         <label className="field"><span className="field-label">Group</span>
           <input list="tk-groups" required maxLength={40} value={d.group} onChange={(e) => set({ ...d, group: e.target.value })} />
@@ -43,6 +48,7 @@ function Editor({ d, set, groups, onSubmit, submit, children }: { d: Draft; set:
         </label>
       </div>
 
+      <p className="tk-shown">Members will see: <b>{shownAs(d) || "…"}</b></p>
       <Toggle on={d.hasNum} set={(v) => set({ ...d, hasNum: v })} icon="🔢" title="It has a number that grows" text="Like 10 push-ups, then 11, then 12…" />
       {d.hasNum && (
         <div className="tk-sentence">

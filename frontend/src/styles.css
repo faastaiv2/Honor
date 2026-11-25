@@ -1385,3 +1385,5 @@ label.task > span:not(.gem-pop) { flex: 1 1 auto; min-width: 0; }
 label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .shop-section { grid-column: 1 / -1; margin: 6px 0 2px; font-weight: 800; font-size: 14px; letter-spacing: .04em; color: var(--mute); }
 .shop-section:first-child { margin-top: 0; }
+.tk-shown { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--soft); font-size: 14px; color: var(--mute); }
+.tk-shown b { color: var(--ink); font-size: 16px; }
