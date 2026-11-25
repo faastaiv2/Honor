@@ -37,7 +37,7 @@ export interface BoardRow extends Status {
 }
 export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary" }
 export interface Profile extends Status {
-  member: { id: string; name: string; avatar: string; frame: string; theme: string };
+  member: { id: string; name: string; avatar: string; frame: string; theme: string; shamed?: boolean; own_avatar?: string; own_frame?: string };
   week_delta: number; streak: number;
   gems: { balance: number; earned: number; spent: number; claimed: number; today: number; from_tasks: number; from_levels: number };
   next_level_reward: { level: string; gems: number } | null;

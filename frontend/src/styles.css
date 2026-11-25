@@ -1847,18 +1847,13 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 @media (prefers-color-scheme: dark) { .bx-start { background: linear-gradient(135deg, #3a2c10, #2a1f0a); color: #f3d98a; } }
 
 /* ---- Pillar of Shame (Low Honor on the Leaderboard) ---- */
-.floor.shame { background: linear-gradient(180deg, #3a3e44, #24272c); border-color: #15171a; color: #e8e6e0; box-shadow: inset 0 2px 0 #ffffff14, 0 6px 18px #0004; }
 .floor.shame .floor-name b { color: #f0ede6; font-family: Marcellus, Georgia, serif; font-size: 20px; letter-spacing: .04em; }
-.floor.shame .floor-name small, .floor.shame .floor-count { color: #b9b4aa; }
 .shame-head { display: flex; align-items: center; gap: 12px; }
 .shame-pillar { width: 34px; height: 54px; flex: none; }
 .shame-pillar rect { fill: #a8a399; stroke: #4a4640; stroke-width: 1; }
 .shame-pillar .flute { stroke: #7a766e; stroke-width: 1.2; fill: none; }
 .shame-pillar .chain { stroke: #5a5f66; stroke-width: 2.4; fill: none; stroke-dasharray: 3 2; stroke-linecap: round; }
-.shame-note { margin: 6px 0 0; font-size: 13px; color: #cfcac0; font-style: italic; }
-.floor.shame .p-row { background: #ffffff0f; border-color: #ffffff1a; color: #ece9e2; }
 .floor.shame .p-row .lv2-num { color: #ff9a8a; }
-.floor.shame .p-rank { color: #b9b4aa; }
 .p-chain { margin-inline-end: 6px; }
 .floor.shame .floor-head, .floor.shame .shame-head { background: repeating-linear-gradient(90deg, #ffffff06 0 14px, transparent 14px 28px), linear-gradient(180deg, #555a61, #3a3e44); color: #f0ede6; border-bottom: 2px solid #15171a; }
 .floor.shame .p-name:has(.p-chain) { display: flex; flex-direction: row; align-items: center; gap: 6px; }
@@ -1867,3 +1862,16 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .an-rank { position: relative; }
 .an-rank-note { position: absolute; top: -6px; right: -4px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
   font-style: normal; font-weight: 900; font-size: 11px; color: #fff; background: #2f8a4f; box-shadow: 0 1px 3px #0004; }
+
+/* Pillar of Shame: normal rows, a stone header; floors all bright once the scan is done */
+.floors.done .floor { opacity: 1; transform: none; }
+.floor.shame { background: color-mix(in srgb, var(--tc) 6%, var(--paper)); border-color: color-mix(in srgb, #4a4e55 45%, var(--line)); color: inherit; box-shadow: none; }
+.floor.shame .floor-count { color: #e8e4dc; }
+.shame-note { color: var(--mute); padding: 6px 14px 0; }
+.shame-lock { display: flex; gap: 12px; align-items: center; margin: 8px 0 12px; padding: 12px 14px; border-radius: 16px;
+  background: linear-gradient(135deg, #3a1012, #1e0a0c); color: #ffd6d0; border: 2px solid #c0141e; }
+.shame-lock > span { font-size: 40px; }
+.shame-lock b { color: #fff; } .shame-lock p { margin: 2px 0 0; font-size: 14px; }
+.shop-act.locked-use { opacity: .7; font-weight: 800; }
+.floor.shame .floor-name small { color: #d8d4cc; }
+.shame-note { margin: 6px 0 0; font-size: 13px; font-style: italic; }

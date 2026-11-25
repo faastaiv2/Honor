@@ -149,6 +149,26 @@ const ART: Record<string, Art> = {
       <Spikes n={8} len={13} fill="#1a1426" width={5} /><Spikes n={8} len={7} fill="#7d5fd0" width={4} start={-67.5} /></>,
     front: () => <Gem x={0} y={-R} s={6} fill="#6a3fd0" />,
   },
+  // The shame ring: rusted iron, wrapped in chains, held shut with a padlock. Locked on while on the Pillar of Shame.
+  shame: {
+    ring: ["#1a1a1e", "#6a6a72", "#2a2a30", "#8a8a92", "#141418"], glow: "#c0141e",
+    back: () => (
+      <g>
+        {Array.from({ length: 16 }, (_, i) => {
+          const a = (i * 360) / 16;
+          return <ellipse key={i} rx="4.6" ry="2.6" fill="none" stroke={i % 2 ? "#8a8a92" : "#5a5a62"} strokeWidth="1.8"
+            transform={`rotate(${a}) translate(0 ${-(R + 5)}) rotate(${i % 2 ? 0 : 90})`} />;
+        })}
+      </g>
+    ),
+    front: () => (
+      <g transform={`translate(0 ${R + 2})`}>
+        <path d="M-5 -2 V-7 A5 5 0 0 1 5 -7 V-2" fill="none" stroke="#9a9aa2" strokeWidth="2.2" />
+        <rect x="-8" y="-3" width="16" height="13" rx="2.5" fill="#4a4a52" stroke="#1a1a1e" strokeWidth="1" />
+        <circle cx="0" cy="2.5" r="1.8" fill="#c0141e" /><path d="M-0.8 3 L0 7 L0.8 3 Z" fill="#c0141e" />
+      </g>
+    ),
+  },
   crown: {
     ring: GOLD, glow: "#ffd24a",
     back: (id) => <>

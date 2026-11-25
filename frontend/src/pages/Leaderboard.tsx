@@ -88,7 +88,7 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
         </div>
       )}
       {!board ? <p className="note">Loading…</p> : board.rows.length === 0 ? <p className="note">No members yet.</p> : (
-        <div className="floors">
+        <div className={`floors${counting ? " done" : ""}`}>
           {floors.map((f, i) => (
             <div key={f.tier.key} ref={(el) => { floorRefs.current[i] = el; }}
               className={`floor${f.tier.key === "low" ? " shame" : ""}${f.rows.length ? "" : " empty"}${i <= lit ? " passed" : ""}${i === lit ? " lit" : ""}`}

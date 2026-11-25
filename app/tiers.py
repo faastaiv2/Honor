@@ -67,6 +67,12 @@ TIERS: list[Tier] = [
 ]
 BY_KEY = {t.key: t for t in TIERS}
 LOW_FLOOR = -3  # the bottom: Low Honor is −I, −II and −III (shown on the Pillar of Shame)
+SHAME_AVATAR, SHAME_FRAME = "👹", "shame"  # locked on while a member is on the Pillar of Shame
+
+
+def shown_look(avatar: str, frame: str, tier_key: str) -> tuple[str, str]:
+    """The picture and frame others see: on the Pillar of Shame they are locked to the ogre and the shame ring."""
+    return (SHAME_AVATAR, SHAME_FRAME) if tier_key == "low" else (avatar, frame)
 
 
 def tier_for(level: int, legendary: bool) -> Tier:

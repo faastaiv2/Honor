@@ -8,7 +8,8 @@ from app.deps import Viewer, current_viewer, require_admin
 from app.models import Admin, Member
 from app.ratelimit import login_limiter
 from app.security import create_token, hash_secret, verify_secret
-from app.services import active_members
+from app.services import active_members, get_settings_row, progress_for, tier_of_progress, today_for
+from app.tiers import shown_look
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -46,8 +47,14 @@ def _limit(request: Request, key: str) -> None:
 @router.get("/members")
 def sign_in_list(db: Session = Depends(get_db)) -> list[dict]:
     """Names for the sign-in screen. A member without a PIN chooses one the first time."""
-    return [{"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "has_pin": bool(m.pin_hash)}
-            for m in active_members(db)]
+    members = active_members(db)
+    cfg = get_settings_row(db)
+    prog = progress_for(db, cfg, members, today_for(cfg))
+    out = []
+    for m in members:
+        avatar, frame = shown_look(m.avatar, m.frame, tier_of_progress(prog[m.id]).key)
+        out.append({"id": m.id, "name": m.name, "avatar": avatar, "frame": frame, "has_pin": bool(m.pin_hash)})
+    return out
 
 
 @router.post("/member")

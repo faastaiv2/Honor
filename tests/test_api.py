@@ -789,3 +789,15 @@ def test_event_for_today_must_not_be_already_over(client, family):
         assert r.status_code == 400 and "already over" in r.json()["detail"]
         r = client.post("/api/events/create", headers=ha, json={"day": TODAY.isoformat(), "title": "Tonight", "opens": "20:00", "closes": "23:00"})
         assert r.status_code == 200 and r.json()["open"] is True and r.json()["timezone"]
+
+
+def test_pillar_of_shame_locks_picture_and_frame(client, family, db):
+    ha = auth(client, admin=True)
+    m = client.post("/api/admin/members", headers=ha, json={"name": "Low", "pin": "1234", "base_honor": -2}).json()
+    h = {"Authorization": "Bearer " + client.post("/api/auth/member", json={"member_id": m["id"], "pin": "1234"}).json()["token"]}
+    prof = client.get("/api/board/profile", headers=h).json()
+    assert prof["member"]["avatar"] == "👹" and prof["member"]["frame"] == "shame" and prof["member"]["shamed"]
+    assert client.put("/api/board/profile", headers=h, json={"avatar": "lion"}).status_code == 403
+    row = next(r for r in client.get("/api/board/leaderboard", headers=ha).json()["rows"] if r["member"]["name"] == "Low")
+    assert row["member"]["avatar"] == "👹"
+    assert next(x for x in client.get("/api/auth/members").json() if x["name"] == "Low")["frame"] == "shame"

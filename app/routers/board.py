@@ -15,7 +15,7 @@ from app.progress import Progress, gems_earned
 from app.routers.events import placings, unseen_win
 from app.services import (achievement_gems, active_members, clock_for, chests_opened, load_periods, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
-from app.tiers import (CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
+from app.tiers import (shown_look, CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
                        FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
                        tier_for)
 
@@ -285,7 +285,8 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
                                    first_day=today == member_start(cfg, m))
         skip = (log.task_excuses or {}) if log else {}
         s = scoring.score_day(today, counted, log.excuse if log else None, today, cfg.cut_misses, specs, skip)
-        row = {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame},
+        look = shown_look(m.avatar, m.frame, tier_of_progress(p).key)
+        row = {"member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1]},
                **_status(p), "today": _score_out(s), "week_delta": p.week_delta,
                "is_me": v.kind == "member" and v.id == m.id}
         if v.is_admin:  # parents see why a task was excused
@@ -417,7 +418,9 @@ def _profile(db: Session, m: Member) -> dict:
     nxt = p.best_level + 1
     reward = 0 if p.legendary or nxt > CAP_WITHOUT_LEGENDARY else GEMS_PER_LEVEL + (
         RANK_GEMS[tier_for(nxt, False).key] if tier_for(nxt, False).min == nxt else 0)
-    return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "theme": _theme_of(m)},
+    look = shown_look(m.avatar, m.frame, tier.key)
+    return {"member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
+                       "shamed": tier.key == "low", "own_avatar": m.avatar, "own_frame": m.frame},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
             "gems": {"balance": gems_earned(p) + claimed + from_achievements - spent,
                      "earned": gems_earned(p) + claimed + from_achievements, "spent": spent, "claimed": claimed,
@@ -462,6 +465,9 @@ def save_profile(body: ProfileIn, v: Viewer = Depends(current_viewer), db: Sessi
     m = db.get(Member, v.id)
     cfg = get_settings_row(db)
     tier = tier_of_progress(progress_for(db, cfg, [m], today_for(cfg))[m.id])
+    if tier.key == "low" and (body.avatar is not None or body.frame is not None):
+        raise HTTPException(403, "🔒 Your picture and frame are locked while you're on the Pillar of Shame. "
+                                 "Finish all your tasks to climb back to Member")
     owned = owned_items(db, m.id)
     for kind, value, keys in (("avatar", body.avatar, None), ("frame", body.frame, FRAME_KEYS), ("theme", body.theme, THEME_KEYS)):
         if value is None or value == "":

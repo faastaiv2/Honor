@@ -55,7 +55,9 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const rank = (it: ShopItem) => (it.rarity ? RARITY.findIndex((r) => r.key === it.rarity) + 1 : 0);
   const items = tab === "frame" ? p.frames : tab === "theme" ? p.themes
     : [...p.avatars].sort((a, b) => rank(a) - rank(b) || a.price - b.price);
-  const current = tab === "frame" ? p.member.frame || "plain" : tab === "theme" ? p.member.theme || "bronze" : p.member.avatar;
+  const shamed = !!p.member.shamed; // on the Pillar of Shame: picture and frame are locked
+  const current = tab === "frame" ? (p.member.own_frame ?? p.member.frame) || "plain" : tab === "theme" ? p.member.theme || "bronze" : (p.member.own_avatar ?? p.member.avatar);
+  const lockedLook = shamed && tab !== "theme";
 
   return (
     <div className="profile">
@@ -65,7 +67,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
           <span className="wc-badge"><RankBadge color={t.color} label={p.label} size={56} /></span>
         </div>
         <h2 className="profile-name">{p.member.name}</h2>
-        <p className="profile-title"><RankIcon rank={t.key} /> {t.key === "member" ? "Member" : `${t.name} member`}</p>
+        <p className="profile-title"><RankIcon rank={t.key} /> {t.key === "member" ? "Member" : t.key === "low" ? "On the Pillar of Shame" : `${t.name} member`}</p>
         <div className="fat-bar" style={{ width: "min(100%, 340px)" }}><i style={{ width: `${pct}%` }} /></div>
         <p className="note" style={{ margin: 0 }}>{p.next ? <>{p.next.needed} more to <RankIcon rank={p.next.name} /> {p.next.name}</> : p.legendary ? <><RankIcon rank="legendary" /> You hold Legendary</> : "XLIX is the top without the Legendary quest"}</p>
         <div className="wc-stats" style={{ width: "100%" }}>
@@ -84,6 +86,12 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
           <h2>Shop &amp; style</h2>
           <span className="gem-wallet"><Gem /> {p.gems.balance}</span>
         </div>
+        {shamed && (
+          <div className="shame-lock" role="status">
+            <span aria-hidden="true">👹</span>
+            <div><b>Locked on the Pillar of Shame</b><p>Your picture and frame are locked until you finish all your tasks and climb back to Member. You can still change your theme and buy things.</p></div>
+          </div>
+        )}
         <p className="note">Your rank unlocks its own frame and theme for free. Buy extra ones with gems: +20 <Gem /> for finishing every task in a day, plus your streak chest and achievements.</p>
         <div className="seg" role="tablist">
           {TABS.map((x) => <button key={x.kind} role="tab" aria-selected={tab === x.kind} className={tab === x.kind ? "on" : ""} onClick={() => setTab(x.kind)}>{x.label}</button>)}
@@ -105,7 +113,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
                 </div>
               )}
               {firstOther && (
-                <button className={`shop-item${!p.member.avatar ? " on" : ""}`} onClick={() => use("avatar", "", "Plain picture")}>
+                <button className={`shop-item${!(p.member.own_avatar ?? p.member.avatar) ? " on" : ""}`} disabled={shamed} onClick={() => use("avatar", "", "Plain picture")}>
                   <span className="shop-face">👤</span><span className="shop-name">Plain</span><span className="shop-act">{!p.member.avatar ? "In use" : "Use"}</span>
                 </button>
               )}
@@ -124,8 +132,8 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
                     {trying?.key === it.key ? "Stop preview" : "👁 Try it"}
                   </button>
                 )}
-                {inUse ? <span className="shop-act on">In use ✓</span>
-                  : it.available ? <button className="shop-act" onClick={() => use(tab, it.key, it.name)}>Use</button>
+                {inUse ? <span className="shop-act on">{lockedLook ? "Yours ✓" : "In use ✓"}</span>
+                  : it.available ? (lockedLook ? <span className="shop-act locked-use">🔒 Locked</span> : <button className="shop-act" onClick={() => use(tab, it.key, it.name)}>Use</button>)
                   : forSale ? (p.gems.balance >= it.price
                     ? <button className="shop-act buy" onClick={() => buy(tab, it)}><Gem /> {it.price}</button>
                     : <span className="shop-price"><span><Gem /> {it.price}</span><small>{it.price - p.gems.balance} more to go</small></span>)
