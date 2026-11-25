@@ -8,6 +8,8 @@
   --ink: light-dark(#18231f, #e9efe9);
   --mute: light-dark(#5e6b66, #9fb0a9);
   --line: light-dark(#e3e0d6, #24352f);
+  --soft: light-dark(#f7f5ef, #1a2924); /* a quiet panel on paper */
+  --soft2: light-dark(#ebe7dc, #243630); /* chips and tracks */
   --em: #6b3e1d; /* Bronze: the base look */
   --gold: #d49a5c;
   --em2: light-dark(var(--em), var(--gold));
@@ -1301,3 +1303,48 @@ button.shop-face:disabled { cursor: default; opacity: 1; }
 @keyframes tc-seam { 0%, 40% { opacity: 0; } 100% { opacity: 1; filter: blur(3px) drop-shadow(0 0 8px #bfeaff); } }
 @keyframes tc-beams { 0% { opacity: 0; transform: scale(.4); } 20% { opacity: 1; transform: scale(1.05); } 100% { opacity: .8; transform: scale(1) rotate(6deg); } }
 @keyframes tc-sink { to { opacity: .0; transform: translateY(30px) scale(.9); } }
+
+/* ---- Dark-mode safe surfaces (backgrounds follow the theme so text stays readable) ---- */
+.tk-row { background: var(--soft); }
+.tk-row.open { background: var(--paper); }
+.tk-tag { background: var(--soft2); color: var(--mute); }
+.tk-tag.grow { background: color-mix(in srgb, var(--good) 16%, var(--paper)); color: var(--good); }
+.tk-tag.sick { background: color-mix(in srgb, var(--bad) 14%, var(--paper)); color: var(--bad); }
+.tk-tag.night { background: color-mix(in srgb, #7a6aff 18%, var(--paper)); color: light-dark(#4a3a9a, #c8bfff); }
+.tk-toggle { background: var(--paper); color: var(--ink); }
+.tk-toggle.on { background: color-mix(in srgb, var(--em2) 10%, var(--paper)); }
+.tk-switch { background: var(--soft2); }
+.tk-sentence { background: color-mix(in srgb, var(--good) 8%, var(--paper)); color: var(--ink); }
+.tk-preview span { background: var(--paper); }
+.tk-move button { color: var(--mute); }
+.pd-item { background: var(--soft); }
+.pd-item.now { background: color-mix(in srgb, #8a8af0 16%, var(--paper)); }
+.pd-state { background: var(--soft2); }
+.pd-state.coming { background: color-mix(in srgb, var(--good) 16%, var(--paper)); color: var(--good); }
+.pd-row.off { background: color-mix(in srgb, var(--bad) 12%, var(--paper)); }
+.pd-row.less { background: color-mix(in srgb, var(--good) 12%, var(--paper)); }
+.pd-seg { background: var(--soft2); }
+.pd-seg button.on { background: var(--paper); color: var(--ink); }
+.ad-facts span { background: var(--soft2); color: var(--ink); }
+.ad-facts span.warn { background: color-mix(in srgb, #f0a020 20%, var(--paper)); color: light-dark(#8a5200, #ffcf7a); }
+.ad-show { background: color-mix(in srgb, var(--tc) 9%, var(--paper)); color: var(--ink); }
+.ad-quest { background: color-mix(in srgb, #f0c040 22%, var(--paper)); color: var(--ink); }
+.ad-excused { background: color-mix(in srgb, #4a7ad0 12%, var(--paper)); color: var(--ink); }
+.ad-bar { background: var(--soft2); }
+.task.excused { background: color-mix(in srgb, #4a7ad0 10%, var(--paper)); }
+.task.excused small { color: light-dark(#3a5a8a, #a8c4ff); }
+.shop-item.for-sale { background: color-mix(in srgb, #4ab8ff 10%, var(--paper)); border-color: color-mix(in srgb, #4ab8ff 45%, var(--line)); }
+.shop-item.for-sale .shop-name { color: var(--ink); }
+.shop-price { color: light-dark(#14508f, #8fd0ff); } .shop-price small { color: var(--mute); }
+.ru-rw-card { background: color-mix(in srgb, var(--tc) 9%, var(--paper)); color: var(--ink); }
+.ru-rw-card.gems { background: color-mix(in srgb, #4ab8ff 14%, var(--paper)); }
+.ru-rw-tag { color: color-mix(in srgb, var(--tc) 60%, var(--ink)); }
+.ach-bar { background: var(--soft2); }
+.goal-chip { color: var(--ink); }
+.wk-day small, .wc-week-head { color: inherit; }
+.ad-glance b, .ad-add { color: var(--em2); }
+.goal-chip.gem, .goal.won .goal-chip.gem { color: light-dark(#14508f, #8fd0ff); }
+.goal.won .goal-chip.gem { color: #14508f; }
+label.task { flex-wrap: wrap; row-gap: 4px; }
+label.task > span:not(.gem-pop) { flex: 1 1 auto; min-width: 0; }
+.task i.night { white-space: normal; }
