@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import { api, ApiError, type Profile, type ShopItem, type TodayInfo } from "../api";
@@ -44,7 +44,10 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const t = p.tier;
   const nextMin = info?.tiers.find((x) => x.name === p.next?.name)?.min ?? null;
   const pct = p.legendary || !p.next || nextMin === null || t.min === null ? 100 : Math.max(6, Math.min(100, ((p.level - t.min) / (nextMin - t.min)) * 100));
-  const items = tab === "frame" ? p.frames : tab === "theme" ? p.themes : p.avatars;
+  // Pictures: the three knights lead the list (the shop's top prizes), then everything else.
+  const isKnight = (k: string) => k.startsWith("knight");
+  const items = tab === "frame" ? p.frames : tab === "theme" ? p.themes
+    : [...p.avatars.filter((a) => isKnight(a.key)).sort((a, b) => b.price - a.price), ...p.avatars.filter((a) => !isKnight(a.key))];
   const current = tab === "frame" ? p.member.frame || "plain" : tab === "theme" ? p.member.theme || "bronze" : p.member.avatar;
 
   return (
@@ -79,17 +82,20 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
           {TABS.map((x) => <button key={x.kind} role="tab" aria-selected={tab === x.kind} className={tab === x.kind ? "on" : ""} onClick={() => setTab(x.kind)}>{x.label}</button>)}
         </div>
         <div className={`shop-grid ${tab}`}>
-          {tab === "avatar" && (
-            <button className={`shop-item${!p.member.avatar ? " on" : ""}`} onClick={() => use("avatar", "", "Plain picture")}>
-              <span className="shop-face">👤</span><span className="shop-name">Plain</span><span className="shop-act">{!p.member.avatar ? "In use" : "Use"}</span>
-            </button>
-          )}
-          {items.map((it) => {
+          {tab === "avatar" && <p className="shop-section">⚔️ Knights · the shop's top prizes</p>}
+          {items.map((it, idx) => {
+            const firstOther = tab === "avatar" && !isKnight(it.key) && (idx === 0 || isKnight(items[idx - 1].key));
             const inUse = current === it.key;
             const locked = !it.available;
             const forSale = locked && it.price > 0;
-            return (
-              <div key={it.key} className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}${it.price >= 1500 ? " legendary" : it.price >= 1000 ? " epic" : ""}`}>
+            return (<Fragment key={it.key}>
+              {firstOther && <p className="shop-section">More pictures</p>}
+              {firstOther && (
+                <button className={`shop-item${!p.member.avatar ? " on" : ""}`} onClick={() => use("avatar", "", "Plain picture")}>
+                  <span className="shop-face">👤</span><span className="shop-name">Plain</span><span className="shop-act">{!p.member.avatar ? "In use" : "Use"}</span>
+                </button>
+              )}
+              <div className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}${it.price >= 1500 ? " legendary" : it.price >= 1000 ? " epic" : ""}`}>
                 <button type="button" className="shop-face" aria-label={forSale ? `Preview ${it.name}` : it.name} disabled={!forSale}
                   onClick={() => forSale && (tab === "theme" ? setTrying(trying?.key === it.key ? null : it) : setPeek({ kind: tab, item: it }))}>
                   {tab === "frame" ? <Avatar avatar={p.member.avatar} color={t.color} frame={it.key} size={54} />
@@ -110,7 +116,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
                     : <span className="shop-price"><span><Gem /> {it.price}</span><small>{it.price - p.gems.balance} more to go</small></span>)
                   : <span className="shop-lock">🔒 <RankIcon rank={it.tier?.key} /> {it.tier?.name}</span>}
               </div>
-            );
+            </Fragment>);
           })}
         </div>
       </section>

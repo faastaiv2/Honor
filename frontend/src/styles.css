@@ -1383,3 +1383,5 @@ label.task > span:not(.gem-pop) { flex: 1 1 auto; min-width: 0; }
 .day-embedded { display: block; }
 @media (max-width: 520px) { .ah-prog { width: 70px; } .ah-pending { display: none; } }
 label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
+.shop-section { grid-column: 1 / -1; margin: 6px 0 2px; font-weight: 800; font-size: 14px; letter-spacing: .04em; color: var(--mute); }
+.shop-section:first-child { margin-top: 0; }
