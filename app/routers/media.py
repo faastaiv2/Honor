@@ -13,7 +13,7 @@ from app.models import Media
 
 router = APIRouter(prefix="/media", tags=["media"])
 
-KEYS = {"quest-music"}
+KEYS = {"quest-music", "quest-crack"}  # the film music, and the sound when the crest breaks
 MAX_BYTES = 4_300_000  # the host accepts uploads up to about 4.5 MB
 AUDIO = {"audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/x-wav", "audio/aac", "audio/mp4", "audio/x-m4a", "audio/webm"}
 

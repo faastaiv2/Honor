@@ -56,3 +56,26 @@ export function stopQuestMusic(ms = 1800) {
 }
 
 export function isQuestMusicPlaying() { return !!audio && !audio.paused; }
+
+/* ---- The crack: one sound the parent uploads, played the moment the Obsidian crest breaks. ---- */
+let crackLoading: Promise<{ url: string; info: MusicInfo } | null> | null = null;
+
+export function preloadCrack(): Promise<{ url: string; info: MusicInfo } | null> {
+  if (!crackLoading) {
+    crackLoading = api.musicInfo("quest-crack")
+      .then(async (info) => (info.has ? { url: await api.musicUrl("quest-crack"), info } : null))
+      .catch(() => { crackLoading = null; return null; });
+  }
+  return crackLoading;
+}
+
+export function resetCrack() { crackLoading = null; }
+
+export async function playCrack(): Promise<boolean> {
+  const m = await preloadCrack();
+  if (!m) return false;
+  const a = new Audio(m.url);
+  a.volume = m.info.volume / 100;
+  a.currentTime = m.info.start;
+  try { await a.play(); return true; } catch { return false; }
+}

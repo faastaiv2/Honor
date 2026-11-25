@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { preloadQuestMusic } from "../lib/questMusic";
-import { unlockSfx } from "../lib/sfx";
+import { preloadCrack, preloadQuestMusic } from "../lib/questMusic";
 import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import Brazier from "../lib/Brazier";
@@ -51,7 +50,7 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
       {st.can_start_quest && canAct && (
         <div className="quest">
           <p style={{ margin: "0 0 8px" }}><RankIcon rank="legendary" /> <b>Legendary quest.</b> Give up <RankIcon rank={st.tier.key} /> {st.tier.name}, start again from <RankIcon rank="bronze" /> Bronze I, and finish <b>every task and every bonus, every day</b> until L. One missed day ends the quest.</p>
-          <button className="primary" onClick={() => { setSure(true); void preloadQuestMusic(); }}>Start the Legendary quest</button>
+          <button className="primary" onClick={() => { setSure(true); void preloadQuestMusic(); void preloadCrack(); }}>Start the Legendary quest</button>
         </div>
       )}
       {sure && (
@@ -73,7 +72,7 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
               <li><span>⚠️</span><span><b>One missed day</b> ends the quest.</span></li>
               <li><span>👑</span><span>Reach L and you become <b>Legendary</b>, the highest honor.</span></li>
             </ul>
-            <button className="qc-yes" onClick={() => { unlockSfx(); setSure(false); onQuest(); }}>Yes, give up my {st.tier.name} title and start</button>
+            <button className="qc-yes" onClick={() => { setSure(false); onQuest(); }}>Yes, give up my {st.tier.name} title and start</button>
             <button className="qc-no" onClick={() => setSure(false)}>Not now</button>
           </div>
         </div>

@@ -82,6 +82,7 @@ export class ApiError extends Error {
   }
 }
 
+export type SoundKey = "quest-music" | "quest-crack";
 export interface MusicInfo { has: boolean; start: number; volume: number; size: number; updated: string | null }
 
 export const token = {
@@ -113,13 +114,13 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 const send = (method: string, body?: unknown): RequestInit => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
 
 export const api = {
-  musicInfo: () => request<MusicInfo>("/media/quest-music/info"),
-  uploadMusic: (f: File) => request<MusicInfo>("/media/quest-music", { method: "PUT", body: f, headers: { "Content-Type": f.type || "audio/mpeg" } }),
-  musicSettings: (start: number, volume: number) => request<MusicInfo>("/media/quest-music", send("PATCH", { start, volume })),
-  removeMusic: () => request<MusicInfo>("/media/quest-music", send("DELETE")),
-  musicUrl: async (): Promise<string> => {
+  musicInfo: (key: SoundKey = "quest-music") => request<MusicInfo>(`/media/${key}/info`),
+  uploadMusic: (f: File, key: SoundKey = "quest-music") => request<MusicInfo>(`/media/${key}`, { method: "PUT", body: f, headers: { "Content-Type": f.type || "audio/mpeg" } }),
+  musicSettings: (start: number, volume: number, key: SoundKey = "quest-music") => request<MusicInfo>(`/media/${key}`, send("PATCH", { start, volume })),
+  removeMusic: (key: SoundKey = "quest-music") => request<MusicInfo>(`/media/${key}`, send("DELETE")),
+  musicUrl: async (key: SoundKey = "quest-music"): Promise<string> => {
     const t = token.get();
-    const res = await fetch(`${BASE}/api/media/quest-music`, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+    const res = await fetch(`${BASE}/api/media/${key}`, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
     if (!res.ok) throw new ApiError(res.status, "No music");
     return URL.createObjectURL(await res.blob());
   },
