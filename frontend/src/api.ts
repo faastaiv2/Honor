@@ -20,17 +20,18 @@ export interface TodayInfo {
   tiers: Tier[]; avatars: string[]; viewer: Viewer; task_count: number;
   gems: { per_task: number; full_day: number; per_level: number; per_rank: Record<string, number> };
 }
-export interface TaskItem { key: string; label: string; done: boolean; fitness?: boolean; late?: boolean; next_day?: boolean; counted_today?: boolean }
+export interface TaskItem { key: string; label: string; done: boolean; fitness?: boolean; late?: boolean; next_day?: boolean; counted_today?: boolean; excused?: string | null }
 export interface DayView {
   member: { id: string; name: string }; date: string; today: string; weekend: boolean;
   pledge: TaskItem | null; groups: { name: string; tasks: TaskItem[] }[];
   bonus: { key: string; count: string; dhikr: string; done: boolean };
-  excuse: string; score: Score; mode: "open" | "makeup" | "admin" | "locked"; editable: boolean; excuse_editable: boolean;
+  excuse: string; task_excuses: Record<string, string>; periods: { name: string; end: string }[];
+  score: Score; mode: "open" | "makeup" | "admin" | "locked"; editable: boolean; excuse_editable: boolean;
   makeup_left: number; makeup_rule: string; before_scoring: boolean; status: Status;
 }
 export interface BoardRow extends Status {
   rank: number; member: { id: string; name: string; avatar: string; frame: string };
-  today: Score; week_delta: number; is_me: boolean;
+  today: Score; week_delta: number; is_me: boolean; excused_today?: { task: string; reason: string }[];
 }
 export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null }
 export interface Profile extends Status {
@@ -51,6 +52,8 @@ export interface History {
 export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean; avatar: string }
 export interface Adjustment { id: string; member_id: string; delta: number; note: string; created_at: string; created_by: string }
 export interface TaskDef { key: string; label: string; group: string; fitness: boolean; next_day: boolean; number_today: number | null; step: number; every: number; shown_today: string; shown_tomorrow: string }
+export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number> }
+export interface Period extends PeriodIn { id: string }
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 
 export class ApiError extends Error {
@@ -98,7 +101,8 @@ export const api = {
 
   today: () => request<TodayInfo>("/board/today"),
   day: (memberId: string, date?: string) => request<DayView>(`/board/day?member_id=${encodeURIComponent(memberId)}${date ? `&date=${date}` : ""}`),
-  saveDay: (member_id: string, date: string, tasks: string[], excuse: string) => request<DayView>("/board/day", send("PUT", { member_id, date, tasks, excuse })),
+  saveDay: (member_id: string, date: string, tasks: string[], excuse: string, task_excuses?: Record<string, string>) =>
+    request<DayView>("/board/day", send("PUT", { member_id, date, tasks, excuse, task_excuses })),
   leaderboard: () => request<Board>("/board/leaderboard"),
   setAvatar: (avatar: string) => request<{ avatar: string }>("/board/avatar", send("PUT", { avatar })),
   profile: () => request<Profile>("/board/profile"),
@@ -117,6 +121,10 @@ export const api = {
   addAdjustment: (member_id: string, delta: number, note: string) => request("/admin/adjustments", send("POST", { member_id, delta, note })),
   deleteAdjustment: (id: string) => request<void>(`/admin/adjustments/${id}`, { method: "DELETE" }),
   tasks: () => request<TaskDef[]>("/admin/tasks"),
+  periods: () => request<Period[]>("/admin/periods"),
+  addPeriod: (body: PeriodIn) => request<Period>("/admin/periods", send("POST", body)),
+  editPeriod: (id: string, body: PeriodIn) => request<Period>(`/admin/periods/${encodeURIComponent(id)}`, send("PUT", body)),
+  deletePeriod: (id: string) => request<void>(`/admin/periods/${encodeURIComponent(id)}`, send("DELETE")),
   addTask: (body: { label: string; group: string; fitness: boolean; next_day: boolean; number_today: number | null; step: number; every: number }) => request<TaskDef>("/admin/tasks", send("POST", body)),
   editTask: (key: string, body: Partial<{ label: string; group: string; fitness: boolean; next_day: boolean; number_today: number; clear_number: boolean; step: number; every: number; move: number }>) => request<TaskDef>(`/admin/tasks/${encodeURIComponent(key)}`, send("PATCH", body)),
   deleteTask: (key: string) => request<void>(`/admin/tasks/${encodeURIComponent(key)}`, { method: "DELETE" }),

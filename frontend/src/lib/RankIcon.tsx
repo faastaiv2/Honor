@@ -106,7 +106,7 @@ export default function RankIcon({ rank, size, className = "", title }: { rank?:
   const id = `ri${uid}`;
   const hex = look.shape === "hex";
   return (
-    <svg className={`rank-ico ${className}`} viewBox="-4 -6 72 72" style={size ? { width: size, height: size } : undefined}
+    <svg className={`rank-ico ${className}`} viewBox="-4 -4 72 72" style={size ? { width: size, height: size } : undefined}
       role={title ? "img" : undefined} aria-label={title} aria-hidden={title ? undefined : true}>
       <defs>
         <linearGradient id={`${id}m`} x1="0" y1="0" x2="1" y2="1">

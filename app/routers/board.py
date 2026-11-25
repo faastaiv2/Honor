@@ -11,7 +11,7 @@ from app.deps import Viewer, current_viewer
 from app.makeup import check_week, remaining, week_start
 from app.models import DailyClaim, DayLog, Member, Purchase
 from app.progress import Progress, gems_earned
-from app.services import (active_members, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
+from app.services import (active_members, load_periods, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
 from app.tiers import (CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
                        FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
@@ -27,6 +27,7 @@ class DayUpdate(BaseModel):
     date: date
     tasks: list[str] = Field(default_factory=list, max_length=40)
     excuse: str = Field(default="", max_length=120)
+    task_excuses: dict[str, str] | None = None  # task -> reason; None keeps what is saved
 
 
 class AvatarIn(BaseModel):
@@ -118,20 +119,23 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
     tier = tier_of_progress(p)
     log = db.scalar(select(DayLog).where(DayLog.member_id == member.id, DayLog.day == d))
     done = set(log.tasks if log else [])
+    skip = dict(log.task_excuses or {}) if log else {}
+    periods = [x for x in load_periods(db) if x.start <= d <= x.end]
     late = dict(log.late or {}) if log else {}
     excuse = log.excuse if log else ""
     i = scoring.day_index(d)
     groups: dict[str, list] = {}
-    specs = load_tasks(db)
+    specs = scoring.day_plan(load_tasks(db), periods, d)
     first = member_start(cfg, member)
     counted = scoring.credited(done, _prev_ticks(db, member.id, d), specs, first_day=d == first)
     for t in specs:
-        item = {"key": t.key, "label": t.label_on(d), "done": t.key in done, "fitness": t.fitness, "late": t.key in late}
+        item = {"key": t.key, "label": t.label_on(d), "done": t.key in done, "fitness": t.fitness, "late": t.key in late,
+                "excused": skip.get(t.key)}
         if t.next_day:  # ticked tonight for tomorrow; today got last night's
             item |= {"next_day": True, "counted_today": t.key in counted}
         groups.setdefault(t.group, []).append(item)
     count, dhikr = scoring.bonus_parts(i)
-    s = scoring.score_day(d, counted, excuse, today, cfg.cut_misses, specs)
+    s = scoring.score_day(d, counted, excuse, today, cfg.cut_misses, specs, skip)
     own = v.is_admin or v.id == member.id
     left = remaining(tier, d, today, _week_lates(db, member.id, d)) if d < today else 0
     if v.is_admin:
@@ -150,6 +154,8 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
         "groups": [{"name": g, "tasks": ts} for g, ts in groups.items()],
         "bonus": {"key": "bonus", "count": count, "dhikr": dhikr, "done": "bonus" in done},
         "excuse": excuse,
+        "task_excuses": skip,
+        "periods": [{"name": x.name, "end": x.end.isoformat()} for x in periods],
         "score": _score_out(s),
         "mode": mode,
         "editable": mode != "locked",
@@ -177,10 +183,18 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
         raise HTTPException(403, "You can only mark your own tasks")
     if body.date > today:
         raise HTTPException(403, "That day has not started yet")
-    specs = load_tasks(db)
+    specs = scoring.day_plan(load_tasks(db), load_periods(db), body.date)
     tasks = {k for k in body.tasks if k in {"gate", "bonus"} | {t.key for t in specs}}
     log = db.scalar(select(DayLog).where(DayLog.member_id == m.id, DayLog.day == body.date))
     before = set(log.tasks if log else [])
+    old_skip = dict(log.task_excuses or {}) if log else {}
+    if body.task_excuses is None:
+        skip = old_skip
+    else:
+        skip = {k: r.strip()[:80] for k, r in body.task_excuses.items() if k in {t.key for t in specs} and r.strip()}
+        if skip != old_skip and not v.is_admin and body.date < today:
+            raise HTTPException(403, "A task can only be excused on the day. Ask a parent")
+    tasks -= set(skip)  # an excused task is not ticked
     late = dict(log.late or {}) if log else {}
     excuse = body.excuse.strip()
 
@@ -207,13 +221,14 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
         late = {k: d for k, d in late.items() if k in tasks}
 
     counted = scoring.credited(tasks, _prev_ticks(db, m.id, body.date), specs, first_day=body.date == member_start(cfg, m))
-    if "bonus" in tasks and not scoring.score_day(body.date, counted, body.excuse, today, cfg.cut_misses, specs).gain:
+    if "bonus" in tasks and not scoring.score_day(body.date, counted, body.excuse, today, cfg.cut_misses, specs, skip).gain:
         tasks.discard("bonus")  # the bonus opens only once every task is done (and unticks if one is unticked)
     if log is None:
         log = DayLog(member_id=m.id, day=body.date)
         db.add(log)
     log.tasks = sorted(tasks)
     log.late = late
+    log.task_excuses = skip
     log.excuse = excuse
     log.updated_by = f"{v.kind}:{v.name}"
     db.commit()
@@ -228,17 +243,22 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     prog = progress_for(db, cfg, members, today)
     yesterday = today - timedelta(days=1)
     logs = logs_between(db, yesterday, today)
-    specs = load_tasks(db)
+    specs = scoring.day_plan(load_tasks(db), load_periods(db), today)
     rows = []
     for m in members:
         p = prog[m.id]
         log, prev = logs.get((m.id, today)), logs.get((m.id, yesterday))
         counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, specs,
                                    first_day=today == member_start(cfg, m))
-        s = scoring.score_day(today, counted, log.excuse if log else None, today, cfg.cut_misses, specs)
-        rows.append({"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame},
-                     **_status(p), "today": _score_out(s), "week_delta": p.week_delta,
-                     "is_me": v.kind == "member" and v.id == m.id})
+        skip = (log.task_excuses or {}) if log else {}
+        s = scoring.score_day(today, counted, log.excuse if log else None, today, cfg.cut_misses, specs, skip)
+        row = {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame},
+               **_status(p), "today": _score_out(s), "week_delta": p.week_delta,
+               "is_me": v.kind == "member" and v.id == m.id}
+        if v.is_admin:  # parents see why a task was excused
+            labels = {t.key: t.label_on(today) for t in specs}
+            row["excused_today"] = [{"task": labels.get(k, k), "reason": r} for k, r in skip.items()]
+        rows.append(row)
     rows.sort(key=lambda r: (-(10**6 if r["legendary"] else 0) - r["level"], r["member"]["name"].lower()))
     rank, prev = 0, None
     for i, r in enumerate(rows):
@@ -262,6 +282,7 @@ def history(days: int = Query(default=14, ge=1, le=62), v: Viewer = Depends(curr
     logs = logs_between(db, start - timedelta(days=1), today)
     dates = list(scoring.date_range(start, today))
     specs = load_tasks(db)
+    periods = load_periods(db)
     rows = []
     for m in members:
         cells = []
@@ -271,8 +292,10 @@ def history(days: int = Query(default=14, ge=1, le=62), v: Viewer = Depends(curr
                 cells.append({"state": "pre"})
                 continue
             log, prev = logs.get((m.id, d)), logs.get((m.id, d - timedelta(days=1)))
-            counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, specs, first_day=d == first)
-            s = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, specs)
+            plan = scoring.day_plan(specs, periods, d)
+            counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, plan, first_day=d == first)
+            s = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, plan,
+                                  (log.task_excuses or {}) if log else None)
             delta = prog[m.id].history.get(d, s.delta)
             state = "open" if d == today else "pos" if delta > 0 else "neg" if delta < 0 else \
                 "rest" if s.weekend else "excused" if s.excused else "zero"
@@ -316,6 +339,7 @@ def _week_days(db: Session, cfg, m: Member, today: date) -> list[dict]:
     start = week_start(today)
     first = member_start(cfg, m)
     specs = load_tasks(db)
+    periods = load_periods(db)
     logs = logs_between(db, start - timedelta(days=1), start + timedelta(days=6), m.id)
     out = []
     for i in range(7):
@@ -324,8 +348,10 @@ def _week_days(db: Session, cfg, m: Member, today: date) -> list[dict]:
         if d > today or d < first:
             state = "future" if d > today else "pre"
         else:
-            counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, specs, first_day=d == first)
-            sc = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, specs)
+            plan = scoring.day_plan(specs, periods, d)
+            counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, plan, first_day=d == first)
+            sc = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, plan,
+                                   (log.task_excuses or {}) if log else None)
             state = "done" if sc.gain else "open" if d == today else "rest" if sc.weekend else "excused" if sc.excused else "missed"
         out.append({"date": d.isoformat(), "state": state, "today": d == today})
     return out

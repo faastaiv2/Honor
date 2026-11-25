@@ -19,6 +19,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const [toast, setToast] = useToast();
 
   const [trying, setTrying] = useState<ShopItem | null>(null);
+  const [peek, setPeek] = useState<{ kind: Kind; item: ShopItem } | null>(null);
   // "Try it": show a theme on the whole app for a moment; leaving the page or stopping puts yours back.
   useEffect(() => {
     if (!trying) return;
@@ -29,11 +30,11 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   useEffect(() => { api.profile().then(setP).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load your profile")); }, []);
 
   async function use(kind: Kind, key: string, name: string) {
-    try { setTrying(null); setP(await api.saveProfile({ [kind]: key })); setError(""); setToast(`${name} is on`); notifyChanged(); }
+    try { setTrying(null); setPeek(null); setP(await api.saveProfile({ [kind]: key })); setError(""); setToast(`${name} is on`); notifyChanged(); }
     catch (e) { setError(e instanceof ApiError ? e.message : "Could not save"); }
   }
   async function buy(kind: Kind, item: ShopItem) {
-    try { setTrying(null); setP(await api.buy(kind, item.key)); setError(""); setToast(`Bought ${item.name}! −${item.price} gems`); confetti(); notifyChanged(); }
+    try { setTrying(null); setPeek(null); setP(await api.buy(kind, item.key)); setError(""); setToast(`Bought ${item.name}! −${item.price} gems`); confetti(); notifyChanged(); }
     catch (e) { setError(e instanceof ApiError ? e.message : "Could not buy"); }
   }
 
@@ -88,11 +89,13 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
             const forSale = locked && it.price > 0;
             return (
               <div key={it.key} className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}`}>
-                <span className="shop-face">
+                <button type="button" className="shop-face" aria-label={`Preview ${it.name}`}
+                  onClick={() => (tab === "theme" ? setTrying(trying?.key === it.key ? null : it) : setPeek({ kind: tab, item: it }))}>
                   {tab === "frame" ? <Avatar avatar={p.member.avatar} color={t.color} frame={it.key} size={54} />
                     : tab === "theme" ? <ThemePreview k={it.key} />
                     : <Avatar avatar={it.key} color={t.color} size={64} />}
-                </span>
+                  <span className="shop-peek" aria-hidden="true">👁</span>
+                </button>
                 <span className="shop-name">{it.name}</span>
                 {tab === "theme" && !inUse && (
                   <button className={`shop-try${trying?.key === it.key ? " on" : ""}`} onClick={() => setTrying(trying?.key === it.key ? null : it)}>
@@ -110,6 +113,37 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
           })}
         </div>
       </section>
+      {peek && (() => {
+        const it = peek.item;
+        const avatar = peek.kind === "avatar" ? it.key : p.member.avatar;
+        const frame = peek.kind === "frame" ? it.key : p.member.frame;
+        const inUse = (peek.kind === "frame" ? p.member.frame || "plain" : p.member.avatar) === it.key;
+        return (
+          <div className="peek" role="dialog" aria-modal="true" aria-label={`Preview ${it.name}`} onClick={() => setPeek(null)}>
+            <div className="peek-card" style={{ ["--tc" as string]: t.color }} onClick={(e) => e.stopPropagation()}>
+              <p className="peek-kicker">{peek.kind === "frame" ? "Frame preview" : "Picture preview"}</p>
+              <div className="peek-big"><Avatar avatar={avatar} color={t.color} frame={frame} size={150} /></div>
+              <h3>{it.name}</h3>
+              <p className="note" style={{ margin: 0 }}>How it looks on the leaderboard:</p>
+              <div className="peek-row">
+                <span className="peek-rank">#1</span>
+                <Avatar avatar={avatar} color={t.color} frame={frame} size={46} />
+                <b>{p.member.name}</b>
+                <span className="peek-level">{p.label}</span>
+              </div>
+              <div className="peek-actions">
+                {inUse ? <span className="shop-act on">In use ✓</span>
+                  : it.available ? <button className="primary" onClick={() => use(peek.kind, it.key, it.name)}>Use it</button>
+                  : it.price > 0 && p.gems.balance >= it.price ? <button className="ru-collect peek-buy" onClick={() => buy(peek.kind, it)}>
+                      <span className="ru-collect-gem"><Gem size={28} /></span><span className="ru-collect-text"><b>Buy for {it.price}</b><small>You have {p.gems.balance} gems</small></span></button>
+                  : it.price > 0 ? <span className="shop-price"><span><Gem /> {it.price}</span><small>{it.price - p.gems.balance} more gems to go</small></span>
+                  : <span className="shop-lock">🔒 Unlocks at <RankIcon rank={it.tier?.key} /> {it.tier?.name}</span>}
+                <button onClick={() => setPeek(null)}>Close</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {trying && (
         <div className="try-bar" role="status">
           <span>👁 Previewing <b>{trying.name}</b></span>

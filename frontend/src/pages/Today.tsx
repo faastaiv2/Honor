@@ -80,10 +80,13 @@ export default function Today({ info }: { info: TodayInfo | null }) {
   }, [memberId, date]);
   useEffect(load, [load]);
 
-  function save(next: DayView, nextExcuse: string): Promise<DayView | undefined> {
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [excusing, setExcusing] = useState<{ key: string; reason: string } | null>(null);
+
+  function save(next: DayView, nextExcuse: string, taskExcuses?: Record<string, string>): Promise<DayView | undefined> {
     // One save at a time, in order, so quick taps never overwrite each other.
     const p = saving.current.then(() =>
-      api.saveDay(next.member.id, next.date, doneKeys(next), nextExcuse)
+      api.saveDay(next.member.id, next.date, doneKeys(next), nextExcuse, taskExcuses)
         .then((saved) => { setView(saved); notifyChanged(); return saved; })
         .catch((e) => { setError(e instanceof ApiError ? e.message : "Could not save. Check your connection."); load(); return undefined; }));
     saving.current = p;
@@ -107,6 +110,16 @@ export default function Today({ info }: { info: TodayInfo | null }) {
     });
   }
 
+  function setTaskExcuse(key: string, reason: string | null) {
+    if (!view) return;
+    const all = { ...view.task_excuses };
+    if (reason) all[key] = reason; else delete all[key];
+    const next = reason ? withToggled(view, key, false) : view;
+    setMenuFor(null);
+    setExcusing(null);
+    save(next, excuse, all).then((saved) => saved && setToast(reason ? "Task excused" : "Excuse removed"));
+  }
+
   if (!memberId) return <section className="card"><h2>Daily tasks</h2><p className="note">Add members in Admin to start.</p></section>;
   if (!view) return <section className="card"><h2>Daily tasks</h2><p className={error ? "err" : "note"}>{error || "Loading…"}</p></section>;
 
@@ -124,7 +137,45 @@ export default function Today({ info }: { info: TodayInfo | null }) {
     if (t.done) return !!t.late || t.key === "gate";
     return t.key === "gate" || view.makeup_left > 0;
   };
-  const row = (t: TaskItem, cls = "", label: React.ReactNode = t.label, extra?: React.ReactNode, isBonus = false) => (
+  const canExcuse = view.mode === "open" || view.mode === "admin";
+  const row = (t: TaskItem, cls = "", label: React.ReactNode = t.label, extra?: React.ReactNode, isBonus = false) => {
+    const menu = cls === "" && (canExcuse || !!t.excused);
+    if (t.excused) return (
+      <div key={t.key} className="task-line">
+        <div className="task excused">
+          <span className="task-excused-ico" aria-hidden="true">🛡️</span>
+          <span><span className="task-excused-label">{label}</span><small>Excused: {t.excused}</small></span>
+        </div>
+        {canExcuse && <button className="task-undo" aria-label={`Remove the excuse for ${t.label}`} onClick={() => setTaskExcuse(t.key, null)}>Undo</button>}
+      </div>
+    );
+    const box = taskBox(t, cls, label, extra, isBonus);
+    if (!menu) return box;
+    return (
+      <div key={t.key} className="task-line">
+        {box}
+        <div className="task-menu-wrap">
+          <button className="task-more" aria-label={`More for ${t.label}`} aria-expanded={menuFor === t.key} onClick={() => setMenuFor(menuFor === t.key ? null : t.key)}>⋯</button>
+          {menuFor === t.key && (
+            <div className="task-menu" role="menu">
+              <button role="menuitem" onClick={() => { setMenuFor(null); setExcusing({ key: t.key, reason: "" }); }}>🛡️ Excuse this task…</button>
+              <button role="menuitem" onClick={() => setMenuFor(null)}>Cancel</button>
+            </div>
+          )}
+        </div>
+        {excusing?.key === t.key && (
+          <form className="task-excuse" onSubmit={(e) => { e.preventDefault(); if (excusing.reason.trim()) setTaskExcuse(t.key, excusing.reason.trim()); }}>
+            <input autoFocus maxLength={80} placeholder="Why? e.g. travelling, sick, at the hospital" value={excusing.reason}
+              onChange={(e) => setExcusing({ key: t.key, reason: e.target.value })} aria-label={`Reason to excuse ${t.label}`} />
+            <button className="primary" disabled={!excusing.reason.trim()}>Excuse</button>
+            <button type="button" onClick={() => setExcusing(null)}>Cancel</button>
+            <p className="note">Your parents will see the reason. An excused task doesn't count against today.</p>
+          </form>
+        )}
+      </div>
+    );
+  };
+  const taskBox = (t: TaskItem, cls = "", label: React.ReactNode = t.label, extra?: React.ReactNode, isBonus = false) => (
     <label key={t.key} className={`task ${cls}${t.done ? " done" : ""}${canTick(t, isBonus) ? "" : " off"}`}>
       <input type="checkbox" checked={t.done} disabled={!canTick(t, isBonus)} onChange={(e) => toggle(t.key, e.target.checked)} />
       <span>{label}</span>{t.late && <i className="late">made up</i>}
@@ -163,6 +214,9 @@ export default function Today({ info }: { info: TodayInfo | null }) {
           <div className="meter"><i style={{ width: `${s.of ? (s.done / s.of) * 100 : 0}%` }} /></div>
         </div>
       </div>
+      {view.periods.length > 0 && (
+        <p className="period-banner">🌙 <b>{view.periods.map((x) => x.name).join(" · ")}</b>: some tasks are paused or lighter until {fmt(view.periods[0].end, { day: "numeric", month: "short" })}.</p>
+      )}
       {isToday && !view.weekend && (
         <div className={`goal${s.gain ? " won" : ""}`}>
           <span className="goal-title">{s.gain ? "Day complete! MashaAllah 🌟" : `Finish all ${s.of} to win:`}</span>
@@ -188,7 +242,7 @@ export default function Today({ info }: { info: TodayInfo | null }) {
       {row({ key: "bonus", label: "", done: view.bonus.done }, "bonus",
         <>{view.bonus.count} <span className="ar">{view.bonus.dhikr}</span></>, <em>+1 Honor</em>, true)}
       <form className="row" style={{ marginTop: 14 }} onSubmit={(e) => { e.preventDefault(); save(view, excuse.trim()).then((ok) => ok && setToast(excuse.trim() ? "Excuse saved" : "Excuse cleared")); }}>
-        <input className="grow" placeholder="Excused today? Reason (sick, knee pain…)" maxLength={120} value={excuse}
+        <input className="grow" placeholder="Sick today? Reason excuses all fitness tasks" maxLength={120} value={excuse}
           disabled={!view.excuse_editable} onChange={(e) => setExcuse(e.target.value)} aria-label="Reason for being excused" />
         <button disabled={!view.excuse_editable}>Save reason</button>
       </form>

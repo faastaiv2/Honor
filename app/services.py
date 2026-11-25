@@ -65,6 +65,12 @@ def load_tasks(db: Session) -> list[scoring.TaskSpec]:
             for r in rows]
 
 
+def load_periods(db: Session) -> list:
+    """Special periods (like Ramadan) when tasks are paused or smaller."""
+    from app.models import Period
+    return list(db.scalars(select(Period).order_by(Period.start)))
+
+
 def member_start(cfg: AppSettings, m: Member) -> date:
     """Scoring for a member starts on the board's start date, or the day they were added if later,
     so nobody loses Honor for days before they joined."""
@@ -85,13 +91,14 @@ def progress_for(db: Session, cfg: AppSettings, members: list[Member], today: da
         adj[a.member_id][d] += a.delta
     week_from = week_start(today)
     tasks = load_tasks(db)
+    periods = load_periods(db)
     out = {}
     for m in members:
         start = member_start(cfg, m)
-        mine = {d: (l.tasks, l.excuse) for (mid, d), l in logs.items() if mid == m.id}
+        mine = {d: (l.tasks, l.excuse, l.task_excuses or {}) for (mid, d), l in logs.items() if mid == m.id}
         starts = [date.fromisoformat(s) for s in (m.quest_starts or [])]
         out[m.id] = simulate(m.base_honor, mine, adj.get(m.id, {}), starts, start, today, cfg.cut_misses, week_from,
-                             tasks)
+                             tasks, periods)
     return out
 
 

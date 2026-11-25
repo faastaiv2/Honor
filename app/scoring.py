@@ -5,7 +5,7 @@ Day 0 of the programme is 27 October 2026, the first row of the family's sheet.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 
 PROGRAM_START = date(2026, 10, 27)
@@ -189,6 +189,28 @@ class DayScore:
         return self.gain + self.bonus + self.cut
 
 
+def day_plan(specs: list, periods: list | None, d: date) -> list:
+    """The tasks that apply on day `d`: special periods (like Ramadan) can pause tasks or fix a smaller number."""
+    if not periods:
+        return specs
+    off: set[str] = set()
+    numbers: dict[str, int] = {}
+    for per in periods:
+        if per.start <= d <= per.end:
+            off |= set(per.off or [])
+            numbers |= {k: int(v) for k, v in (per.numbers or {}).items()}
+    if not off and not numbers:
+        return specs
+    out = []
+    for t in specs:
+        if t.key in off:
+            continue
+        if t.key in numbers and getattr(t, "number", None) is not None:
+            t = replace(t, number=numbers[t.key], step=0, start_day=d)
+        out.append(t)
+    return out
+
+
 def credited(done, prev_done, tasks: list | None = None, first_day: bool = False) -> set[str]:
     """What counts for a day. Night tasks (like Surah Mulk) ticked one day count for the next day,
     so a day gets them from the day before. A member's first day gets them free (there was no night before)."""
@@ -200,7 +222,7 @@ def credited(done, prev_done, tasks: list | None = None, first_day: bool = False
 
 
 def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, today: date, cut_misses: int,
-              tasks: list | None = None) -> DayScore:
+              tasks: list | None = None, skip: set[str] | dict | None = None) -> DayScore:
     """+1 for the pledge and all 17 tasks, +1 for the bonus (only after all tasks), -1 when a finished weekday misses any task
     (`cut_misses` is 1; a larger number would allow some misses).
 
@@ -210,7 +232,8 @@ def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, to
     done = set(done or [])
     excused = bool(excuse and excuse.strip())
     weekend = is_weekend(d)
-    req = [t.key for t in (tasks if tasks is not None else TASKS) if not (excused and t.fitness)]
+    skip = set(skip or [])  # single tasks excused that day, with a reason
+    req = [t.key for t in (tasks if tasks is not None else TASKS) if not (excused and t.fitness) and t.key not in skip]
     missed = sum(1 for k in req if k not in done)
     pledge = weekend or "gate" in done
     gain = 1 if pledge and missed == 0 else 0

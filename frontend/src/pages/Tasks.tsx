@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { api, ApiError, type TaskDef } from "../api";
+import { api, ApiError, type Period, type PeriodIn, type TaskDef } from "../api";
+import { fmt } from "../lib/dates";
 import { notifyChanged, useToast } from "../lib/events";
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
@@ -116,6 +117,113 @@ function TaskRow({ t, first, last, groups, onSaved, onError }: { t: TaskDef; fir
   );
 }
 
+type Mode = "normal" | "off" | "less";
+
+/** Set up a special period: name, dates, and what happens to each task. */
+function PeriodEditor({ tasks, initial, onSave, onCancel, onDelete }: { tasks: TaskDef[]; initial?: Period; onSave: (p: PeriodIn) => Promise<void>; onCancel: () => void; onDelete?: () => void }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [name, setName] = useState(initial?.name ?? "Ramadan");
+  const [start, setStart] = useState(initial?.start ?? today);
+  const [end, setEnd] = useState(initial?.end ?? today);
+  const [modes, setModes] = useState<Record<string, Mode>>(() => Object.fromEntries(tasks.map((t) => [t.key,
+    initial?.off.includes(t.key) ? "off" : initial && t.key in initial.numbers ? "less" : "normal"])));
+  const [nums, setNums] = useState<Record<string, string>>(() => Object.fromEntries(tasks.map((t) => [t.key,
+    String(initial?.numbers[t.key] ?? Math.max(1, Math.round((t.number_today ?? 2) / 2)))])));
+  const [sure, setSure] = useState(false);
+  const groups = [...new Set(tasks.map((t) => t.group))];
+  const setAll = (keys: string[], m: Mode) => setModes((x) => ({ ...x, ...Object.fromEntries(keys.map((k) => [k, m])) }));
+  const off = tasks.filter((t) => modes[t.key] === "off").length, less = tasks.filter((t) => modes[t.key] === "less").length;
+  const days = Math.max(0, Math.round((Date.parse(end) - Date.parse(start)) / 86400000) + 1);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    await onSave({ name: name.trim(), start, end, off: tasks.filter((t) => modes[t.key] === "off").map((t) => t.key),
+      numbers: Object.fromEntries(tasks.filter((t) => modes[t.key] === "less").map((t) => [t.key, Number(nums[t.key]) || 0])) });
+  }
+
+  return (
+    <form className="tk-editor pd-editor" onSubmit={submit}>
+      <div className="pd-top">
+        <label className="field"><span className="field-label">Name</span><input required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ramadan" /></label>
+        <label className="field"><span className="field-label">From</span><input type="date" required value={start} onChange={(e) => setStart(e.target.value)} /></label>
+        <label className="field"><span className="field-label">To</span><input type="date" required min={start} value={end} onChange={(e) => setEnd(e.target.value)} /></label>
+      </div>
+      <p className="note" style={{ margin: 0 }}>{days} day{days === 1 ? "" : "s"} · {off} paused · {less} lighter. Everything is back to normal the day after.</p>
+      <div className="pd-quick">
+        <span>Quick:</span>
+        <button type="button" onClick={() => setAll(tasks.filter((t) => t.fitness).map((t) => t.key), "off")}>Pause all fitness</button>
+        <button type="button" onClick={() => setAll(tasks.filter((t) => t.number_today !== null).map((t) => t.key), "less")}>Halve all numbers</button>
+        <button type="button" onClick={() => setAll(tasks.map((t) => t.key), "normal")}>Reset</button>
+      </div>
+      {groups.map((g) => (
+        <div key={g} className="pd-group">
+          <h4>{g}</h4>
+          {tasks.filter((t) => t.group === g).map((t) => (
+            <div key={t.key} className={`pd-row ${modes[t.key]}`}>
+              <span className="pd-name">{t.shown_today}</span>
+              <div className="pd-seg" role="radiogroup" aria-label={`During ${name || "the period"}: ${t.shown_today}`}>
+                <button type="button" role="radio" aria-checked={modes[t.key] === "normal"} className={modes[t.key] === "normal" ? "on" : ""} onClick={() => setAll([t.key], "normal")}>Normal</button>
+                {t.number_today !== null && <button type="button" role="radio" aria-checked={modes[t.key] === "less"} className={modes[t.key] === "less" ? "on" : ""} onClick={() => setAll([t.key], "less")}>Lighter</button>}
+                <button type="button" role="radio" aria-checked={modes[t.key] === "off"} className={modes[t.key] === "off" ? "on" : ""} onClick={() => setAll([t.key], "off")}>Off</button>
+              </div>
+              {modes[t.key] === "less" && (
+                <label className="pd-num">only <input type="number" min={0} value={nums[t.key]} onChange={(e) => setNums({ ...nums, [t.key]: e.target.value })} aria-label={`Number for ${t.shown_today}`} /></label>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="tk-actions">
+        <button className="primary">{initial ? "Save period" : "Add period"}</button>
+        <button type="button" onClick={onCancel}>Cancel</button>
+        {onDelete && <button type="button" className="danger tk-remove" onClick={() => (sure ? onDelete() : setSure(true))}>{sure ? "Tap again to delete" : "Delete period"}</button>}
+      </div>
+    </form>
+  );
+}
+
+function Periods({ tasks, onError, onSaved }: { tasks: TaskDef[]; onError: (s: string) => void; onSaved: (s: string) => void }) {
+  const [list, setList] = useState<Period[] | null>(null);
+  const [editing, setEditing] = useState<string | "new" | null>(null);
+  const reload = useCallback(() => { api.periods().then(setList).catch((e) => onError(msg(e))); }, [onError]);
+  useEffect(reload, [reload]);
+  const today = new Date().toISOString().slice(0, 10);
+  const label = (k: string) => tasks.find((t) => t.key === k)?.label.replace("{n}", "").trim() ?? k;
+  const run = async (fn: () => Promise<unknown>, ok: string) => { try { await fn(); setEditing(null); reload(); onSaved(ok); } catch (e) { onError(msg(e)); } };
+
+  return (
+    <section className="tk-group pd">
+      <div className="pd-head">
+        <div><h3>Special periods</h3><p className="note">Pause tasks or make them lighter for a while, like in Ramadan or on a trip.</p></div>
+        {editing === null && <button onClick={() => setEditing("new")}>＋ Add period</button>}
+      </div>
+      {editing === "new" && <PeriodEditor tasks={tasks} onCancel={() => setEditing(null)} onSave={(b) => run(() => api.addPeriod(b), `${b.name} added`)} />}
+      {list?.length === 0 && editing !== "new" && <p className="note">No special periods. Every task runs as normal.</p>}
+      <ul className="pd-list">
+        {list?.map((p) => {
+          const state = today < p.start ? "coming" : today > p.end ? "over" : "now";
+          return editing === p.id ? (
+            <li key={p.id}><PeriodEditor tasks={tasks} initial={p} onCancel={() => setEditing(null)}
+              onSave={(b) => run(() => api.editPeriod(p.id, b), "Period saved")} onDelete={() => run(() => api.deletePeriod(p.id), "Period deleted")} /></li>
+          ) : (
+            <li key={p.id} className={`pd-item ${state}`}>
+              <div>
+                <b>{p.name}</b> <span className={`pd-state ${state}`}>{state === "now" ? "On now" : state === "coming" ? "Coming" : "Over"}</span>
+                <p className="note" style={{ margin: "2px 0 0" }}>{fmt(p.start, { day: "numeric", month: "short" })} – {fmt(p.end, { day: "numeric", month: "short", year: "numeric" })}</p>
+                <div className="tk-tags" style={{ marginTop: 6 }}>
+                  {p.off.map((k) => <span key={k} className="tk-tag sick">Off · {label(k)}</span>)}
+                  {Object.entries(p.numbers).map(([k, n]) => <span key={k} className="tk-tag grow">{label(k)} → {n}</span>)}
+                </div>
+              </div>
+              <button className="tk-edit" onClick={() => setEditing(p.id)}>Edit</button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 export default function Tasks() {
   const [tasks, setTasks] = useState<TaskDef[] | null>(null);
   const [error, setError] = useState("");
@@ -160,6 +268,8 @@ export default function Tasks() {
           </Editor>
         </section>
       )}
+
+      {tasks && <Periods tasks={tasks} onError={setError} onSaved={(m) => saved(m)} />}
 
       <div className="tk-groups">
         {tasks && groups.map((g) => {

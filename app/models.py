@@ -54,6 +54,7 @@ class DayLog(Base):
     tasks: Mapped[list] = mapped_column(JSON, default=list)
     excuse: Mapped[str] = mapped_column(String(120), default="")
     late: Mapped[dict] = mapped_column(JSON, default=dict)  # task -> day it was made up (ticked after the day)
+    task_excuses: Mapped[dict] = mapped_column(JSON, default=dict)  # task -> reason it was excused that day
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
     updated_by: Mapped[str] = mapped_column(String(120), default="")
 
@@ -76,6 +77,18 @@ class AppSettings(Base):
     score_from: Mapped[date] = mapped_column(Date, default=date(2026, 11, 22))
     cut_misses: Mapped[int] = mapped_column(Integer, default=1)  # 1 = any missed task cuts Honor
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")
+
+
+class Period(Base):
+    """A stretch of days (like Ramadan) when some tasks are off or have a smaller number."""
+    __tablename__ = "periods"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    name: Mapped[str] = mapped_column(String(60))
+    start: Mapped[date] = mapped_column(Date)
+    end: Mapped[date] = mapped_column(Date)
+    off: Mapped[list] = mapped_column(JSON, default=list)  # task keys that are paused
+    numbers: Mapped[dict] = mapped_column(JSON, default=dict)  # task key -> fixed number during the period
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
 class DailyClaim(Base):

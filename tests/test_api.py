@@ -487,3 +487,49 @@ def test_daily_streak_chest_once_a_day_and_bigger_by_rank(client, family, db):
         assert len(after["week_days"]) == 7 and any(d["today"] and d["state"] == "done" for d in after["week_days"])
     sierra = client.get("/api/board/profile", headers=auth(client, family["S"]))
     assert sierra.status_code == 200
+
+
+def test_special_period_pauses_and_shrinks_tasks(client, family, db):
+    mulk_last_night(db, family["A"])
+    ha, h = auth(client, admin=True), auth(client, family["A"])
+    a, b = at_today()
+    with a, b:
+        r = client.post("/api/admin/periods", headers=ha, json={"name": "Ramadan", "start": TODAY.isoformat(),
+                        "end": (TODAY + timedelta(days=29)).isoformat(), "off": ["lap", "jj"], "numbers": {"push": 5}})
+        assert r.status_code == 201, r.text
+        view = client.get(f"/api/board/day?member_id={family['A'].id}", headers=h).json()
+        keys = [t["key"] for g in view["groups"] for t in g["tasks"]]
+        assert "lap" not in keys and "jj" not in keys and view["score"]["of"] == 15
+        push = next(t for g in view["groups"] for t in g["tasks"] if t["key"] == "push")
+        assert push["label"].startswith("5 ") and view["periods"][0]["name"] == "Ramadan"
+        done = [k for k in ALL if k not in ("lap", "jj")]
+        r = put_day(client, h, family["A"], TODAY, done)
+        assert r.json()["score"]["gain"] == 1
+        assert client.post("/api/admin/periods", headers=ha, json={"name": "x", "start": TODAY.isoformat(),
+                           "end": (TODAY - timedelta(days=1)).isoformat(), "off": ["lap"]}).status_code == 400
+        pid = client.get("/api/admin/periods", headers=ha).json()[0]["id"]
+        assert client.delete(f"/api/admin/periods/{pid}", headers=ha).status_code == 204
+
+
+def test_member_excuses_one_task_with_a_reason(client, family, db):
+    mulk_last_night(db, family["A"])
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    a, b = at_today()
+    with a, b:
+        done = [k for k in ALL if k != "fajr"]
+        r = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id, "date": TODAY.isoformat(),
+                                                          "tasks": done, "task_excuses": {"fajr": "Travelling"}})
+        body = r.json()
+        assert body["score"]["gain"] == 1 and body["score"]["of"] == 16 and body["task_excuses"] == {"fajr": "Travelling"}
+        fajr = next(t for g in body["groups"] for t in g["tasks"] if t["key"] == "fajr")
+        assert fajr["excused"] == "Travelling" and not fajr["done"]
+        # Ticking other things keeps the excuse unless it is sent again.
+        r = put_day(client, h, family["A"], TODAY, done)
+        assert r.json()["task_excuses"] == {"fajr": "Travelling"}
+        row = next(x for x in client.get("/api/board/leaderboard", headers=ha).json()["rows"] if x["member"]["name"] == "Alpha")
+        assert row["excused_today"][0]["reason"] == "Travelling"
+        assert "excused_today" not in client.get("/api/board/leaderboard", headers=h).json()["rows"][0]
+        # A finished day can't get a new excuse from a member.
+        r = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id, "date": (TODAY - timedelta(days=1)).isoformat(),
+                                                          "tasks": ["mulk"], "task_excuses": {"fajr": "late"}})
+        assert r.status_code == 403

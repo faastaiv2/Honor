@@ -9,7 +9,7 @@ from zoneinfo import available_timezones
 
 from app.db import get_db
 from app.deps import Viewer, require_admin
-from app.models import Adjustment, DayLog, Member, TaskDef
+from app.models import Adjustment, DayLog, Member, Period, TaskDef
 from app.scoring import DEFAULT_SPECS, TaskSpec
 from app.security import hash_secret
 from app.services import get_settings_row, today_for
@@ -343,4 +343,73 @@ def delete_task(key: str, _: Viewer = Depends(require_admin), db: Session = Depe
         if len(rows) <= 1:
             raise HTTPException(400, "Keep at least one task")
         db.delete(t)
+        db.commit()
+
+
+# ---------------------------------------------------------------- special periods (like Ramadan)
+class PeriodIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    start: date
+    end: date
+    off: list[str] = Field(default_factory=list, max_length=60)  # tasks paused during the period
+    numbers: dict[str, int] = Field(default_factory=dict)  # task -> smaller fixed number during the period
+
+    @field_validator("numbers")
+    @classmethod
+    def _numbers_ok(cls, v: dict[str, int]) -> dict[str, int]:
+        if any(n < 0 or n > 1_000_000 for n in v.values()):
+            raise ValueError("Numbers must be between 0 and 1,000,000")
+        return v
+
+
+def _period_out(p: Period) -> dict:
+    return {"id": p.id, "name": p.name, "start": p.start.isoformat(), "end": p.end.isoformat(),
+            "off": list(p.off or []), "numbers": dict(p.numbers or {})}
+
+
+def _check_period(body: PeriodIn, db: Session) -> None:
+    if body.end < body.start:
+        raise HTTPException(400, "The last day must be on or after the first day")
+    if (body.end - body.start).days > 120:
+        raise HTTPException(400, "A period can be at most 120 days")
+    keys = {r.key for r in _ensure_tasks(db)}
+    unknown = (set(body.off) | set(body.numbers)) - keys
+    if unknown:
+        raise HTTPException(400, f"Unknown task: {', '.join(sorted(unknown))}")
+    if not body.off and not body.numbers:
+        raise HTTPException(400, "Pause at least one task or give one a smaller number")
+
+
+@router.get("/periods")
+def list_periods(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
+    return [_period_out(p) for p in db.scalars(select(Period).order_by(Period.start))]
+
+
+@router.post("/periods", status_code=201)
+def add_period(body: PeriodIn, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    _check_period(body, db)
+    p = Period(name=body.name.strip(), start=body.start, end=body.end, off=sorted(set(body.off) - set(body.numbers)),
+               numbers=body.numbers)
+    db.add(p)
+    db.commit()
+    return _period_out(p)
+
+
+@router.put("/periods/{period_id}")
+def edit_period(period_id: str, body: PeriodIn, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    p = db.get(Period, period_id)
+    if not p:
+        raise HTTPException(404, "Period not found")
+    _check_period(body, db)
+    p.name, p.start, p.end = body.name.strip(), body.start, body.end
+    p.off, p.numbers = sorted(set(body.off) - set(body.numbers)), body.numbers
+    db.commit()
+    return _period_out(p)
+
+
+@router.delete("/periods/{period_id}", status_code=204)
+def delete_period(period_id: str, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> None:
+    p = db.get(Period, period_id)
+    if p:
+        db.delete(p)
         db.commit()

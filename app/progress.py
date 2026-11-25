@@ -51,7 +51,7 @@ class Progress:
 
 def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[date, int], quest_starts: list[date],
              score_from: date, today: date, cut_misses: int, week_from: date | None = None,
-             tasks: list | None = None) -> Progress:
+             tasks: list | None = None, periods: list | None = None) -> Progress:
     """logs: day -> (tasks, excuse). adjustments: day -> total change that day."""
     p = Progress(level=base)
     starts = set(quest_starts)
@@ -66,11 +66,15 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
         if d in starts and not p.legendary and not p.banned and p.level >= OBSIDIAN_FLOOR:
             p.level = 1
             quest_active, p.quest_start, p.quest_broken_on, p.quest_days = True, d, None, 0
-        ticks, excuse = logs.get(d, ([], ""))
+        entry = logs.get(d, ([], ""))
+        ticks, excuse = entry[0], entry[1]
+        skip = entry[2] if len(entry) > 2 else None  # single tasks excused that day
         prev = logs.get(d - timedelta(days=1), ([], ""))[0]
-        counted = scoring.credited(ticks, prev, tasks, first_day=d == score_from)
-        s = scoring.score_day(d, counted, excuse, today, cut_misses, tasks)
-        n_ticked = len(set(ticks or []) & gem_keys)
+        plan = scoring.day_plan(tasks, periods, d) if tasks is not None else None
+        counted = scoring.credited(ticks, prev, plan, first_day=d == score_from)
+        s = scoring.score_day(d, counted, excuse, today, cut_misses, plan, skip)
+        day_keys = ({t.key for t in plan} | {"bonus"}) if plan is not None else gem_keys
+        n_ticked = len(set(ticks or []) & day_keys)
         if d < GEMS_NEW_RATES_FROM:
             ticked = n_ticked * GEMS_PER_TASK_BEFORE
         else:  # a little for each task, the real prize for finishing the whole day

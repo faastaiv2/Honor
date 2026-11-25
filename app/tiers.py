@@ -164,7 +164,6 @@ THEMES: list[tuple[str, str, str | None, int]] = [
 FREE_PICTURES: list[tuple[str, str]] = [
     ("lion", "Lion"), ("tiger", "Tiger"), ("eagle", "Eagle"), ("wolf", "Wolf"), ("fox", "Fox"), ("owl", "Owl"),
     ("bear", "Bear"), ("cat", "Cat"), ("turtle", "Turtle"), ("dolphin", "Dolphin"), ("knight", "Knight"),
-    ("lantern", "Lantern"), ("crescent", "Crescent"), ("football", "Football"),
 ]
 SHOP_PICTURES: list[tuple[str, str, int]] = [
     ("panda", "Panda", 100), ("penguin", "Penguin", 100), ("koala", "Koala", 120), ("unicorn", "Unicorn", 150),

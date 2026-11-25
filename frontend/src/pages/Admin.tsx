@@ -113,6 +113,11 @@ function MemberCard({ m, row, onDone, onChanged, onError }: { m: AdminMember; ro
           {row && row.pending > 0 && <span title="Earned today, arrives at midnight">🌙 +{row.pending} at midnight</span>}
           {!m.has_pin && <span className="warn">No PIN yet</span>}
         </div>
+        {!!row?.excused_today?.length && (
+          <ul className="ad-excused" aria-label="Excused today">
+            {row.excused_today.map((x) => <li key={x.task}>🛡️ <b>{x.task}</b> excused: {x.reason}</li>)}
+          </ul>
+        )}
       </>}
 
       {editing && (
