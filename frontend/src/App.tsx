@@ -26,8 +26,8 @@ export default function App() {
   }, [viewer, changes]);
 
   useEffect(() => {
-    // Each member's chosen colour theme (Bronze until they pick one); the admin always sees the classic one.
-    document.documentElement.dataset.skin = viewer && !viewer.is_admin ? info?.viewer.theme || "bronze" : "classic";
+    // Bronze is the base look for everyone (sign-in, admin, new members); members can pick another theme.
+    document.documentElement.dataset.skin = viewer && !viewer.is_admin ? info?.viewer.theme || "bronze" : "bronze";
   }, [viewer, info]);
 
   if (loading) return <p className="band note">Loading…</p>;

@@ -8,17 +8,18 @@ Rules (from the family's Honor rules):
 - A Legendary member who does not complete their tasks on 3 days in a row (weekdays; the weekend
   is optional) is demoted to 🔮 Obsidian (XLVII) and can never receive Legendary again.
 
-Gems: 5 for each task and the bonus ticked; 10 for each level reached for the first time; 50 more for
-each rank reached for the first time; 500 for Legendary. Falling and climbing back earns nothing twice.
+Gems: 1 for each task and the bonus ticked and 20 for finishing every task of the day (5 per task before
+26 Nov 2026); 10 for each level reached for the first time; more for each rank reached for the first time
+(growing with the rank, 1000 for Legendary). Falling and climbing back earns nothing twice.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 
 from app import scoring
-from app.tiers import (CAP_WITHOUT_LEGENDARY, GEMS_FOR_LEGENDARY, GEMS_PER_LEVEL, GEMS_PER_RANK, GEMS_PER_TASK,
-                       LEGENDARY_LEVEL, OBSIDIAN_FLOOR, tier_for)
+from app.tiers import (CAP_WITHOUT_LEGENDARY, GEMS_FOR_FULL_DAY, GEMS_FOR_LEGENDARY, GEMS_NEW_RATES_FROM, GEMS_PER_LEVEL,
+                       GEMS_PER_TASK, GEMS_PER_TASK_BEFORE, RANK_GEMS, LEGENDARY_LEVEL, OBSIDIAN_FLOOR, tier_for)
 
 
 _GEM_KEYS = set(scoring.REQUIRED) | {"bonus"}
@@ -66,8 +67,14 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
             p.level = 1
             quest_active, p.quest_start, p.quest_broken_on, p.quest_days = True, d, None, 0
         ticks, excuse = logs.get(d, ([], ""))
-        s = scoring.score_day(d, ticks, excuse, today, cut_misses, tasks)
-        ticked = len(set(ticks or []) & gem_keys) * GEMS_PER_TASK
+        prev = logs.get(d - timedelta(days=1), ([], ""))[0]
+        counted = scoring.credited(ticks, prev, tasks, first_day=d == score_from)
+        s = scoring.score_day(d, counted, excuse, today, cut_misses, tasks)
+        n_ticked = len(set(ticks or []) & gem_keys)
+        if d < GEMS_NEW_RATES_FROM:
+            ticked = n_ticked * GEMS_PER_TASK_BEFORE
+        else:  # a little for each task, the real prize for finishing the whole day
+            ticked = n_ticked * GEMS_PER_TASK + (GEMS_FOR_FULL_DAY if s.gain else 0)
         p.gems_tasks += ticked
         if d == today:
             p.today_tasks_gems = ticked
@@ -103,7 +110,7 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
                 rank = tier_for(min(lvl, CAP_WITHOUT_LEGENDARY), False).key
                 if rank not in reached:
                     reached.add(rank)
-                    p.gems_levels += GEMS_PER_RANK
+                    p.gems_levels += RANK_GEMS[rank]
             best = p.level
         if finished:
             if s.gain:

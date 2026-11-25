@@ -95,6 +95,7 @@ class TaskSpec:
     step: int = 0
     every: int = 1
     start_day: date = PROGRAM_START
+    next_day: bool = False  # done at night and counted for the next day (Surah Mulk)
 
     def number_on(self, d: date) -> int | None:
         if self.number is None:
@@ -114,7 +115,7 @@ DEFAULT_SPECS: list[TaskSpec] = [
     TaskSpec("darood", "{n} × Darood Sharif", "Ibadah", number=251, step=1, every=1, start_day=date(2026, 11, 12)),
     TaskSpec("zikr", "5 minutes Zikr together", "Ibadah"),
     TaskSpec("asr", "Asr ki 4 Sunnat", "Ibadah"),
-    TaskSpec("mulk", "Surah Mulk", "Ibadah"),
+    TaskSpec("mulk", "Surah Mulk", "Ibadah", next_day=True),
     TaskSpec("pages", "{n} pages", "Learning & home", number=2, step=1, every=32, start_day=date(2026, 11, 12)),
     TaskSpec("lang", "Language", "Learning & home"),
     TaskSpec("milk", "Milk", "Learning & home"),
@@ -186,6 +187,16 @@ class DayScore:
     @property
     def delta(self) -> int:
         return self.gain + self.bonus + self.cut
+
+
+def credited(done, prev_done, tasks: list | None = None, first_day: bool = False) -> set[str]:
+    """What counts for a day. Night tasks (like Surah Mulk) ticked one day count for the next day,
+    so a day gets them from the day before. A member's first day gets them free (there was no night before)."""
+    night = {t.key for t in (tasks if tasks is not None else DEFAULT_SPECS) if getattr(t, "next_day", False)}
+    out = set(done or [])
+    if not night:
+        return out
+    return (out - night) | (night if first_day else night & set(prev_done or []))
 
 
 def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, today: date, cut_misses: int,

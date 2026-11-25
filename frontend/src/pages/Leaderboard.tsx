@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import RankIcon from "../lib/RankIcon";
 import { api, type Board, type BoardRow, type Tier, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
 import { daysLeftLabel } from "../lib/board";
@@ -80,8 +81,8 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
         <div className={`scanner${found ? " done" : ""}`} aria-live="polite">
           <span>
             {scanning || (!found && lit < target)
-              ? <>🔎 Climbing down… <b style={{ color: here.color }}>{here.emoji} {here.name}</b></>
-              : meFloor >= 0 ? <>🎯 Found you in <b>{floors[meFloor].tier.emoji} {floors[meFloor].tier.name}</b>!</> : <>🏁 Everyone's ranks</>}
+              ? <>🔎 Climbing down… <b style={{ color: here.color }}><RankIcon rank={here.key} /> {here.name}</b></>
+              : meFloor >= 0 ? <>🎯 Found you in <b><RankIcon rank={floors[meFloor].tier.key} /> {floors[meFloor].tier.name}</b>!</> : <>🏁 Everyone's ranks</>}
           </span>
           <button className="link" onClick={play}>Show me again</button>
         </div>
@@ -93,7 +94,7 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
               className={`floor${f.rows.length ? "" : " empty"}${i <= lit ? " passed" : ""}${i === lit ? " lit" : ""}`}
               style={{ ["--tc" as string]: f.tier.color }}>
               <div className="floor-head">
-                <span className="floor-emblem" aria-hidden="true">{f.tier.emoji}</span>
+                <span className="floor-emblem" aria-hidden="true"><RankIcon rank={f.tier.key} size={40} /></span>
                 <div className="floor-name"><b>{f.tier.name}</b><small>{f.tier.range}</small></div>
                 <span className="floor-count">{f.rows.length ? `${f.rows.length} ${f.rows.length === 1 ? "member" : "members"}` : "No one yet"}</span>
               </div>
@@ -103,7 +104,7 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
                     <li key={r.member.id} className={`p-row${r.is_me ? " me" : ""}${r.is_me && found ? " found" : ""}`}>
                       <span className="p-rank">#{r.rank}</span>
                       <Avatar avatar={r.member.avatar} color={r.tier.color} frame={r.member.frame} size={46} />
-                      <span className="p-name">{r.is_me ? "You" : r.member.name}{r.quest.active && <small>👑 on the quest</small>}</span>
+                      <span className="p-name">{r.is_me ? "You" : r.member.name}{r.quest.active && <small><RankIcon rank="legendary" /> on the quest</small>}</span>
                       {r.is_me && found && <span className="you-bubble">That's you!</span>}
                       <TickingLevel row={r} run={counting} />
                     </li>

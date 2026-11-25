@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import RankIcon from "../lib/RankIcon";
+import Gem from "../lib/Gem";
+import Brazier from "../lib/Brazier";
 import { api, ApiError, type DayView, type SignInMember, type TaskItem, type TodayInfo } from "../api";
 import { useAuth } from "../auth";
 import { addDays, fmt } from "../lib/dates";
@@ -28,22 +31,22 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
   return (
     <div className="perks" style={{ ["--tc" as string]: st.tier.color }}>
       <div className="perks-top">
-        <span className="perks-medal">{st.tier.emoji}</span>
+        <span className="perks-medal"><RankIcon rank={st.tier.key} size={52} /></span>
         <div>
           <b>{st.tier.name} · {st.label}</b>
           <div className="note" style={{ margin: 0 }}>
-            {st.next ? `${st.next.needed} more to ${st.next.emoji} ${st.next.name}` : st.legendary ? "The highest honor" : st.tier.key === "obsidian" ? "XLIX is the top without the Legendary quest" : ""}
+            {st.next ? <>{st.next.needed} more to <RankIcon rank={st.next.name} /> {st.next.name}</> : st.legendary ? "The highest honor" : st.tier.key === "obsidian" ? "XLIX is the top without the Legendary quest" : ""}
           </div>
         </div>
       </div>
       <p><span aria-hidden="true">🎮</span> {st.tier.games}</p>
       <p><span aria-hidden="true">🎁</span> {st.tier.benefits}</p>
-      {st.quest.active && <p className="quest">👑 Legendary quest, day {st.quest.days + 1}: finish every task <b>and</b> the bonus every day until L.</p>}
+      {st.quest.active && <p className="quest"><RankIcon rank="legendary" /> Legendary quest, day {st.quest.days + 1}: finish every task <b>and</b> the bonus every day until L.</p>}
       {st.quest.broken_on && !st.quest.active && st.tier.key !== "bronze" && <p className="note">The last Legendary quest ended on {fmt(st.quest.broken_on, { day: "numeric", month: "short" })}.</p>}
       {st.banned && <p className="note">Legendary Honor was lost and cannot be received again.</p>}
       {st.can_start_quest && canAct && (
         <div className="quest">
-          <p style={{ margin: "0 0 8px" }}>👑 <b>Legendary quest.</b> Give up {st.tier.emoji} {st.tier.name}, start again from 🥉 Bronze I, and finish <b>every task and every bonus, every day</b> until L. One missed day ends the quest.</p>
+          <p style={{ margin: "0 0 8px" }}><RankIcon rank="legendary" /> <b>Legendary quest.</b> Give up <RankIcon rank={st.tier.key} /> {st.tier.name}, start again from <RankIcon rank="bronze" /> Bronze I, and finish <b>every task and every bonus, every day</b> until L. One missed day ends the quest.</p>
           <button className="primary" onClick={() => (sure ? onQuest() : setSure(true))}>{sure ? "Yes, give up my Obsidian title and start" : "Start the Legendary quest"}</button>
           {sure && <button className="link" onClick={() => setSure(false)}>Not now</button>}
         </div>
@@ -52,7 +55,8 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
   );
 }
 
-export default function Today(_: { info: TodayInfo | null }) {
+export default function Today({ info }: { info: TodayInfo | null }) {
+  const perTask = info?.gems.per_task ?? 1, fullDay = info?.gems.full_day ?? 20;
   const { viewer } = useAuth();
   const [members, setMembers] = useState<SignInMember[]>([]);
   const [memberId, setMemberId] = useState<string | null>(viewer?.is_admin ? null : viewer?.id ?? null);
@@ -123,8 +127,11 @@ export default function Today(_: { info: TodayInfo | null }) {
   const row = (t: TaskItem, cls = "", label: React.ReactNode = t.label, extra?: React.ReactNode, isBonus = false) => (
     <label key={t.key} className={`task ${cls}${t.done ? " done" : ""}${canTick(t, isBonus) ? "" : " off"}`}>
       <input type="checkbox" checked={t.done} disabled={!canTick(t, isBonus)} onChange={(e) => toggle(t.key, e.target.checked)} />
-      <span>{label}</span>{t.late && <i className="late">made up</i>}{extra}
-      {pops[t.key] && <span className="gem-pop" key={pops[t.key]} aria-hidden="true">+5 💎</span>}
+      <span>{label}</span>{t.late && <i className="late">made up</i>}
+      {t.next_day && <i className={`night${t.counted_today ? " ok" : ""}`} title="Read at night: it counts for the next day">
+        🌙 for tomorrow · {t.counted_today ? "last night's counted ✓" : "not read last night"}</i>}
+      {extra}
+      {pops[t.key] && <span className="gem-pop" key={pops[t.key]} aria-hidden="true">+{perTask} <Gem /></span>}
     </label>
   );
 
@@ -156,16 +163,27 @@ export default function Today(_: { info: TodayInfo | null }) {
           <div className="meter"><i style={{ width: `${s.of ? (s.done / s.of) * 100 : 0}%` }} /></div>
         </div>
       </div>
+      {isToday && !view.weekend && (
+        <div className={`goal${s.gain ? " won" : ""}`}>
+          <span className="goal-title">{s.gain ? "Day complete! MashaAllah 🌟" : `Finish all ${s.of} to win:`}</span>
+          <span className="goal-chip">🌙 +1 Honor at midnight</span>
+          <span className="goal-chip gem">+{fullDay} <Gem /></span>
+          <span className="goal-chip">🔓 Bonus · +1 Honor</span>
+          <span className="goal-chip"><Brazier lit={s.gain > 0} /> Streak &amp; chest</span>
+        </div>
+      )}
       {makeup && (
         <p className="banner">🔁 <b>Make-up:</b> {view.makeup_left > 0 ? `you can still tick ${view.makeup_left} missed task${view.makeup_left === 1 ? "" : "s"} for this day.` : "no make-ups left for this day."} The bonus cannot be made up.</p>
       )}
       {view.pledge ? row(view.pledge, "gate") : <p className="note" style={{ margin: "0 0 6px" }}>🎮 Weekend: games and YouTube allowed.</p>}
+      <div className="task-groups">
       {view.groups.map((g) => (
-        <div key={g.name}>
+        <div key={g.name} className="task-group">
           {g.name !== "Learning & home" && <div className="grp">{g.name}{g.name === "Fitness" && s.excused ? " · excused" : ""}</div>}
           {g.tasks.map((t) => row(t))}
         </div>
       ))}
+      </div>
       <div className="grp">Bonus{!s.gain && !view.bonus.done ? " · 🔒 finish every task first" : ""}</div>
       {row({ key: "bonus", label: "", done: view.bonus.done }, "bonus",
         <>{view.bonus.count} <span className="ar">{view.bonus.dhikr}</span></>, <em>+1 Honor</em>, true)}

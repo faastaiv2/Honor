@@ -61,7 +61,8 @@ def load_tasks(db: Session) -> list[scoring.TaskSpec]:
     rows = list(db.scalars(select(TaskDef).order_by(TaskDef.sort_order, TaskDef.key)))
     if not rows:
         return list(scoring.DEFAULT_SPECS)
-    return [scoring.TaskSpec(r.key, r.label, r.group, r.fitness, r.number, r.step, r.every, r.start_day) for r in rows]
+    return [scoring.TaskSpec(r.key, r.label, r.group, r.fitness, r.number, r.step, r.every, r.start_day, r.next_day)
+            for r in rows]
 
 
 def member_start(cfg: AppSettings, m: Member) -> date:
@@ -105,6 +106,18 @@ def can_start_quest(p: Progress) -> bool:
 def owned_items(db: Session, member_id: str) -> set[str]:
     from app.models import Purchase
     return {r.item for r in db.scalars(select(Purchase).where(Purchase.member_id == member_id))}
+
+
+def gems_claimed(db: Session, member_id: str) -> int:
+    from sqlalchemy import func
+
+    from app.models import DailyClaim
+    return int(db.scalar(select(func.coalesce(func.sum(DailyClaim.gems), 0)).where(DailyClaim.member_id == member_id)) or 0)
+
+
+def claimed_on(db: Session, member_id: str, day: date) -> bool:
+    from app.models import DailyClaim
+    return db.scalar(select(DailyClaim.id).where(DailyClaim.member_id == member_id, DailyClaim.day == day)) is not None
 
 
 def gems_spent(db: Session, member_id: str) -> int:

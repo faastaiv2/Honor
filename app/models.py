@@ -78,6 +78,17 @@ class AppSettings(Base):
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")
 
 
+class DailyClaim(Base):
+    """A member's daily streak reward: gems claimed once a day while their streak is alive."""
+    __tablename__ = "daily_claims"
+    __table_args__ = (UniqueConstraint("member_id", "day", name="uq_member_claim_day"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date)
+    gems: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class Purchase(Base):
     """Something a member bought with gems (a frame, a theme or a picture)."""
     __tablename__ = "purchases"
@@ -100,4 +111,5 @@ class TaskDef(Base):
     step: Mapped[int] = mapped_column(Integer, default=0)  # added every `every` days
     every: Mapped[int] = mapped_column(Integer, default=1)
     start_day: Mapped[date] = mapped_column(Date)
+    next_day: Mapped[bool] = mapped_column(Boolean, default=False)  # done at night, counts for the next day
     sort_order: Mapped[int] = mapped_column(Integer, default=0)

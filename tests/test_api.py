@@ -40,7 +40,8 @@ def test_pin_login_is_rate_limited(client, family):
     assert r.status_code == 429
 
 
-def test_member_marks_own_day_and_scores(client, family):
+def test_member_marks_own_day_and_scores(client, family, db):
+    mulk_last_night(db, family["A"])
     h = auth(client, family["A"])
     a, b = at_today()
     with a, b:
@@ -141,6 +142,13 @@ def test_first_admin_from_environment(db, monkeypatch):
     assert db.query(Admin).one().email == "owner@example.com"
     main.ensure_first_admin()  # second start: no duplicate
     assert db.query(Admin).count() == 1
+
+
+def mulk_last_night(db, member, day=TODAY):
+    """Surah Mulk read the night before: it counts for `day`."""
+    from app.models import DayLog
+    db.add(DayLog(member_id=member.id, day=day - timedelta(days=1), tasks=["mulk"], excuse="", late={}))
+    db.commit()
 
 
 def put_day(client, h, member, day, tasks, excuse=""):
@@ -400,7 +408,8 @@ def test_admin_edits_tasks(client, family):
     assert view["score"]["of"] == 17  # 17 - Milk + Squats
 
 
-def test_new_task_counts_for_the_day(client, family):
+def test_new_task_counts_for_the_day(client, family, db):
+    mulk_last_night(db, family["A"])
     ha = auth(client, admin=True)
     a, b = at_today()
     with a, b, patch("app.routers.admin.today_for", return_value=TODAY):
@@ -444,7 +453,8 @@ def test_new_member_climbing_before_first_login_gets_the_show(client, family):
     assert prof["tier"]["key"] == "silver" and prof["celebrate"]["tier"] == "silver"
 
 
-def test_bonus_needs_every_task_first(client, family):
+def test_bonus_needs_every_task_first(client, family, db):
+    mulk_last_night(db, family["A"])
     h = auth(client, family["A"])
     a, b = at_today()
     with a, b:
@@ -458,3 +468,22 @@ def test_bonus_needs_every_task_first(client, family):
         r = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id, "date": TODAY.isoformat(),
                                                            "tasks": [k for k in ALL if k != "fajr"] + ["bonus"]})
         assert not r.json()["bonus"]["done"]
+
+
+def test_daily_streak_chest_once_a_day_and_bigger_by_rank(client, family, db):
+    mulk_last_night(db, family["A"])  # Alpha: Gold
+    h = auth(client, family["A"])
+    a, b = at_today()
+    with a, b:
+        prof = client.get("/api/board/profile", headers=h).json()
+        assert prof["daily"]["gems"] == 5 and not prof["daily"]["available"]  # no streak yet
+        assert client.post("/api/board/claim", headers=h).status_code == 400
+        put_day(client, h, family["A"], TODAY, ALL)  # finishing today lights the streak
+        before = client.get("/api/board/profile", headers=h).json()
+        assert before["daily"]["available"]
+        after = client.post("/api/board/claim", headers=h).json()
+        assert after["gems"]["balance"] == before["gems"]["balance"] + 5 and after["daily"]["claimed_today"]
+        assert client.post("/api/board/claim", headers=h).status_code == 400
+        assert len(after["week_days"]) == 7 and any(d["today"] and d["state"] == "done" for d in after["week_days"])
+    sierra = client.get("/api/board/profile", headers=auth(client, family["S"]))
+    assert sierra.status_code == 200

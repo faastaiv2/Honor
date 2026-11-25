@@ -10,6 +10,7 @@ Make-up allowance: tasks a member may tick *after* the day is over.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 
 WED, THU = 2, 3
 
@@ -100,16 +101,26 @@ def tier_range(t: Tier) -> str:
     return f"{roman(t.min)} – {roman(t.max)}"
 
 
+# ---------------------------------------------------------------- rewards and the shop
+GEMS_PER_TASK = 1          # each task and the bonus ticked, once per day
+GEMS_FOR_FULL_DAY = 20     # extra when every task of the day is done
+# Before this day tasks paid 5 gems each and there was no full-day reward (so nobody's balance shrinks).
+GEMS_NEW_RATES_FROM = date(2026, 11, 26)
+GEMS_PER_TASK_BEFORE = 5
+GEMS_PER_LEVEL = 10        # the first time a member reaches each new level
+# Extra, the first time a member reaches each rank: the higher the rank, the bigger the reward.
+RANK_GEMS = {"low": 0, "bronze": 25, "silver": 50, "gold": 100, "platinum": 150, "emerald": 200, "sapphire": 300,
+             "ruby": 400, "diamond": 500, "obsidian": 750, "legendary": 1000}
+GEMS_FOR_LEGENDARY = RANK_GEMS["legendary"]
+# The daily streak chest: claim once a day while your streak is alive. Higher ranks get more.
+DAILY_CLAIM = {"low": 0, "bronze": 3, "silver": 4, "gold": 5, "platinum": 6, "emerald": 8, "sapphire": 10, "ruby": 12,
+               "diamond": 15, "obsidian": 20, "legendary": 25}
+
+
 def tier_dict(t: Tier) -> dict:
     return {"key": t.key, "min": t.min if t.key != "low" else None, "max": t.max, "emoji": t.emoji, "name": t.name,
-            "color": t.color, "range": tier_range(t), "games": t.games, "benefits": t.benefits}
-
-
-# ---------------------------------------------------------------- rewards and the shop
-GEMS_PER_TASK = 5          # each of the 17 tasks and the bonus, once per day
-GEMS_PER_LEVEL = 10        # the first time a member reaches each new level
-GEMS_PER_RANK = 50         # extra, the first time they reach each new rank
-GEMS_FOR_LEGENDARY = 500
+            "color": t.color, "range": tier_range(t), "games": t.games, "benefits": t.benefits,
+            "gems": RANK_GEMS.get(t.key, 0), "daily": DAILY_CLAIM.get(t.key, 0)}
 
 # Each rank unlocks its own frame and theme for free. Others are bought with gems.
 # (key, name, unlocked by rank key, or None if it is bought; price in gems)

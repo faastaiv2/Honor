@@ -100,7 +100,8 @@ def test_legendary_is_lost_after_three_missed_weekdays_and_never_returns():
 
 
 def test_week_delta_counts_only_this_week():
-    p = simulate(10, {SAT - timedelta(days=7): (FULL, ""), MON: (FULL, "")}, {}, [], SAT - timedelta(days=7), TUE, 5,
+    p = simulate(10, {SAT - timedelta(days=7): (FULL, ""), MON - timedelta(days=1): (["mulk"], ""), MON: (FULL, "")}, {}, [],
+                 SAT - timedelta(days=7), TUE, 5,
                  week_from=week_start(TUE))
     assert p.week_delta == 2 + (-1)  # Monday +2, Tuesday still open, Sunday rest; previous week excluded
 
@@ -109,19 +110,42 @@ def test_gems_from_tasks_levels_and_ranks():
     # base 6 (Silver). Monday: all 17 + bonus (+2 levels: VII, then VIII = new Gold rank).
     p = run(6, [FULL])
     assert p.gems_tasks == 18 * 5
-    assert p.gems_levels == 10 + 10 + 50  # VII, VIII, and Gold reached for the first time
+    assert p.gems_levels == 10 + 10 + 100  # VII, VIII, and Gold (100) reached for the first time
     assert p.best_level == 8 and p.streak == 1
 
 
 def test_no_gems_twice_for_the_same_level():
     # up 2, down 1 (empty weekday), up 2 again: only levels never reached before pay
-    p = run(10, [FULL, [], FULL])
-    assert p.level == 13 and p.gems_levels == (10 + 10) + 0 + (10 + 50)  # XI, XII; then XIII (+Platinum rank)
+    p = run(10, [FULL, ["mulk"], FULL])  # Surah Mulk read the night before counts for the next day
+    assert p.level == 13 and p.gems_levels == (10 + 10) + 0 + (10 + 150)  # XI, XII; then XIII (+Platinum rank, 150)
 
 
 def test_streak_skips_weekends_and_resets_on_a_missed_weekday():
     start = date(2026, 11, 26)  # Thursday
-    p = run(10, [FULL, [], [], FULL], start=start)  # Thu done, Fri+Sat empty (weekend), Sun done
+    p = run(10, [FULL, [], ["mulk"], FULL], start=start)  # Thu done, Fri+Sat empty (weekend), Sun done
     assert p.streak == 2
-    p = run(10, [FULL, FULL, [], FULL], start=MON)  # Wednesday missed
+    p = run(10, [FULL, FULL, ["mulk"], FULL], start=MON)  # Wednesday missed
     assert p.streak == 1
+
+
+def test_surah_mulk_counts_for_the_next_day():
+    no_mulk = [k for k in FULL if k != "mulk"]
+    d1, d2 = MON, MON + timedelta(days=1)
+
+    def days(a, b):
+        return simulate(10, {d1: (a, ""), d2: (b, "")}, {}, [], d1, d2 + timedelta(days=1), 1).history
+
+    # Day 1 is the first day, so its Mulk is free. Day 2 needs Mulk ticked on day 1.
+    h = days(no_mulk, no_mulk)
+    assert h[d1] == 2 and h[d2] == -1
+    assert days(FULL, no_mulk)[d2] == 2
+    # Ticking Mulk on the day itself doesn't help that day: it is for tomorrow.
+    assert days(no_mulk, FULL)[d2] == -1
+
+
+def test_gems_a_little_per_task_and_a_prize_for_the_full_day():
+    thu = date(2026, 11, 26)  # the new rates start here
+    half = FULL[:5]
+    p = simulate(10, {thu: (FULL, ""), thu + timedelta(days=1): (half, "")}, {}, [], thu, thu + timedelta(days=2), 1)
+    paid = [k for k in FULL if k != "gate"]  # the pledge itself earns no gems
+    assert p.gems_tasks == len(paid) * 1 + 20 + len([k for k in half if k != "gate"]) * 1

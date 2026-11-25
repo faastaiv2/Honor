@@ -1,4 +1,8 @@
+import type React from "react";
+import RankIcon from "../lib/RankIcon";
 import { useEffect, useState } from "react";
+import Gem from "../lib/Gem";
+import Brazier from "../lib/Brazier";
 import { api, type Profile, type Tier, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
 import { useAuth } from "../auth";
@@ -7,7 +11,7 @@ import { RankBadge } from "./Welcome";
 const ROMAN: [number, string][] = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
 const roman = (n: number) => ROMAN.reduce((s, [v, r]) => { while (n >= v) { s += r; n -= v; } return s; }, "");
 
-function Perk({ icon, title, text }: { icon: string; title: string; text: string }) {
+function Perk({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
   return (
     <div className="perk">
       <span className="perk-ico" aria-hidden="true">{icon}</span>
@@ -50,14 +54,15 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
             <RankBadge color={current.color} label={p.label} size={84} />
             <div>
               <p className="bn-kicker">Your benefits now</p>
-              <h1>{current.emoji} {current.name}</h1>
+              <h1><RankIcon rank={current.key} /> {current.name}</h1>
               <p className="bn-range">Levels {current.range}</p>
             </div>
           </div>
           <div className="perk-grid">
             <Perk icon="🎮" title="Game / YouTube time" text={current.games} />
-            <Perk icon="🔁" title="Make-ups" text={current.benefits === "None" ? "No make-ups yet. Reach 🥈 Silver to make up a missed task the next day." : current.benefits} />
-            <Perk icon="💎" title="Gems" text={`${gems?.per_task ?? 5} gems for every task, +${gems?.per_level ?? 10} for each new level.`} />
+            <Perk icon="🔁" title="Make-ups" text={current.benefits === "None" ? "No make-ups yet. Reach Silver to make up a missed task the next day." : current.benefits} />
+            <Perk icon={<Gem />} title="Gems" text={`${gems?.per_task ?? 1} per task, +${gems?.full_day ?? 20} for finishing the whole day, +${gems?.per_level ?? 10} for each new level.`} />
+            <Perk icon={<Brazier />} title="Daily streak chest" text={`+${current.daily ?? 0} gems a day while your streak is alive. Higher ranks get bigger chests.`} />
           </div>
           <Unlocks tier={current} profile={p} />
         </section>
@@ -71,25 +76,25 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
               <div className="bn-card">
                 <span className="bn-card-ico">⬆️</span>
                 <b>Next level: {p.next_level_reward.level}</b>
-                <p>+{p.next_level_reward.gems} 💎 the first time you reach it</p>
+                <p>+{p.next_level_reward.gems} <Gem /> the first time you reach it</p>
               </div>
             )}
             {next && next.key !== "legendary" && (
               <div className="bn-card next-rank" style={{ ["--tc" as string]: next.color }}>
-                <span className="bn-card-ico">{next.emoji}</span>
+                <span className="bn-card-ico"><RankIcon rank={next.key} size={56} /></span>
                 <b>{next.name} at level {next.min ? roman(next.min) : ""}</b>
                 <p>{p.next ? `${p.next.needed} more level${p.next.needed === 1 ? "" : "s"} to go` : ""}</p>
                 <p>🎮 {next.games}</p>
                 <p>🔁 {next.benefits}</p>
-                <p>💎 +{(gems?.per_rank ?? 50) + (gems?.per_level ?? 10)} gems on arrival</p>
+                <p><Gem /> +{(gems?.per_rank[next.key] ?? 0) + (gems?.per_level ?? 10)} gems on arrival</p>
                 <Unlocks tier={next} profile={p} />
               </div>
             )}
             {(next?.key === "legendary" || p.can_start_quest) && (
               <div className="bn-card next-rank legend-card">
-                <span className="bn-card-ico">👑</span>
+                <span className="bn-card-ico"><RankIcon rank="legendary" size={56} /></span>
                 <b>Legendary</b>
-                <p>Reached only through the Legendary quest from 🔮 Obsidian: start again from I and finish every task and bonus, every day, until L.</p>
+                <p>Reached only through the Legendary quest from <RankIcon rank="obsidian" /> Obsidian: start again from I and finish every task and bonus, every day, until L.</p>
               </div>
             )}
           </div>
@@ -104,7 +109,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
             const state = curIdx < 0 ? "" : idx < curIdx ? "done" : idx === curIdx ? "here" : "ahead";
             return (
               <li key={t.key} className={`rung ${state}`} style={{ ["--tc" as string]: t.color }}>
-                <span className="rung-badge">{t.emoji}</span>
+                <span className="rung-badge"><RankIcon rank={t.key} size={44} /></span>
                 <div className="rung-body">
                   <div className="rung-head"><b>{t.name}</b><span>{t.range}</span>{state === "here" && <em>You are here</em>}{state === "done" && <em className="ok">✓</em>}{state === "ahead" && <em className="lock">🔒</em>}</div>
                   <p>🎮 {t.games}</p>
@@ -124,7 +129,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
           <div><b>−1 Honor cut 👺</b><p>{(info?.rules.cut_misses ?? 1) <= 1 ? "A weekday ends with any task not completed (and no excuse)." : `A weekday ends with ${info?.rules.cut_misses} or more tasks missed.`} Tasks made up in time count as done.</p></div>
           <div><b>Excused days</b><p>Write a reason on the day (sick, injury): exercise tasks are excused and nothing is cut.</p></div>
           <div><b>Weekends (Fri &amp; Sat)</b><p>Games and YouTube allowed. Tasks are optional: earn, never lose.</p></div>
-          <div><b>👑 Legendary</b><p>From 🔮 Obsidian, give up the title, restart at I and finish every task and bonus every day until L. Missing tasks 3 weekdays in a row loses it for good.</p></div>
+          <div><b><RankIcon rank="legendary" /> Legendary</b><p>From <RankIcon rank="obsidian" /> Obsidian, give up the title, restart at I and finish every task and bonus every day until L. Missing tasks 3 weekdays in a row loses it for good.</p></div>
         </div>
         <p className="note">Weeks run Sunday to Saturday. Days change at midnight{info ? `, ${info.rules.timezone} time` : ""}.</p>
       </section>

@@ -5,7 +5,7 @@ const TOKEN_KEY = "honor.token";
 export interface Viewer { kind: "admin" | "member"; id: string; name: string; is_admin: boolean; theme?: string }
 export interface SignInMember { id: string; name: string; avatar: string; frame: string; has_pin: boolean }
 export interface Score { gain: number; bonus: number; cut: number; delta: number; done: number; of: number; weekend: boolean; excused: boolean }
-export interface Tier { key: string; min: number | null; max: number | null; emoji: string; name: string; color: string; range: string; games: string; benefits: string }
+export interface Tier { key: string; min: number | null; max: number | null; emoji: string; name: string; color: string; range: string; games: string; benefits: string; gems?: number; daily?: number }
 export interface Week { number: number; start: string; days_left: number }
 export interface Status {
   level: number; label: string; tier: Tier; legendary: boolean; banned: boolean; pending: number;
@@ -18,9 +18,9 @@ export interface TodayInfo {
   bonus: { count: string; dhikr: string };
   rules: { cut_misses: number; score_from: string; timezone: string };
   tiers: Tier[]; avatars: string[]; viewer: Viewer; task_count: number;
-  gems: { per_task: number; per_level: number; per_rank: number };
+  gems: { per_task: number; full_day: number; per_level: number; per_rank: Record<string, number> };
 }
-export interface TaskItem { key: string; label: string; done: boolean; fitness?: boolean; late?: boolean }
+export interface TaskItem { key: string; label: string; done: boolean; fitness?: boolean; late?: boolean; next_day?: boolean; counted_today?: boolean }
 export interface DayView {
   member: { id: string; name: string }; date: string; today: string; weekend: boolean;
   pledge: TaskItem | null; groups: { name: string; tasks: TaskItem[] }[];
@@ -36,10 +36,12 @@ export interface ShopItem { key: string; name: string; available: boolean; price
 export interface Profile extends Status {
   member: { id: string; name: string; avatar: string; frame: string; theme: string };
   week_delta: number; streak: number;
-  gems: { balance: number; earned: number; spent: number; today: number; from_tasks: number; from_levels: number };
+  gems: { balance: number; earned: number; spent: number; claimed: number; today: number; from_tasks: number; from_levels: number };
   next_level_reward: { level: string; gems: number } | null;
   frames: ShopItem[]; themes: ShopItem[]; avatars: ShopItem[];
   celebrate: { tier: string; reward: number } | null; // a rank-up show not watched yet
+  daily: { gems: number; claimed_today: boolean; available: boolean }; // the daily streak chest
+  week_days: { date: string; state: "done" | "open" | "missed" | "rest" | "excused" | "future" | "pre"; today: boolean }[];
 }
 export interface Board { week: Week; rows: BoardRow[]; weekly: { member_id: string; week_delta: number }[] }
 export interface History {
@@ -48,7 +50,7 @@ export interface History {
 }
 export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean; avatar: string }
 export interface Adjustment { id: string; member_id: string; delta: number; note: string; created_at: string; created_by: string }
-export interface TaskDef { key: string; label: string; group: string; fitness: boolean; number_today: number | null; step: number; every: number; shown_today: string; shown_tomorrow: string }
+export interface TaskDef { key: string; label: string; group: string; fitness: boolean; next_day: boolean; number_today: number | null; step: number; every: number; shown_today: string; shown_tomorrow: string }
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 
 export class ApiError extends Error {
@@ -100,6 +102,7 @@ export const api = {
   leaderboard: () => request<Board>("/board/leaderboard"),
   setAvatar: (avatar: string) => request<{ avatar: string }>("/board/avatar", send("PUT", { avatar })),
   profile: () => request<Profile>("/board/profile"),
+  claimDaily: () => request<Profile>("/board/claim", send("POST", {})),
   celebrated: () => request<Profile>("/board/profile/celebrated", send("POST", {})),
   saveProfile: (body: { avatar?: string; frame?: string; theme?: string }) => request<Profile>("/board/profile", send("PUT", body)),
   buy: (kind: "frame" | "theme" | "avatar", key: string) => request<Profile>("/board/shop/buy", send("POST", { kind, key })),
@@ -114,8 +117,8 @@ export const api = {
   addAdjustment: (member_id: string, delta: number, note: string) => request("/admin/adjustments", send("POST", { member_id, delta, note })),
   deleteAdjustment: (id: string) => request<void>(`/admin/adjustments/${id}`, { method: "DELETE" }),
   tasks: () => request<TaskDef[]>("/admin/tasks"),
-  addTask: (body: { label: string; group: string; fitness: boolean; number_today: number | null; step: number; every: number }) => request<TaskDef>("/admin/tasks", send("POST", body)),
-  editTask: (key: string, body: Partial<{ label: string; group: string; fitness: boolean; number_today: number; clear_number: boolean; step: number; every: number; move: number }>) => request<TaskDef>(`/admin/tasks/${encodeURIComponent(key)}`, send("PATCH", body)),
+  addTask: (body: { label: string; group: string; fitness: boolean; next_day: boolean; number_today: number | null; step: number; every: number }) => request<TaskDef>("/admin/tasks", send("POST", body)),
+  editTask: (key: string, body: Partial<{ label: string; group: string; fitness: boolean; next_day: boolean; number_today: number; clear_number: boolean; step: number; every: number; move: number }>) => request<TaskDef>(`/admin/tasks/${encodeURIComponent(key)}`, send("PATCH", body)),
   deleteTask: (key: string) => request<void>(`/admin/tasks/${encodeURIComponent(key)}`, { method: "DELETE" }),
   settings: () => request<Settings>("/admin/settings"),
   saveSettings: (body: Partial<Settings>) => request<Settings>("/admin/settings", send("PUT", body)),

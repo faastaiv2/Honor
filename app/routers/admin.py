@@ -229,6 +229,7 @@ class TaskIn(BaseModel):
     number_today: int | None = Field(default=None, ge=0, le=1_000_000)
     step: int = Field(default=0, ge=-1000, le=1000)
     every: int = Field(default=1, ge=1, le=365)
+    next_day: bool = False
 
 
 class TaskPatch(BaseModel):
@@ -240,11 +241,13 @@ class TaskPatch(BaseModel):
     step: int | None = Field(default=None, ge=-1000, le=1000)
     every: int | None = Field(default=None, ge=1, le=365)
     move: int | None = Field(default=None, ge=-1, le=1)  # -1 up, +1 down
+    next_day: bool | None = None
 
 
 def _task_out(t: TaskDef, today: date) -> dict:
     spec = TaskSpec(t.key, t.label, t.group, t.fitness, t.number, t.step, t.every, t.start_day)
-    return {"key": t.key, "label": t.label, "group": t.group, "fitness": t.fitness, "number_today": spec.number_on(today),
+    return {"key": t.key, "label": t.label, "group": t.group, "fitness": t.fitness, "next_day": bool(t.next_day),
+            "number_today": spec.number_on(today),
             "step": t.step, "every": t.every, "shown_today": spec.label_on(today),
             "shown_tomorrow": spec.label_on(today + timedelta(days=1))}
 
@@ -254,7 +257,7 @@ def _ensure_tasks(db: Session) -> list[TaskDef]:
     if not rows:  # a board made before tasks were editable: store the sheet's tasks first
         for i, t in enumerate(DEFAULT_SPECS):
             db.add(TaskDef(key=t.key, label=t.label, group=t.group, fitness=t.fitness, number=t.number, step=t.step,
-                           every=t.every, start_day=t.start_day, sort_order=i))
+                           every=t.every, start_day=t.start_day, next_day=t.next_day, sort_order=i))
         db.commit()
         rows = list(db.scalars(select(TaskDef).order_by(TaskDef.sort_order, TaskDef.key)))
     return rows
@@ -284,6 +287,7 @@ def add_task(body: TaskIn, _: Viewer = Depends(require_admin), db: Session = Dep
         key, i = f"{base[:14]}{i}", i + 1
     t = TaskDef(key=key, label=_label_with_number(body.label, body.number_today is not None), group=body.group.strip(),
                 fitness=body.fitness, number=body.number_today, step=body.step, every=body.every, start_day=today,
+                next_day=body.next_day,
                 sort_order=max((r.sort_order for r in rows), default=0) + 1)
     db.add(t)
     db.commit()
@@ -325,6 +329,8 @@ def edit_task(key: str, body: TaskPatch, _: Viewer = Depends(require_admin), db:
         t.group = body.group.strip()
     if body.fitness is not None:
         t.fitness = body.fitness
+    if body.next_day is not None:
+        t.next_day = body.next_day
     db.commit()
     return _task_out(t, today)
 

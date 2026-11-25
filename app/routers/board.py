@@ -9,11 +9,11 @@ from app import scoring
 from app.db import get_db
 from app.deps import Viewer, current_viewer
 from app.makeup import check_week, remaining, week_start
-from app.models import DayLog, Member, Purchase
+from app.models import DailyClaim, DayLog, Member, Purchase
 from app.progress import Progress, gems_earned
-from app.services import (active_members, can_start_quest, gems_spent, get_settings_row, load_tasks, logs_between,
+from app.services import (active_members, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
-from app.tiers import (CAP_WITHOUT_LEGENDARY, FRAME_KEYS, GEMS_PER_LEVEL, GEMS_PER_RANK, GEMS_PER_TASK, THEME_KEYS,
+from app.tiers import (CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
                        FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
                        tier_for)
 
@@ -96,7 +96,7 @@ def today_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db
         "avatars": AVATARS,
         "viewer": {"kind": v.kind, "id": v.id, "name": v.name, "is_admin": v.is_admin,
                    "theme": (db.get(Member, v.id).theme if v.kind == "member" else "") or "bronze"},
-        "gems": {"per_task": GEMS_PER_TASK, "per_level": GEMS_PER_LEVEL, "per_rank": GEMS_PER_RANK},
+        "gems": {"per_task": GEMS_PER_TASK, "full_day": GEMS_FOR_FULL_DAY, "per_level": GEMS_PER_LEVEL, "per_rank": RANK_GEMS},
     }
 
 
@@ -104,6 +104,11 @@ def _week_lates(db: Session, member_id: str, d: date) -> dict[date, dict]:
     start = week_start(d)
     logs = logs_between(db, start, start + timedelta(days=6), member_id)
     return {day: dict(l.late or {}) for (_, day), l in logs.items()}
+
+
+def _prev_ticks(db: Session, member_id: str, d: date) -> list:
+    prev = db.scalar(select(DayLog).where(DayLog.member_id == member_id, DayLog.day == d - timedelta(days=1)))
+    return list(prev.tasks) if prev else []
 
 
 def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
@@ -118,11 +123,15 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
     i = scoring.day_index(d)
     groups: dict[str, list] = {}
     specs = load_tasks(db)
+    first = member_start(cfg, member)
+    counted = scoring.credited(done, _prev_ticks(db, member.id, d), specs, first_day=d == first)
     for t in specs:
-        groups.setdefault(t.group, []).append({"key": t.key, "label": t.label_on(d), "done": t.key in done,
-                                               "fitness": t.fitness, "late": t.key in late})
+        item = {"key": t.key, "label": t.label_on(d), "done": t.key in done, "fitness": t.fitness, "late": t.key in late}
+        if t.next_day:  # ticked tonight for tomorrow; today got last night's
+            item |= {"next_day": True, "counted_today": t.key in counted}
+        groups.setdefault(t.group, []).append(item)
     count, dhikr = scoring.bonus_parts(i)
-    s = scoring.score_day(d, done, excuse, today, cfg.cut_misses, specs)
+    s = scoring.score_day(d, counted, excuse, today, cfg.cut_misses, specs)
     own = v.is_admin or v.id == member.id
     left = remaining(tier, d, today, _week_lates(db, member.id, d)) if d < today else 0
     if v.is_admin:
@@ -147,7 +156,7 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
         "excuse_editable": mode in ("admin", "open"),
         "makeup_left": left,
         "makeup_rule": tier.benefits,
-        "before_scoring": d < member_start(cfg, member),
+        "before_scoring": d < first,
         "status": _status(p),
     }
 
@@ -197,7 +206,8 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
     elif v.is_admin:
         late = {k: d for k, d in late.items() if k in tasks}
 
-    if "bonus" in tasks and not scoring.score_day(body.date, tasks, body.excuse, today, cfg.cut_misses, specs).gain:
+    counted = scoring.credited(tasks, _prev_ticks(db, m.id, body.date), specs, first_day=body.date == member_start(cfg, m))
+    if "bonus" in tasks and not scoring.score_day(body.date, counted, body.excuse, today, cfg.cut_misses, specs).gain:
         tasks.discard("bonus")  # the bonus opens only once every task is done (and unticks if one is unticked)
     if log is None:
         log = DayLog(member_id=m.id, day=body.date)
@@ -216,14 +226,16 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     today = today_for(cfg)
     members = active_members(db)
     prog = progress_for(db, cfg, members, today)
-    logs = logs_between(db, today, today)
+    yesterday = today - timedelta(days=1)
+    logs = logs_between(db, yesterday, today)
     specs = load_tasks(db)
     rows = []
     for m in members:
         p = prog[m.id]
-        log = logs.get((m.id, today))
-        s = scoring.score_day(today, log.tasks if log else None, log.excuse if log else None, today, cfg.cut_misses,
-                              specs)
+        log, prev = logs.get((m.id, today)), logs.get((m.id, yesterday))
+        counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, specs,
+                                   first_day=today == member_start(cfg, m))
+        s = scoring.score_day(today, counted, log.excuse if log else None, today, cfg.cut_misses, specs)
         rows.append({"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame},
                      **_status(p), "today": _score_out(s), "week_delta": p.week_delta,
                      "is_me": v.kind == "member" and v.id == m.id})
@@ -247,7 +259,7 @@ def history(days: int = Query(default=14, ge=1, le=62), v: Viewer = Depends(curr
     start = today - timedelta(days=days - 1)
     members = active_members(db)
     prog = progress_for(db, cfg, members, today)
-    logs = logs_between(db, start, today)
+    logs = logs_between(db, start - timedelta(days=1), today)
     dates = list(scoring.date_range(start, today))
     specs = load_tasks(db)
     rows = []
@@ -258,9 +270,9 @@ def history(days: int = Query(default=14, ge=1, le=62), v: Viewer = Depends(curr
             if d < first:
                 cells.append({"state": "pre"})
                 continue
-            log = logs.get((m.id, d))
-            s = scoring.score_day(d, log.tasks if log else None, log.excuse if log else None, today, cfg.cut_misses,
-                                  specs)
+            log, prev = logs.get((m.id, d)), logs.get((m.id, d - timedelta(days=1)))
+            counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, specs, first_day=d == first)
+            s = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, specs)
             delta = prog[m.id].history.get(d, s.delta)
             state = "open" if d == today else "pos" if delta > 0 else "neg" if delta < 0 else \
                 "rest" if s.weekend else "excused" if s.excused else "zero"
@@ -299,6 +311,26 @@ def _celebration(db: Session, m: Member, tier, p) -> dict | None:
     return {"tier": tier.key, "reward": max(0, p.gems_levels - m.seen_level_gems)}
 
 
+def _week_days(db: Session, cfg, m: Member, today: date) -> list[dict]:
+    """This week, Sunday to Saturday: which days were completed."""
+    start = week_start(today)
+    first = member_start(cfg, m)
+    specs = load_tasks(db)
+    logs = logs_between(db, start - timedelta(days=1), start + timedelta(days=6), m.id)
+    out = []
+    for i in range(7):
+        d = start + timedelta(days=i)
+        log, prev = logs.get((m.id, d)), logs.get((m.id, d - timedelta(days=1)))
+        if d > today or d < first:
+            state = "future" if d > today else "pre"
+        else:
+            counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, specs, first_day=d == first)
+            sc = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, specs)
+            state = "done" if sc.gain else "open" if d == today else "rest" if sc.weekend else "excused" if sc.excused else "missed"
+        out.append({"date": d.isoformat(), "state": state, "today": d == today})
+    return out
+
+
 def _profile(db: Session, m: Member) -> dict:
     cfg = get_settings_row(db)
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
@@ -306,16 +338,24 @@ def _profile(db: Session, m: Member) -> dict:
     celebrate = _celebration(db, m, tier, p)
     owned = owned_items(db, m.id)
     spent = gems_spent(db, m.id)
+    claimed = gems_claimed(db, m.id)
+    today = today_for(cfg)
+    daily_gems = DAILY_CLAIM.get(tier.key, 0)
+    claimed_today = claimed_on(db, m.id, today)
     nxt = p.best_level + 1
     reward = 0 if p.legendary or nxt > CAP_WITHOUT_LEGENDARY else GEMS_PER_LEVEL + (
-        GEMS_PER_RANK if tier_for(nxt, False).min == nxt else 0)
+        RANK_GEMS[tier_for(nxt, False).key] if tier_for(nxt, False).min == nxt else 0)
     return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "theme": m.theme or "bronze"},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
-            "gems": {"balance": gems_earned(p) - spent, "earned": gems_earned(p), "spent": spent,
+            "gems": {"balance": gems_earned(p) + claimed - spent, "earned": gems_earned(p) + claimed, "spent": spent,
+                     "claimed": claimed,
                      "today": p.today_tasks_gems, "from_tasks": p.gems_tasks, "from_levels": p.gems_levels},
             "next_level_reward": {"level": roman(nxt), "gems": reward} if reward else None,
             "frames": catalogue("frame", tier, owned), "themes": catalogue("theme", tier, owned),
-            "avatars": catalogue("avatar", tier, owned), "celebrate": celebrate}
+            "avatars": catalogue("avatar", tier, owned), "celebrate": celebrate,
+            "daily": {"gems": daily_gems, "claimed_today": claimed_today,
+                      "available": daily_gems > 0 and p.streak > 0 and not claimed_today},
+            "week_days": _week_days(db, cfg, m, today)}
 
 
 @router.get("/profile")
@@ -376,11 +416,30 @@ def buy(body: BuyIn, v: Viewer = Depends(current_viewer), db: Session = Depends(
         raise HTTPException(400, "You already have it")
     cfg = get_settings_row(db)
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
-    balance = gems_earned(p) - gems_spent(db, m.id)
+    balance = gems_earned(p) + gems_claimed(db, m.id) - gems_spent(db, m.id)
     if balance < price:
         raise HTTPException(400, f"You need {price - balance} more gems. Finish tasks to earn more!")
     db.add(Purchase(member_id=m.id, item=shop_key(body.kind, body.key), price=price))
     setattr(m, body.kind, body.key)  # put it on straight away
+    db.commit()
+    return _profile(db, m)
+
+
+@router.post("/claim")
+def claim_daily(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """Open the daily streak chest: once a day while the streak is alive; higher ranks get more gems."""
+    if v.kind != "member":
+        raise HTTPException(400, "The daily chest is for members")
+    m = db.get(Member, v.id)
+    cfg = get_settings_row(db)
+    today = today_for(cfg)
+    p = progress_for(db, cfg, [m], today)[m.id]
+    gems = DAILY_CLAIM.get(tier_of_progress(p).key, 0)
+    if claimed_on(db, m.id, today):
+        raise HTTPException(400, "Already claimed today. Come back tomorrow!")
+    if p.streak <= 0 or gems <= 0:
+        raise HTTPException(400, "Finish all of today's tasks to light your streak, then claim")
+    db.add(DailyClaim(member_id=m.id, day=today, gems=gems))
     db.commit()
     return _profile(db, m)
 

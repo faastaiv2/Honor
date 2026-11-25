@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import Gem from "../lib/Gem";
+import Brazier from "../lib/Brazier";
 import type { Profile, Tier } from "../api";
 import Avatar from "../lib/Avatar";
+import RankIcon from "../lib/RankIcon";
+import ThemePreview from "../lib/ThemePreview";
+import { api } from "../api";
+import { notifyChanged } from "../lib/events";
 import { Particles } from "../lib/particles";
 
 /** Rank order: the higher the rank, the bigger the show. */
@@ -114,18 +120,7 @@ export interface RankUpProps {
 function Emblem({ tier }: { tier: Tier }) {
   return (
     <div className="ru-emblem">
-      <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
-        <defs>
-          <linearGradient id="ru-g" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#fff" stopOpacity=".7" />
-            <stop offset=".4" stopColor={tier.color} />
-            <stop offset="1" stopColor={tier.color} stopOpacity=".8" />
-          </linearGradient>
-        </defs>
-        <polygon points="50,3 93,26 93,74 50,97 7,74 7,26" fill="url(#ru-g)" stroke="#fff" strokeWidth="4" />
-        <polygon points="50,12 84,31 50,50 16,31" fill="#fff" opacity=".25" />
-      </svg>
-      <span className="ru-emoji">{tier.emoji}</span>
+      <RankIcon rank={tier.key} className="ru-crest" />
       <span className="ru-shine" />
     </div>
   );
@@ -151,7 +146,6 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
   const [stage, setStage] = useState<"show" | "benefits" | "gems">("show");
   const [act, setAct] = useState(0);
   const [ready, setReady] = useState(false);
-  const [skipped, setSkipped] = useState(false);
   const [shake, setShake] = useState(0);
   const [gemCount, setGemCount] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -199,15 +193,12 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
     return () => { ts.forEach(clearTimeout); ts.length = 0; };
   }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** Skip straight to the end of the film. */
-  const skip = () => {
-    timers.current.forEach(clearTimeout);
-    timers.current.length = 0;
-    engine.current?.calm();
-    setShake(0);
-    setAct(legendary ? 5 : 4);
-    setReady(true);
-  };
+  // The rewards appear one by one, each with a little sparkle.
+  useEffect(() => {
+    if (stage !== "benefits" || reduced) return;
+    const ts = [150, 450, 750, 1050, 1200, 1500].map((t) => window.setTimeout(() => engine.current?.burst("sparkle", 26, colors), t + 250));
+    return () => ts.forEach(clearTimeout);
+  }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Gems count up, with gems flying out.
   useEffect(() => {
@@ -225,12 +216,23 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
     return () => cancelAnimationFrame(raf);
   }, [stage, reward, reduced]);
 
-  const frame = profile?.frames.find((f) => f.tier?.key === tier.key);
-  const theme = profile?.themes.find((t) => t.tier?.key === tier.key);
+  const frameKey = tier.key === "legendary" ? "crown" : tier.key;
+  const frameName = profile?.frames.find((f) => f.key === frameKey)?.name ?? `${tier.name} frame`;
+  const themeName = profile?.themes.find((t) => t.key === tier.key)?.name ?? `${tier.name} theme`;
+  const [used, setUsed] = useState({ frame: false, theme: false });
+  const use = async (kind: "frame" | "theme", key: string) => {
+    try {
+      await api.saveProfile({ [kind]: key });
+      if (kind === "theme") document.documentElement.dataset.skin = key;
+      setUsed((u) => ({ ...u, [kind]: true }));
+      engine.current?.burst("sparkle", 60, colors);
+      notifyChanged();
+    } catch { /* keep the show going */ }
+  };
   const letters = (legendary ? "LEGENDARY" : tier.name.toUpperCase()).split("");
 
   return (
-    <div className={`rankup ru-${tier.key} lvl-${lvl}${legendary ? "" : " film"} act-${act}${skipped ? " skipped" : ""}${shake ? ` shake-${shake}` : ""}`}
+    <div className={`rankup ru-${tier.key} lvl-${lvl}${legendary ? "" : " film"} act-${act}${shake ? ` shake-${shake}` : ""}`}
       style={{ ["--tc" as string]: tier.color }} role="dialog" aria-modal="true" aria-label={`New rank: ${tier.name}`}>
       <div className="ru-bg" />
       <div className="ru-pattern" />
@@ -246,7 +248,7 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
 
       {stage === "show" && (
         <div className="ru-stage">
-          {legendary && <div className="ru-crown" aria-hidden="true">👑</div>}
+          {legendary && <div className="ru-crown" aria-hidden="true"><RankIcon rank="legendary" className="ru-crest" /></div>}
           {!legendary && <Emblem tier={tier} />}
           <p className="ru-kicker">{legendary ? "The highest honor" : "Rank up!"}</p>
           <h1 className="ru-name" aria-label={legendary ? "Legendary" : tier.name}>
@@ -254,37 +256,63 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
           </h1>
           <p className="ru-who">{name} · {tier.range}</p>
           <button className={`ru-honor${ready ? " show" : ""}`} disabled={!ready} onClick={() => setStage("benefits")}>For Honor ⚔️</button>
-          {!ready && <button className="ru-skip" onClick={() => { setSkipped(true); skip(); }}>Skip</button>}
         </div>
       )}
 
       {stage === "benefits" && (
-        <div className="ru-panel">
-          <p className="ru-kicker dark">Your new rank</p>
-          <h2>{tier.emoji} {tier.name}</h2>
-          <div className="ru-perks">
-            <div><span>🎮</span><b>Game / YouTube</b><p>{tier.games}</p></div>
-            <div><span>🔁</span><b>Benefits</b><p>{tier.benefits}</p></div>
-          </div>
-          {(frame || theme) && (
-            <div className="ru-unlocks">
-              <b>Unlocked</b>
-              <div className="ru-unlock-row">
-                {frame && <span className="unlock"><Avatar avatar={profile?.member.avatar} color={tier.color} frame={frame.key} size={44} /> {frame.name} frame</span>}
-                {theme && <span className="unlock"><span className="swatch-dot" style={{ background: tier.color }} /> {theme.name} theme</span>}
-              </div>
+        <div className="ru-panel ru-rewards">
+          <div className="ru-rw-crest"><RankIcon rank={tier.key} size={92} /></div>
+          <p className="ru-kicker dark">You reached</p>
+          <h2>{tier.name}</h2>
+          <p className="ru-rw-sub">Here's everything you unlocked</p>
+          <div className="ru-rw-grid">
+            <div className="ru-rw-card" style={{ animationDelay: "0.15s" }}>
+              <span className="ru-rw-tag">New frame</span>
+              <div className="ru-rw-show"><Avatar avatar={profile?.member.avatar} color={tier.color} frame={frameKey} size={70} /></div>
+              <b>{frameName}</b>
+              {profile && (used.frame ? <span className="ru-rw-used">Wearing it ✓</span>
+                : <button className="ru-rw-use" onClick={() => use("frame", frameKey)}>Wear it</button>)}
             </div>
-          )}
-          <button className="ru-honor show" onClick={() => setStage("gems")}>Collect rewards 💎</button>
+            <div className="ru-rw-card" style={{ animationDelay: "0.45s" }}>
+              <span className="ru-rw-tag">New theme</span>
+              <div className="ru-rw-show"><ThemePreview k={tier.key} /></div>
+              <b>{themeName}</b>
+              {profile && (used.theme ? <span className="ru-rw-used">Using it ✓</span>
+                : <button className="ru-rw-use" onClick={() => use("theme", tier.key)}>Use it</button>)}
+            </div>
+            <div className="ru-rw-card wide" style={{ animationDelay: "0.75s" }}>
+              <span className="ru-rw-ico">🎮</span>
+              <div><span className="ru-rw-tag">Game &amp; YouTube time</span><b>{tier.games}</b></div>
+            </div>
+            <div className="ru-rw-card wide" style={{ animationDelay: "1.05s" }}>
+              <span className="ru-rw-ico">🔁</span>
+              <div><span className="ru-rw-tag">Make-ups</span><b>{tier.benefits === "None" ? "None yet" : tier.benefits}</b></div>
+            </div>
+            {(tier.daily ?? 0) > 0 && (
+              <div className="ru-rw-card wide" style={{ animationDelay: "1.2s" }}>
+                <span className="ru-rw-ico"><Brazier size={30} /></span>
+                <div><span className="ru-rw-tag">Daily streak chest</span><b>+{tier.daily} gems every day your streak is alive</b></div>
+              </div>
+            )}
+            <div className="ru-rw-card wide gems" style={{ animationDelay: "1.5s" }}>
+              <span className="ru-rw-ico"><Gem size={34} /></span>
+              <div><span className="ru-rw-tag">Gems</span><b>+{reward} gems for reaching {tier.name}</b></div>
+            </div>
+          </div>
+          <button className="ru-collect" onClick={() => setStage("gems")}>
+            <span className="ru-collect-gem"><Gem size={34} /></span>
+            <span className="ru-collect-text"><b>Collect rewards</b><small>+{reward} gems waiting</small></span>
+            <span className="ru-collect-shine" aria-hidden="true" />
+          </button>
         </div>
       )}
 
       {stage === "gems" && (
         <div className="ru-panel gems">
-          <div className="ru-gem">💎</div>
+          <div className="ru-gem"><Gem size={110} /></div>
           <div className="ru-gemcount">+{gemCount}</div>
           <p className="ru-kicker dark">gems for reaching {tier.name}</p>
-          {profile && <p className="note">You now have {profile.gems.balance} 💎. Spend them in your Profile's shop.</p>}
+          {profile && <p className="note">You now have {profile.gems.balance} <Gem />. Spend them in your Profile's shop.</p>}
           <button className="ru-honor show" onClick={onClose}>Awesome! 🎉</button>
         </div>
       )}
