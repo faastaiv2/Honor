@@ -103,6 +103,15 @@ class Event(Base):
     day: Mapped[date] = mapped_column(Date, unique=True)
     title: Mapped[str] = mapped_column(String(80))
     prompt: Mapped[str] = mapped_column(String(200), default="")  # the theme, e.g. "Draw your favourite animal"
+    opens: Mapped[str] = mapped_column(String(5), default="00:00")  # time of day it opens and closes
+    closes: Mapped[str] = mapped_column(String(5), default="23:59")
+    prize1: Mapped[int] = mapped_column(Integer, default=100)
+    prize2: Mapped[int] = mapped_column(Integer, default=50)
+    prize3: Mapped[int] = mapped_column(Integer, default=25)
+    fee: Mapped[int] = mapped_column(Integer, default=0)  # gems to enter
+    banner: Mapped[str] = mapped_column(String(16), default="sunset")  # a preset, or "custom" with banner_image
+    banner_image: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    banner_mime: Mapped[str] = mapped_column(String(20), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
@@ -119,6 +128,7 @@ class EventEntry(Base):
     place: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1, 2 or 3
     gems: Mapped[int] = mapped_column(Integer, default=0)
     win_seen: Mapped[bool] = mapped_column(Boolean, default=False)  # the winner has seen their celebration
+    fee_paid: Mapped[int] = mapped_column(Integer, default=0)  # gems paid to enter (given back if withdrawn)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

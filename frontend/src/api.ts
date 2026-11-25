@@ -56,9 +56,16 @@ export interface TaskDef { key: string; label: string; group: string; fitness: b
 export interface Achievement { key: string; name: string; text: string; group: string; icon: string; tier: string; gems: number; goal: number; progress: number; unlocked: boolean; claimed: boolean }
 export interface Achievements { member: { id: string; name: string }; items: Achievement[]; unlocked: number; total: number }
 export interface EventEntry { id: string; member: { id: string; name: string; avatar: string }; title: string; place: number | null; gems: number; day: string }
-export interface ArtEvent { id: string; day: string; title: string; prompt: string }
+export interface ArtEvent {
+  id: string; day: string; title: string; prompt: string; opens: string; closes: string; prizes: Record<string, number>;
+  fee: number; banner: string; banner_image: boolean; state: "upcoming" | "open" | "closed";
+}
+export interface ArtEventIn {
+  day: string; title: string; prompt: string; opens: string; closes: string; prize1: number; prize2: number; prize3: number;
+  fee: number; banner: string; banner_image?: string | null;
+}
 export interface EventsInfo {
-  today: string; open: boolean; prizes: Record<string, number>; event: ArtEvent | null; next: ArtEvent | null; upcoming: ArtEvent[];
+  today: string; clock: string; open: boolean; banners: string[]; event: ArtEvent | null; next: ArtEvent | null; upcoming: ArtEvent[];
   suggested_day: string; current: EventEntry[]; mine: EventEntry | null; past: (ArtEvent & { judged: boolean; entries: EventEntry[] })[];
 }
 export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number> }
@@ -122,11 +129,18 @@ export const api = {
   events: () => request<EventsInfo>("/events"),
   submitArt: (title: string, image: string) => request<EventsInfo>("/events/entry", send("POST", { title, image })),
   withdrawArt: () => request<EventsInfo>("/events/entry/mine", send("DELETE")),
-  createEvent: (day: string, title: string, prompt: string) => request<EventsInfo>("/events/create", send("POST", { day, title, prompt })),
+  createEvent: (body: ArtEventIn) => request<EventsInfo>("/events/create", send("POST", body)),
+  editEvent: (id: string, body: ArtEventIn) => request<EventsInfo>(`/events/${encodeURIComponent(id)}`, send("PUT", body)),
   deleteEvent: (id: string) => request<EventsInfo>(`/events/${encodeURIComponent(id)}`, send("DELETE")),
   judge: (day: string, first?: string, second?: string, third?: string) => request<EventsInfo>("/events/judge", send("POST", { day, first, second, third })),
   winSeen: (id: string) => request<{ ok: boolean }>(`/events/seen/${encodeURIComponent(id)}`, send("POST", {})),
   /** A tournament picture as a blob URL (pictures need the sign-in token, so <img src> can't fetch them directly). */
+  bannerUrl: async (id: string): Promise<string> => {
+    const t = token.get();
+    const res = await fetch(`${BASE}/api/events/banner/${encodeURIComponent(id)}`, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+    if (!res.ok) throw new ApiError(res.status, "Banner not found");
+    return URL.createObjectURL(await res.blob());
+  },
   artUrl: async (id: string): Promise<string> => {
     const t = token.get();
     const res = await fetch(`${BASE}/api/events/image/${encodeURIComponent(id)}`, { headers: t ? { Authorization: `Bearer ${t}` } : {} });

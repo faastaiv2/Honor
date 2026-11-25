@@ -161,5 +161,14 @@ def claimed_on(db: Session, member_id: str, day: date) -> bool:
 def gems_spent(db: Session, member_id: str) -> int:
     from sqlalchemy import func
 
-    from app.models import Purchase
-    return int(db.scalar(select(func.coalesce(func.sum(Purchase.price), 0)).where(Purchase.member_id == member_id)) or 0)
+    from app.models import EventEntry, Purchase
+    shop = db.scalar(select(func.coalesce(func.sum(Purchase.price), 0)).where(Purchase.member_id == member_id)) or 0
+    fees = db.scalar(select(func.coalesce(func.sum(EventEntry.fee_paid), 0)).where(EventEntry.member_id == member_id)) or 0
+    return int(shop) + int(fees)  # shop items and tournament entry fees
+
+
+def gem_balance(db: Session, cfg: AppSettings, m: Member) -> int:
+    """A member's gems right now: earned (tasks, levels, ranks) + chests and prizes + achievements - spent."""
+    from app.progress import gems_earned
+    p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
+    return gems_earned(p) + gems_claimed(db, m.id) + achievement_gems(db, m.id)[0] - gems_spent(db, m.id)

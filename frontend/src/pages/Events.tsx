@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, ApiError, type EventEntry, type EventsInfo } from "../api";
+import { api, ApiError, type ArtEvent, type ArtEventIn, type EventEntry, type EventsInfo } from "../api";
 import { useAuth } from "../auth";
 import Avatar from "../lib/Avatar";
 import Gem from "../lib/Gem";
@@ -14,6 +14,38 @@ import { notifyChanged, useToast } from "../lib/events";
 const PLACE = { 1: { name: "1st", medal: "🥇", cls: "gold" }, 2: { name: "2nd", medal: "🥈", cls: "silver" }, 3: { name: "3rd", medal: "🥉", cls: "bronze" } } as const;
 const urls = new Map<string, Promise<string>>();
 const artUrl = (id: string) => { if (!urls.has(id)) urls.set(id, api.artUrl(id)); return urls.get(id)!; };
+
+/** Ready-made banners: a gradient and a picture. "custom" is an uploaded photo. */
+export const BANNERS: Record<string, { name: string; bg: string; art: string }> = {
+  sunset: { name: "Sunset", bg: "radial-gradient(circle at 15% 20%, #ffffff40, transparent 45%), linear-gradient(135deg, #ff9a3c, #e0479a 60%, #8a2fd0)", art: "🎨" },
+  ocean: { name: "Ocean", bg: "radial-gradient(circle at 80% 10%, #ffffff44, transparent 40%), linear-gradient(135deg, #1fb6d6, #2f5fd0 60%, #1b2a7a)", art: "🖌️" },
+  forest: { name: "Forest", bg: "radial-gradient(circle at 20% 80%, #ffffff30, transparent 45%), linear-gradient(135deg, #7bd36a, #1f9a5b 55%, #0d4f3c)", art: "🌳" },
+  royal: { name: "Royal", bg: "radial-gradient(circle at 50% 0%, #ffe9a066, transparent 50%), linear-gradient(135deg, #6a2fc0, #3b1a7a 60%, #c99a2e)", art: "👑" },
+  night: { name: "Starry night", bg: "radial-gradient(2px 2px at 20% 30%, #fff, transparent), radial-gradient(2px 2px at 70% 20%, #fff, transparent), radial-gradient(1.5px 1.5px at 40% 70%, #fff, transparent), radial-gradient(1.5px 1.5px at 85% 60%, #fff, transparent), linear-gradient(160deg, #1a2350, #0b0f2a 70%)", art: "🌙" },
+  rainbow: { name: "Rainbow", bg: "linear-gradient(120deg, #ff5f6d, #ffc371 22%, #f9f871 38%, #6ee7a8 54%, #4fc3f7 70%, #9b6bff 86%)", art: "🌈" },
+};
+const banners = new Map<string, Promise<string>>();
+function useBannerBg(ev: ArtEvent | null | undefined): { bg: string; art: string | null } {
+  const [img, setImg] = useState<string | null>(null);
+  const key = ev?.banner_image ? `${ev.id}:${ev.banner}` : "";
+  useEffect(() => {
+    if (!key || !ev) { setImg(null); return; }
+    let live = true;
+    if (!banners.has(key)) banners.set(key, api.bannerUrl(ev.id));
+    banners.get(key)!.then((u) => live && setImg(u)).catch(() => undefined);
+    return () => { live = false; };
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (ev?.banner === "custom" && img) return { bg: `linear-gradient(180deg, #0002, #000a), url(${img}) center/cover`, art: null };
+  const b = BANNERS[ev?.banner ?? "sunset"] ?? BANNERS.sunset;
+  return { bg: b.bg, art: b.art };
+}
+/** "14:30" → "2:30 PM" */
+export function ampm(t: string): string {
+  const [h, m] = t.split(":").map(Number);
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+const allDay = (ev: ArtEvent) => ev.opens === "00:00" && ev.closes === "23:59";
+const hours = (ev: ArtEvent) => (allDay(ev) ? "All day" : `${ampm(ev.opens)} – ${ampm(ev.closes)}`);
 
 function Art({ id, alt, className = "" }: { id: string; alt: string; className?: string }) {
   const [src, setSrc] = useState<string | null>(null);
@@ -33,10 +65,10 @@ async function shrink(file: File): Promise<string> {
   return c.toDataURL("image/jpeg", 0.82);
 }
 
-function Countdown({ day }: { day: string }) {
+function Countdown({ day, at = "00:00" }: { day: string; at?: string }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const t = window.setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
-  const target = new Date(`${day}T00:00:00`).getTime();
+  const target = new Date(`${day}T${at}:00`).getTime();
   const left = Math.max(0, target - now);
   const d = Math.floor(left / 86_400_000), h = Math.floor((left % 86_400_000) / 3_600_000), m = Math.floor((left % 3_600_000) / 60_000);
   return (
@@ -67,40 +99,141 @@ function Podium({ entries }: { entries: EventEntry[] }) {
   );
 }
 
-function CreateEvent({ data, onDone, onError }: { data: EventsInfo; onDone: (d: EventsInfo, msg: string) => void; onError: (s: string) => void }) {
-  const [day, setDay] = useState(data.suggested_day);
-  const [title, setTitle] = useState("Saturday Art Tournament");
-  const [prompt, setPrompt] = useState("");
-  const [open, setOpen] = useState(false);
+function EventEditor({ data, ev, onSaved, onCancel, onError }: {
+  data: EventsInfo; ev?: ArtEvent; onSaved: (d: EventsInfo, msg: string) => void; onCancel: () => void; onError: (s: string) => void;
+}) {
+  const [f, setF] = useState<ArtEventIn>(() => ev ? {
+    day: ev.day, title: ev.title, prompt: ev.prompt, opens: ev.opens, closes: ev.closes,
+    prize1: ev.prizes["1"], prize2: ev.prizes["2"], prize3: ev.prizes["3"], fee: ev.fee, banner: ev.banner,
+  } : { day: data.suggested_day, title: "Saturday Art Tournament", prompt: "", opens: "09:00", closes: "18:00", prize1: 100, prize2: 50, prize3: 25, fee: 0, banner: "sunset" });
+  const [upload, setUpload] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const upFile = useRef<HTMLInputElement>(null);
+  const set = <K extends keyof ArtEventIn>(k: K, v: ArtEventIn[K]) => setF((o) => ({ ...o, [k]: v }));
+  const num = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
+  const custom = f.banner === "custom";
+  const previewBg = custom
+    ? (upload ? `linear-gradient(180deg, #0002, #000a), url(${upload}) center/cover` : (BANNERS.sunset.bg))
+    : (BANNERS[f.banner] ?? BANNERS.sunset).bg;
+  const hasCustom = !!upload || (ev?.banner === "custom" && ev.banner_image);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (f.closes <= f.opens) { onError("It must close after it opens"); return; }
+    if (custom && !hasCustom) { onError("Upload a banner picture or choose a ready-made one"); return; }
+    setBusy(true);
+    try {
+      const body: ArtEventIn = { ...f, banner_image: custom ? upload : null };
+      const d = ev ? await api.editEvent(ev.id, body) : await api.createEvent(body);
+      onSaved(d, ev ? "Event updated ✓" : `${f.title} is set for ${fmt(f.day, { weekday: "long", day: "numeric", month: "short" })}`);
+    } catch (err) { onError(err instanceof ApiError ? err.message : "Could not save"); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <form className="ad-form ev-editor" onSubmit={save}>
+      <div className="ev-ed-preview" style={{ background: previewBg }}>
+        {!custom && <span aria-hidden="true">{BANNERS[f.banner]?.art}</span>}
+        <div><small>{fmt(f.day, { weekday: "long", day: "numeric", month: "short" })} · {f.opens === "00:00" && f.closes === "23:59" ? "All day" : `${ampm(f.opens)} – ${ampm(f.closes)}`}</small><b>{f.title || "Art Tournament"}</b></div>
+      </div>
+      <div className="ad-two">
+        <label className="field"><span className="field-label">Name</span><input required maxLength={80} value={f.title} onChange={(e) => set("title", e.target.value)} /></label>
+        <label className="field"><span className="field-label">Day</span><input type="date" required min={ev ? undefined : data.today} value={f.day} onChange={(e) => set("day", e.target.value)} />
+          <span className="field-hint">{new Date(`${f.day}T12:00:00`).getDay() === 6 ? "A Saturday ✓" : "Tip: Saturdays are tournament days"}</span></label>
+      </div>
+      <div className="ad-two">
+        <label className="field"><span className="field-label">Opens at</span><input type="time" required value={f.opens} onChange={(e) => set("opens", e.target.value)} /></label>
+        <label className="field"><span className="field-label">Closes at</span><input type="time" required value={f.closes} onChange={(e) => set("closes", e.target.value)} />
+          <span className="field-hint">Art can be sent only between these times</span></label>
+      </div>
+      <label className="field"><span className="field-label">Theme for the kids (optional)</span>
+        <input maxLength={200} placeholder="e.g. Draw your favourite animal" value={f.prompt} onChange={(e) => set("prompt", e.target.value)} /></label>
+
+      <fieldset className="ev-fs">
+        <legend>Prizes</legend>
+        <div className="ev-prize-in">
+          <label className="gold"><span>🥇 1st</span><input type="number" min={0} max={10000} inputMode="numeric" value={f.prize1} onChange={(e) => set("prize1", num(e.target.value))} /><Gem /></label>
+          <label className="silver"><span>🥈 2nd</span><input type="number" min={0} max={10000} inputMode="numeric" value={f.prize2} onChange={(e) => set("prize2", num(e.target.value))} /><Gem /></label>
+          <label className="bronze"><span>🥉 3rd</span><input type="number" min={0} max={10000} inputMode="numeric" value={f.prize3} onChange={(e) => set("prize3", num(e.target.value))} /><Gem /></label>
+        </div>
+      </fieldset>
+
+      <fieldset className="ev-fs">
+        <legend>Entry fee</legend>
+        <div className="ev-fee-in">
+          <label><input type="number" min={0} max={5000} inputMode="numeric" value={f.fee} onChange={(e) => set("fee", num(e.target.value))} /><Gem /></label>
+          <span className="field-hint">{f.fee === 0 ? "Free to enter" : `Each child pays ${f.fee} gems to enter. Refunded if you delete the event.`}</span>
+        </div>
+      </fieldset>
+
+      <fieldset className="ev-fs">
+        <legend>Banner</legend>
+        <div className="ev-banners" role="radiogroup" aria-label="Banner">
+          {data.banners.map((k) => (
+            <button type="button" key={k} role="radio" aria-checked={f.banner === k} className={`ev-bn${f.banner === k ? " on" : ""}`}
+              style={{ background: BANNERS[k]?.bg }} onClick={() => set("banner", k)}>
+              <span aria-hidden="true">{BANNERS[k]?.art}</span><small>{BANNERS[k]?.name ?? k}</small>
+            </button>
+          ))}
+          <button type="button" role="radio" aria-checked={custom} className={`ev-bn ev-bn-up${custom ? " on" : ""}`}
+            style={upload ? { background: `url(${upload}) center/cover` } : undefined}
+            onClick={() => { set("banner", "custom"); if (!hasCustom) upFile.current?.click(); }}>
+            <span aria-hidden="true">📷</span><small>{hasCustom ? "Your picture" : "Upload your own"}</small>
+          </button>
+        </div>
+        {custom && <button type="button" className="ev-link" onClick={() => upFile.current?.click()}>{hasCustom ? "Change picture" : "Choose a picture"}</button>}
+        <input ref={upFile} type="file" accept="image/*" hidden onChange={async (e) => {
+          const file = e.target.files?.[0]; e.currentTarget.value = "";
+          if (!file) return;
+          try { setUpload(await shrink(file)); set("banner", "custom"); } catch { onError("That picture could not be opened"); }
+        }} />
+      </fieldset>
+
+      <div className="ad-actions">
+        <button className="primary" disabled={busy}>{busy ? "Saving…" : ev ? "Save changes" : "Create event"}</button>
+        <button type="button" onClick={onCancel}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+async function removeEvent(ev: ArtEvent, entries: number, onDone: (d: EventsInfo, m: string) => void, onError: (s: string) => void) {
+  const warn = entries > 0
+    ? `Delete “${ev.title}”?\n\nIt has ${entries} entr${entries === 1 ? "y" : "ies"}. The art will be deleted, entry fees given back and any prizes taken back.`
+    : `Delete “${ev.title}”?`;
+  if (!window.confirm(warn)) return;
+  try { onDone(await api.deleteEvent(ev.id), "Event deleted"); } catch (err) { onError(err instanceof ApiError ? err.message : "Could not delete"); }
+}
+
+function EventsAdmin({ data, editing, setEditing, onDone, onError }: {
+  data: EventsInfo; editing: string | null; setEditing: (id: string | null) => void;
+  onDone: (d: EventsInfo, msg: string) => void; onError: (s: string) => void;
+}) {
+  const saved = (d: EventsInfo, m: string) => { setEditing(null); onDone(d, m); };
   return (
     <section className="card ev-admin">
-      <div className="ev-head"><h2>Tournaments</h2>{!open && <button className="primary" onClick={() => setOpen(true)}>＋ Create event</button>}</div>
-      {open && (
-        <form className="ad-form" onSubmit={async (e) => {
-          e.preventDefault();
-          try { onDone(await api.createEvent(day, title, prompt), `${title} is set for ${fmt(day, { weekday: "long", day: "numeric", month: "short" })}`); setOpen(false); setPrompt(""); }
-          catch (err) { onError(err instanceof ApiError ? err.message : "Could not create"); }
-        }}>
-          <div className="ad-two">
-            <label className="field"><span className="field-label">Name</span><input required maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
-            <label className="field"><span className="field-label">Day</span><input type="date" required min={data.today} value={day} onChange={(e) => setDay(e.target.value)} />
-              <span className="field-hint">{new Date(`${day}T12:00:00`).getDay() === 6 ? "A Saturday ✓" : "Tip: Saturdays are tournament days"}</span></label>
-          </div>
-          <label className="field"><span className="field-label">Theme for the kids (optional)</span>
-            <input maxLength={200} placeholder="e.g. Draw your favourite animal" value={prompt} onChange={(e) => setPrompt(e.target.value)} /></label>
-          <div className="ad-actions"><button className="primary">Create event</button><button type="button" onClick={() => setOpen(false)}>Cancel</button></div>
-        </form>
-      )}
+      <div className="ev-head"><h2>Tournaments</h2>{editing !== "new" && <button className="primary" onClick={() => setEditing("new")}>＋ Create event</button>}</div>
+      {editing === "new" && <EventEditor data={data} onSaved={saved} onCancel={() => setEditing(null)} onError={onError} />}
       {data.upcoming.length > 0 ? (
         <ul className="ev-up">
-          {data.upcoming.map((u) => (
+          {data.upcoming.map((u) => editing === u.id ? (
+            <li key={u.id} className="ev-up-edit"><EventEditor data={data} ev={u} onSaved={saved} onCancel={() => setEditing(null)} onError={onError} /></li>
+          ) : (
             <li key={u.id}>
-              <span><b>{u.title}</b> · {fmt(u.day, { weekday: "short", day: "numeric", month: "short" })}{u.day === data.today ? " · on now" : ""}{u.prompt && <small>Theme: {u.prompt}</small>}</span>
-              {u.day !== data.today && <button className="danger" onClick={async () => { try { onDone(await api.deleteEvent(u.id), "Event removed"); } catch (err) { onError(err instanceof ApiError ? err.message : "Could not remove"); } }}>Remove</button>}
+              <span className="ev-up-sw" style={{ background: u.banner === "custom" ? "#888" : BANNERS[u.banner]?.bg }} aria-hidden="true">{u.banner === "custom" ? "📷" : BANNERS[u.banner]?.art}</span>
+              <span className="ev-up-txt">
+                <b>{u.title}</b>
+                <small>{fmt(u.day, { weekday: "short", day: "numeric", month: "short" })} · {hours(u)}{u.state === "open" ? " · on now" : ""}</small>
+                <small>🥇{u.prizes["1"]} 🥈{u.prizes["2"]} 🥉{u.prizes["3"]} · {u.fee ? `Fee ${u.fee}` : "Free"}{u.prompt ? ` · ${u.prompt}` : ""}</small>
+              </span>
+              <span className="ev-up-btns">
+                <button onClick={() => setEditing(u.id)}>Edit</button>
+                <button className="danger" onClick={() => removeEvent(u, u.state === "open" ? data.current.length : 0, onDone, onError)}>Delete</button>
+              </span>
             </li>
           ))}
         </ul>
-      ) : !open && <p className="note">No tournaments planned. Create one so the kids have something to look forward to!</p>}
+      ) : editing !== "new" && <p className="note">No tournaments planned. Create one so the kids have something to look forward to!</p>}
     </section>
   );
 }
@@ -116,6 +249,7 @@ export default function Events() {
   const [busy, setBusy] = useState(false);
   const [judging, setJudging] = useState<string | null>(null); // the day being judged
   const [picks, setPicks] = useState<Record<number, string | undefined>>({});
+  const [editing, setEditing] = useState<string | null>(null);
   const file = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => { api.events().then(setData).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load")); }, []);
@@ -146,8 +280,12 @@ export default function Events() {
     if (free) setPicks({ ...picks, [free]: id });
   }
 
+  const hero = data ? (data.event ?? data.next) : null;
+  const heroBg = useBannerBg(hero);
   if (!data) return <section className="card"><p className={error ? "err" : "note"}>{error || "Loading…"}</p></section>;
-  const prizes = data.prizes;
+  const prizes = hero?.prizes ?? { "1": 100, "2": 50, "3": 25 };
+  const fee = data.event?.fee ?? 0;
+  const adminDone = (d: EventsInfo, m: string) => { setData(d); setToast(m); setError(""); notifyChanged(); };
   const gallery = (entries: EventEntry[], day: string, judgeable: boolean) => (
     <ul className="ev-gallery">
       {entries.map((e) => {
@@ -179,28 +317,29 @@ export default function Events() {
 
   return (
     <div className="ev">
-      <section className={`ev-hero${data.open ? " live" : ""}`}>
-        <div className="ev-hero-art" aria-hidden="true">🎨</div>
+      <section className={`ev-hero${data.open ? " live" : ""}${heroBg.art ? "" : " photo"}`} style={{ background: heroBg.bg }}>
+        {heroBg.art && <div className="ev-hero-art" aria-hidden="true">{heroBg.art}</div>}
         <div>
-          <p className="ev-kicker">{data.open ? "● Live today" : data.next ? `Next: ${fmt(data.next.day, { weekday: "long", day: "numeric", month: "short" })}` : "Art tournaments"}</p>
-          <h1>{(data.event ?? data.next)?.title ?? "Art Tournament"}</h1>
-          {(data.event ?? data.next)?.prompt ? <p className="ev-theme">Theme: <b>{(data.event ?? data.next)!.prompt}</b></p> : null}
+          <p className="ev-kicker">{data.open ? `● Live now · until ${ampm(data.event!.closes)}` : hero ? `${hero.day === data.today ? "Today" : fmt(hero.day, { weekday: "long", day: "numeric", month: "short" })} · ${hours(hero)}` : "Art tournaments"}</p>
+          <h1>{hero?.title ?? "Art Tournament"}</h1>
+          {hero?.prompt ? <p className="ev-theme">Theme: <b>{hero.prompt}</b></p> : null}
           <p className="ev-sub">Make something beautiful, take a photo and send it in. The best three win gems!</p>
           <div className="ev-prizes">
             <span className="gold">🥇 1st <b>{prizes["1"]}</b> <Gem /></span>
             <span className="silver">🥈 2nd <b>{prizes["2"]}</b> <Gem /></span>
             <span className="bronze">🥉 3rd <b>{prizes["3"]}</b> <Gem /></span>
+            {hero && <span className="fee">{hero.fee ? <>🎟️ Entry <b>{hero.fee}</b> <Gem /></> : "🎟️ Free entry"}</span>}
           </div>
         </div>
       </section>
       {error && <p className="err banner" role="alert">{error}</p>}
-      {isAdmin && <CreateEvent data={data} onDone={(d, m) => { setData(d); setToast(m); setError(""); }} onError={setError} />}
+      {isAdmin && <EventsAdmin data={data} editing={editing} setEditing={setEditing} onDone={adminDone} onError={setError} />}
 
       {!data.open ? (
         <section className="card ev-closed">
           {data.next ? <>
-            <h2>🔒 Opens {fmt(data.next.day, { weekday: "long", day: "numeric", month: "short" })}</h2>
-            <Countdown day={data.next.day} />
+            <h2>🔒 Opens {data.next.day === data.today ? "today" : fmt(data.next.day, { weekday: "long", day: "numeric", month: "short" })}{allDay(data.next) ? "" : ` at ${ampm(data.next.opens)}`}</h2>
+            <Countdown day={data.next.day} at={data.next.opens} />
             <p className="note">Get your art ready: drawing, painting, calligraphy, a model… anything you made yourself.</p>
           </> : <>
             <h2>🔒 No tournament scheduled yet</h2>
@@ -229,10 +368,10 @@ export default function Events() {
               )}
               <input className="ev-title" maxLength={80} placeholder="Give it a name (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
               <div className="ad-actions">
-                <button className="primary" disabled={!pic || busy} onClick={send}>{busy ? "Sending…" : "Submit my art"}</button>
+                <button className="primary" disabled={!pic || busy} onClick={send}>{busy ? "Sending…" : fee ? <>Submit my art · {fee} <Gem /></> : "Submit my art"}</button>
                 {pic && <button onClick={() => setPic(null)}>Choose another</button>}
               </div>
-              <p className="note">One picture each. You can replace it until the end of Saturday.</p>
+              <p className="note">One picture each. You can replace it until {ampm(data.event!.closes)}.{fee ? ` Entering costs ${fee} gems (paid once).` : ""}</p>
             </div>
           ))}
           <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
@@ -245,7 +384,10 @@ export default function Events() {
 
       {data.past.map((t) => (
         <section key={t.day} className="card ev-past">
+          {editing === t.id ? <EventEditor data={data} ev={t} onSaved={(d, m) => { setEditing(null); adminDone(d, m); }} onCancel={() => setEditing(null)} onError={setError} /> : <>
           <div className="ev-head"><h2>{t.title} · {fmt(t.day, { day: "numeric", month: "short" })}</h2><span className="note">{t.entries.length === 0 ? "No entries" : t.judged ? "Winners" : "Waiting for the judges"}</span></div>
+          {isAdmin && <div className="ev-past-btns"><button onClick={() => setEditing(t.id)}>Edit</button><button className="danger" onClick={() => removeEvent(t, t.entries.length, adminDone, setError)}>Delete</button></div>}
+          </>}
           {t.prompt && <p className="note" style={{ margin: "0 0 8px" }}>Theme: {t.prompt}</p>}
           {t.judged && <Podium entries={t.entries} />}
           <details className="ev-more" open={!t.judged || judging === t.day}>

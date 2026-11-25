@@ -692,4 +692,41 @@ def test_art_tournament(client, family):
         assert client.get("/api/board/profile", headers=hs["S"]).json()["event_win"] is None
         assert client.post("/api/events/entry", headers=hs["S"], json={"title": "again", "image": PNG}).status_code == 400  # judged
         ev = client.get("/api/events", headers=ha).json()["event"]
-        assert client.delete(f"/api/events/{ev['id']}", headers=ha).status_code == 400  # has art in it
+        client.delete(f"/api/events/{ev['id']}", headers=ha)  # its art goes too and the prizes are taken back
+        assert client.get("/api/board/profile", headers=hs["S"]).json()["gems"]["balance"] == before
+
+
+
+def test_event_times_prizes_fee_banner_and_edit(client, family, db):
+    sat = date(2026, 11, 28)
+    ha, h = auth(client, admin=True), auth(client, family["A"])
+    a, b = at_today(sat)
+    with a, b, patch("app.routers.events.today_for", return_value=sat), patch("app.routers.events.clock_for", return_value="09:00"):
+        r = client.post("/api/events/create", headers=ha, json={"day": sat.isoformat(), "title": "Calligraphy", "opens": "10:00",
+                        "closes": "18:00", "prize1": 200, "prize2": 80, "prize3": 30, "fee": 20, "banner": "custom", "banner_image": PNG})
+        ev = r.json()["event"]
+        assert ev["state"] == "upcoming" and ev["prizes"] == {"1": 200, "2": 80, "3": 30} and ev["fee"] == 20 and ev["banner_image"]
+        assert client.get(f"/api/events/banner/{ev['id']}", headers=h).status_code == 200
+        assert client.post("/api/events/entry", headers=h, json={"title": "x", "image": PNG}).status_code == 403  # not open yet
+        bad = client.put(f"/api/events/{ev['id']}", headers=ha, json={"day": sat.isoformat(), "opens": "18:00", "closes": "10:00"})
+        assert bad.status_code == 400
+    from app.models import DailyClaim
+    db.add(DailyClaim(member_id=family["A"].id, day=sat - timedelta(days=9), gems=100))
+    db.commit()
+    with a, b, patch("app.routers.events.today_for", return_value=sat), patch("app.routers.events.clock_for", return_value="12:00"):
+        before = client.get("/api/board/profile", headers=h).json()["gems"]["balance"]
+        assert client.post("/api/events/entry", headers=h, json={"title": "Bismillah", "image": PNG}).status_code == 200
+        assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before - 20  # entry fee
+        client.delete("/api/events/entry/mine", headers=h)
+        assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before  # fee back
+        client.post("/api/events/entry", headers=h, json={"title": "Bismillah", "image": PNG})
+        eid = client.get("/api/events", headers=h).json()["mine"]["id"]
+        client.post("/api/events/judge", headers=ha, json={"day": sat.isoformat(), "first": eid})
+        assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before - 20 + 200
+        client.put(f"/api/events/{ev['id']}", headers=ha, json={"day": sat.isoformat(), "title": "Calligraphy", "opens": "10:00",
+                   "closes": "18:00", "prize1": 150, "prize2": 80, "prize3": 30, "fee": 20, "banner": "ocean"})
+        assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before - 20 + 150  # new prize
+    with a, b, patch("app.routers.events.today_for", return_value=sat), patch("app.routers.events.clock_for", return_value="18:30"):
+        info = client.get("/api/events", headers=h).json()
+        assert info["open"] is False and info["past"][0]["title"] == "Calligraphy"
+        assert client.post("/api/events/entry", headers=auth(client, family["B"]), json={"title": "late", "image": PNG}).status_code == 403
