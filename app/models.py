@@ -180,3 +180,14 @@ class TaskDef(Base):
     next_day: Mapped[bool] = mapped_column(Boolean, default=False)  # done at night, counts for the next day
     not_before: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "12:00": can't be ticked earlier
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class Media(Base):
+    """Files the parent uploads for the app (like the Legendary quest music). Kept in the database, not in the code."""
+    __tablename__ = "media"
+    key: Mapped[str] = mapped_column(String(40), primary_key=True)
+    mime: Mapped[str] = mapped_column(String(40))
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    start: Mapped[int] = mapped_column(Integer, default=0)  # seconds into the track to start playing
+    volume: Mapped[int] = mapped_column(Integer, default=80)  # percent
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

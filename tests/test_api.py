@@ -755,3 +755,18 @@ def test_new_member_sets_own_four_digit_pin_once(client, family, db):
     assert r.status_code == 200 and r.json()["viewer"]["name"] == "Newbie"
     assert client.post("/api/auth/member/setup", json={"member_id": m["id"], "pin": "0000"}).status_code == 409
     assert client.post("/api/auth/member", json={"member_id": m["id"], "pin": "4321"}).status_code == 200
+
+
+def test_quest_music_upload_is_admin_only_and_served_to_family(client, family):
+    ha, h = auth(client, admin=True), auth(client, family["A"])
+    assert client.get("/api/media/quest-music/info", headers=h).json()["has"] is False
+    song = b"ID3" + b"\x00" * 5000
+    assert client.put("/api/media/quest-music", headers={**h, "Content-Type": "audio/mpeg"}, content=song).status_code == 403
+    assert client.put("/api/media/quest-music", headers={**ha, "Content-Type": "text/plain"}, content=b"hi").status_code == 400
+    r = client.put("/api/media/quest-music", headers={**ha, "Content-Type": "audio/mpeg"}, content=song)
+    assert r.status_code == 200 and r.json()["size"] == len(song)
+    assert client.patch("/api/media/quest-music", headers=ha, json={"start": 12, "volume": 70}).json()["start"] == 12
+    got = client.get("/api/media/quest-music", headers=h)
+    assert got.status_code == 200 and got.content == song and got.headers["content-type"] == "audio/mpeg"
+    assert client.get("/api/media/quest-music").status_code == 401
+    assert client.delete("/api/media/quest-music", headers=ha).json()["has"] is False

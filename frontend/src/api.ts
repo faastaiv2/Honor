@@ -82,6 +82,8 @@ export class ApiError extends Error {
   }
 }
 
+export interface MusicInfo { has: boolean; start: number; volume: number; size: number; updated: string | null }
+
 export const token = {
   get: (): string | null => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } },
   set: (t: string | null) => { try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch { /* private mode */ } },
@@ -93,7 +95,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   const t = token.get();
   if (t) headers.set("Authorization", `Bearer ${t}`);
-  if (init.body) headers.set("Content-Type", "application/json");
+  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   const res = await fetch(`${BASE}/api${path}`, { ...init, headers });
   if (!res.ok) {
     let message = res.statusText || "Something went wrong";
@@ -111,6 +113,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 const send = (method: string, body?: unknown): RequestInit => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
 
 export const api = {
+  musicInfo: () => request<MusicInfo>("/media/quest-music/info"),
+  uploadMusic: (f: File) => request<MusicInfo>("/media/quest-music", { method: "PUT", body: f, headers: { "Content-Type": f.type || "audio/mpeg" } }),
+  musicSettings: (start: number, volume: number) => request<MusicInfo>("/media/quest-music", send("PATCH", { start, volume })),
+  removeMusic: () => request<MusicInfo>("/media/quest-music", send("DELETE")),
+  musicUrl: async (): Promise<string> => {
+    const t = token.get();
+    const res = await fetch(`${BASE}/api/media/quest-music`, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+    if (!res.ok) throw new ApiError(res.status, "No music");
+    return URL.createObjectURL(await res.blob());
+  },
   signInList: () => request<SignInMember[]>("/auth/members"),
   memberSetup: (member_id: string, pin: string) => request<{ token: string; viewer: Viewer }>("/auth/member/setup", send("POST", { member_id, pin })),
   memberLogin: (member_id: string, pin: string) => request<{ token: string; viewer: Viewer }>("/auth/member", send("POST", { member_id, pin })),

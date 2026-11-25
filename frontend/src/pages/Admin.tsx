@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import RankIcon from "../lib/RankIcon";
 import { api, ApiError, type AdminMember, type BoardRow, type Settings } from "../api";
 import Avatar from "../lib/Avatar";
@@ -8,6 +8,8 @@ import { fmt } from "../lib/dates";
 import QuestFilm from "./QuestFilm";
 import { notifyChanged, useToast } from "../lib/events";
 import Guard from "../lib/Guard";
+import { playQuestMusic, resetQuestMusic, stopQuestMusic } from "../lib/questMusic";
+import type { MusicInfo } from "../api";
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
 
@@ -179,6 +181,65 @@ function AddMember({ onAdded, onError }: { onAdded: (s: string) => void; onError
   );
 }
 
+/** The music for the Legendary quest film: uploaded here, kept in the family's own database. */
+function QuestMusic({ onError, onDone }: { onError: (s: string) => void; onDone: (s: string) => void }) {
+  const [info, setInfo] = useState<MusicInfo | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [start, setStart] = useState("0");
+  const [vol, setVol] = useState(80);
+  const file = useRef<HTMLInputElement>(null);
+  const show = (i: MusicInfo) => { setInfo(i); setStart(String(i.start)); setVol(i.volume); };
+  useEffect(() => { api.musicInfo().then(show).catch(() => undefined); return () => stopQuestMusic(0); }, []);
+  const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  async function upload(f?: File) {
+    if (!f) return;
+    if (f.size > 4_300_000) { onError(`That file is ${(f.size / 1_000_000).toFixed(1)} MB. The most is 4.3 MB`); return; }
+    setBusy(true);
+    try { stopQuestMusic(0); show(await api.uploadMusic(f)); resetQuestMusic(); onDone("Quest music uploaded 🎵"); }
+    catch (e) { onError(msg(e)); } finally { setBusy(false); }
+  }
+  async function save() {
+    try { show(await api.musicSettings(Math.max(0, Number(start) || 0), vol)); resetQuestMusic(); onDone("Music settings saved"); }
+    catch (e) { onError(msg(e)); }
+  }
+  async function test() {
+    if (playing) { stopQuestMusic(600); setPlaying(false); return; }
+    resetQuestMusic();
+    setPlaying(await playQuestMusic());
+  }
+
+  return (
+    <section className="card qm">
+      <h2>🎵 Quest music</h2>
+      <p className="note">Plays during the Legendary quest film. It's kept privately in your own database and only played for your family.</p>
+      {info?.has ? (
+        <div className="qm-has">
+          <span className="qm-disc" aria-hidden="true">🎶</span>
+          <div><b>Music is set</b><small>{(info.size / 1_000_000).toFixed(1)} MB · starts at {mmss(info.start)}</small></div>
+          <button onClick={test}>{playing ? "■ Stop" : "▶ Test"}</button>
+        </div>
+      ) : <p className="qm-none">No music yet: the film plays silently.</p>}
+      {info?.has && (
+        <div className="ad-two">
+          <label className="field"><span className="field-label">Start at (seconds)</span>
+            <input type="number" min={0} max={3600} value={start} onChange={(e) => setStart(e.target.value)} /></label>
+          <label className="field"><span className="field-label">Volume · {vol}%</span>
+            <input type="range" min={10} max={100} step={5} value={vol} onChange={(e) => setVol(Number(e.target.value))} /></label>
+        </div>
+      )}
+      <div className="ad-actions">
+        <button className="primary" disabled={busy} onClick={() => file.current?.click()}>{busy ? "Uploading…" : info?.has ? "Replace music" : "Upload music"}</button>
+        {info?.has && <button onClick={save}>Save</button>}
+        {info?.has && <button className="danger" onClick={async () => { stopQuestMusic(0); setPlaying(false); try { show(await api.removeMusic()); resetQuestMusic(); onDone("Music removed"); } catch (e) { onError(msg(e)); } }}>Remove</button>}
+      </div>
+      <p className="field-hint">MP3, M4A, OGG or WAV · up to 4.3 MB</p>
+      <input ref={file} type="file" accept="audio/*" hidden onChange={(e) => { upload(e.target.files?.[0]); e.currentTarget.value = ""; }} />
+    </section>
+  );
+}
+
 /** When Honor starts counting: a date, and a button to start again from today. */
 function StartDate({ settings, today, onSave }: { settings: Settings; today: string; onSave: (d: string) => void }) {
   const [pick, setPick] = useState(settings.score_from);
@@ -301,6 +362,8 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
               ))}
             </div>
           </section>
+
+          <QuestMusic onError={setError} onDone={(s) => { setError(""); setToast(s); }} />
 
           <section className="card">
             <details className="ad-details">

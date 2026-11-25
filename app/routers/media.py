@@ -1,0 +1,86 @@
+"""Media the parent uploads, like the music for the Legendary quest film.
+
+The file lives in the family's own database and is only served to signed-in family members."""
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from app.db import get_db
+from app.deps import Viewer, current_viewer, require_admin
+from app.models import Media
+
+router = APIRouter(prefix="/media", tags=["media"])
+
+KEYS = {"quest-music"}
+MAX_BYTES = 4_300_000  # the host accepts uploads up to about 4.5 MB
+AUDIO = {"audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/x-wav", "audio/aac", "audio/mp4", "audio/x-m4a", "audio/webm"}
+
+
+def _key(key: str) -> str:
+    if key not in KEYS:
+        raise HTTPException(404, "Unknown media")
+    return key
+
+
+def _info(m: Media | None) -> dict:
+    if not m:
+        return {"has": False, "start": 0, "volume": 80, "size": 0, "updated": None}
+    return {"has": True, "start": m.start, "volume": m.volume, "size": len(m.data), "updated": m.updated_at.isoformat()}
+
+
+@router.get("/{key}/info")
+def info(key: str, _: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    return _info(db.get(Media, _key(key)))
+
+
+@router.get("/{key}")
+def file(key: str, _: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> Response:
+    m = db.get(Media, _key(key))
+    if not m:
+        raise HTTPException(404, "No file yet")
+    return Response(m.data, media_type=m.mime, headers={"Cache-Control": "private, max-age=86400"})
+
+
+@router.put("/{key}")
+async def upload(key: str, request: Request, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    """The raw file is the request body (not JSON), so a 4 MB song fits under the host's limit."""
+    key = _key(key)
+    mime = (request.headers.get("content-type") or "").split(";")[0].strip().lower()
+    if mime not in AUDIO:
+        raise HTTPException(400, "Choose a music file (MP3, M4A, OGG or WAV)")
+    data = await request.body()
+    if not data:
+        raise HTTPException(400, "The file is empty")
+    if len(data) > MAX_BYTES:
+        raise HTTPException(400, f"That file is {len(data) / 1_000_000:.1f} MB. The most is 4.3 MB")
+    m = db.get(Media, key) or Media(key=key, start=0, volume=80)
+    m.mime, m.data, m.updated_at = mime, data, datetime.now(timezone.utc)
+    db.add(m)
+    db.commit()
+    return _info(m)
+
+
+class MediaSettings(BaseModel):
+    start: int = Field(ge=0, le=3600)
+    volume: int = Field(ge=0, le=100)
+
+
+@router.patch("/{key}")
+def settings(key: str, body: MediaSettings, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    m = db.get(Media, _key(key))
+    if not m:
+        raise HTTPException(404, "Upload the music first")
+    m.start, m.volume = body.start, body.volume
+    db.commit()
+    return _info(m)
+
+
+@router.delete("/{key}")
+def remove(key: str, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    m = db.get(Media, _key(key))
+    if m:
+        db.delete(m)
+        db.commit()
+    return _info(None)

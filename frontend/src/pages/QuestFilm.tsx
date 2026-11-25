@@ -6,10 +6,11 @@ import Medal from "../lib/Medal";
 import RankIcon from "../lib/RankIcon";
 import { notifyChanged } from "../lib/events";
 import { Particles } from "../lib/particles";
+import { playQuestMusic, preloadQuestMusic, stopQuestMusic } from "../lib/questMusic";
 
 /**
  * The film for the greatest choice in the app: giving up Obsidian to start the Legendary quest.
- * Five acts (about 15 seconds), then the "To Be a Legend" achievement and its 500 gems.
+ * A prologue and seven acts (about 35 seconds) with the quest music, then the "To Be a Legend" achievement.
  */
 const PURPLE = ["#b69cff", "#7d5fd0", "#e3d8ff", "#ffffff"];
 const GOLDS = ["#ffd24a", "#fff2b8", "#c99a1e", "#ffffff", "#ff9f1a"];
@@ -17,7 +18,8 @@ const BRONZE = ["#e0a466", "#f6c896", "#b0703a", "#fff1dc"];
 const TITLE = "THE LEGENDARY QUEST";
 
 export default function QuestFilm({ name, onClose, preview = false }: { name: string; onClose: () => void; preview?: boolean }) {
-  const [act, setAct] = useState(1);
+  const [act, setAct] = useState(0);
+  const [needTap, setNeedTap] = useState(false);
   const [stage, setStage] = useState<"film" | "medal" | "gems">("film");
   const [shake, setShake] = useState(0);
   const [reward, setReward] = useState(500);
@@ -36,30 +38,49 @@ export default function QuestFilm({ name, onClose, preview = false }: { name: st
     return () => { e.stop(); window.removeEventListener("resize", onResize); };
   }, [reduced]);
 
+  // The music: fades in with the film, plays on through the award, fades out when it closes.
   useEffect(() => {
-    if (reduced) { setAct(5); setStage("medal"); return; }
+    let live = true;
+    playQuestMusic().then((ok) => {
+      if (!live) return;
+      if (!ok) preloadQuestMusic().then((m) => live && m && setNeedTap(true)); // the browser blocked sound: offer a tap
+    });
+    return () => { live = false; stopQuestMusic(1500); };
+  }, []);
+
+  useEffect(() => {
+    if (reduced) { setAct(7); setStage("medal"); return; }
     const e = engine.current!;
     const ts: number[] = [];
     const at = (ms: number, fn: () => void) => ts.push(window.setTimeout(fn, ms));
     const quake = (n: number) => { setShake(n); at(650, () => setShake(0)); };
 
-    // Act 1: the summit. Obsidian glows in a dark sky.
-    e.burst("star", 240, ["#ffffff", "#e3d8ff"]);
-    e.emit("ember", 14, 3000, PURPLE);
-    // Act 2: the choice. Lightning cracks the crest and it shatters.
-    at(3000, () => setAct(2));
-    [3100, 3500, 3800, 4200, 4500].forEach((t) => at(t, () => e.lightning()));
-    at(3600, () => quake(1));
-    at(4800, () => { setAct(3); quake(2); e.burst("ring", 48, PURPLE); e.burst("sparkle", 260, PURPLE); e.burst("firework", 120, PURPLE, { x: e.cx, y: e.cy }); });
-    at(5100, () => e.burst("ring", 48, ["#ffffff", "#b69cff"]));
-    // Act 3: the fall. Back to Bronze I.
-    at(6300, () => { setAct(4); e.emit("ember", 30, 2400, BRONZE); });
-    // Act 4: the road. A path of light to the Legendary crest.
-    at(8700, () => { setAct(5); e.emit("gold", 150, 2200, GOLDS); e.emit("streak", 3, 2200, ["#fff2b8"]); });
-    // Act 5: the oath. The title, gold fire and fireworks.
-    at(11100, () => { setAct(6); quake(2); e.burst("sparkle", 320, GOLDS); e.burst("ring", 48, GOLDS); e.emit("confetti", 120, 3200, GOLDS); });
-    for (let i = 0; i < 10; i++) at(11300 + i * 330, () => e.firework(GOLDS));
-    at(15000, () => setStage("medal"));
+    // Prologue (0s): darkness, slow stars, two lines.
+    e.burst("star", 160, ["#ffffff", "#e3d8ff"]);
+    at(1500, () => e.burst("star", 120, ["#ffffff", "#c8b8ff"]));
+    // Act 1 (4.5s): the summit. Obsidian rises over the mountain.
+    at(4500, () => { setAct(1); e.burst("star", 200, ["#ffffff", "#e3d8ff"]); e.emit("ember", 14, 4500, PURPLE); });
+    at(5600, () => e.burst("ring", 36, PURPLE));
+    // Act 2 (9s): the choice. The storm gathers; lightning cracks the crest.
+    at(9000, () => setAct(2));
+    [9200, 9900, 10500, 11000, 11500, 11900, 12300, 12600].forEach((t) => at(t, () => e.lightning()));
+    at(10200, () => quake(1));
+    at(11800, () => quake(1));
+    // Act 3 (13s): it shatters.
+    at(13000, () => { setAct(3); quake(2); e.burst("ring", 60, PURPLE); e.burst("sparkle", 320, PURPLE); e.burst("firework", 140, PURPLE, { x: e.cx, y: e.cy }); });
+    at(13300, () => e.burst("ring", 60, ["#ffffff", "#b69cff"]));
+    // Act 4 (15.2s): the fall. Bronze I rises from the embers.
+    at(15200, () => { setAct(4); e.emit("ember", 34, 4000, BRONZE); e.burst("crystal", 60, PURPLE); });
+    at(16400, () => e.burst("ring", 30, BRONZE));
+    // Act 5 (19.6s): the road. Fifty levels of light climb to the Legendary crest.
+    at(19600, () => { setAct(5); e.emit("gold", 120, 4600, GOLDS); e.emit("streak", 3, 4600, ["#fff2b8"]); });
+    // Act 6 (24.6s): the ascension. The crest descends in a storm of gold.
+    at(24600, () => { setAct(6); quake(1); e.burst("ring", 60, GOLDS); e.burst("sparkle", 260, GOLDS); e.emit("gold", 160, 3600, GOLDS); });
+    at(25400, () => e.burst("ring", 60, ["#ffffff", "#ffd24a"]));
+    // Act 7 (28.6s): the oath. The title, gold fire and fireworks.
+    at(28600, () => { setAct(7); quake(2); e.burst("sparkle", 360, GOLDS); e.burst("ring", 60, GOLDS); e.emit("confetti", 140, 5600, GOLDS); });
+    for (let i = 0; i < 16; i++) at(28800 + i * 340, () => e.firework(i % 3 ? GOLDS : ["#ffffff", "#b69cff", "#ffd24a"]));
+    at(35000, () => setStage("medal"));
     return () => ts.forEach(clearTimeout);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -85,7 +106,15 @@ export default function QuestFilm({ name, onClose, preview = false }: { name: st
       <div className="qf-beam" aria-hidden="true" />
       <canvas ref={canvas} className="ru-canvas" />
       <div className="ru-flash qf-flash" />
+      <div className="qf-rays" aria-hidden="true" />
+      <svg className="qf-peak" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 120 L60 70 L95 88 L150 40 L200 6 L250 40 L300 82 L340 60 L400 96 V120 Z" />
+        <path className="qf-peak-snow" d="M178 22 L200 6 L222 22 L212 20 L204 28 L196 20 Z" />
+      </svg>
       {preview && <p className="film-preview">Preview only · nothing changes</p>}
+      {needTap && (
+        <button className="qf-sound" onClick={() => { void playQuestMusic().then((ok) => ok && setNeedTap(false)); }}>🔊 Tap for music</button>
+      )}
 
       {stage === "film" && (
         <div className="qf-stage" aria-live="polite">
@@ -97,12 +126,20 @@ export default function QuestFilm({ name, onClose, preview = false }: { name: st
           <div className="qf-crest qf-bronze" aria-hidden="true"><RankIcon rank="bronze" className="ru-crest" /></div>
           <div className="qf-crest qf-legend" aria-hidden="true"><RankIcon rank="legendary" className="ru-crest" /></div>
 
+          <p className="qf-pro p1">Some choose comfort.</p>
+          <p className="qf-pro p2">A few choose <b>legend</b>.</p>
+          <div className="qf-levels" aria-hidden="true">
+            {["I", "V", "X", "XV", "XX", "XXV", "XXX", "XXXV", "XL", "XLV", "L"].map((n, i) => (
+              <span key={n} style={{ bottom: `${6 + i * 7.2}%`, fontSize: `${30 - i * 1.7}px`, animationDelay: `${0.3 + i * 0.32}s` }}>{n}</span>
+            ))}
+          </div>
           <p className="qf-line l1">{name}, you stand at the summit: <b>Obsidian · XLIX</b></p>
           <p className="qf-line l2">…and you give it all up.</p>
           <p className="qf-line l3">Back to <b>Bronze I</b>.</p>
+          <p className="qf-line l5">Fifty levels. Every task. Every bonus. <b>Every day.</b></p>
           <p className="qf-line l4">The road to Legend begins.</p>
           <div className="qf-title" aria-label={TITLE}>
-            {TITLE.split("").map((ch, i) => <span key={i} style={{ animationDelay: `${11.2 + i * 0.06}s` }}>{ch === " " ? " " : ch}</span>)}
+            {TITLE.split("").map((ch, i) => <span key={i} style={{ animationDelay: `${0.25 + i * 0.07}s` }}>{ch === " " ? " " : ch}</span>)}
           </div>
           <p className="qf-oath">Every task · every bonus · every day · until <b>L</b></p>
         </div>
