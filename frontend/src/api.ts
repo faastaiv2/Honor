@@ -83,7 +83,7 @@ export class ApiError extends Error {
 }
 
 export type SoundKey = "quest-music" | "quest-thunder" | "quest-crack" | "rankup-music" | "chest" | "gems" | "gems-crack" | "collect" | "achievement" | "event-win";
-export interface MusicInfo { has: boolean; start: number; volume: number; size: number; updated: string | null }
+export interface MusicInfo { has: boolean; start: number; end: number; volume: number; size: number; updated: string | null }
 
 export const token = {
   get: (): string | null => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } },
@@ -117,7 +117,7 @@ export const api = {
   soundsInfo: () => request<Record<SoundKey, MusicInfo>>("/media"),
   musicInfo: (key: SoundKey = "quest-music") => request<MusicInfo>(`/media/${key}/info`),
   uploadMusic: (f: File, key: SoundKey = "quest-music") => request<MusicInfo>(`/media/${key}`, { method: "PUT", body: f, headers: { "Content-Type": f.type || "audio/mpeg" } }),
-  musicSettings: (start: number, volume: number, key: SoundKey = "quest-music") => request<MusicInfo>(`/media/${key}`, send("PATCH", { start, volume })),
+  musicSettings: (start: number, volume: number, key: SoundKey = "quest-music", end = 0) => request<MusicInfo>(`/media/${key}`, send("PATCH", { start, end, volume })),
   removeMusic: (key: SoundKey = "quest-music") => request<MusicInfo>(`/media/${key}`, send("DELETE")),
   musicUrl: async (key: SoundKey = "quest-music"): Promise<string> => {
     const t = token.get();

@@ -36,6 +36,11 @@ export async function playSound(key: SoundKey): Promise<boolean> {
   const a = new Audio(m.url);
   a.volume = m.info.volume / 100;
   a.currentTime = m.info.start;
+  const end = m.info.end;
+  if (end > m.info.start) {  // play just the chosen section
+    a.addEventListener("timeupdate", () => { if (a.currentTime >= end) a.pause(); });
+    window.setTimeout(() => a.pause(), (end - m.info.start) * 1000 + 150);
+  }
   try { await a.play(); return true; } catch { return false; }
 }
 
@@ -60,9 +65,18 @@ export async function playMusic(key: SoundKey): Promise<boolean> {
   const a = new Audio(m.url);
   a.volume = 0;
   a.currentTime = m.info.start;
-  music.set(key, { a, fader: 0 });
+  const entry = { a, fader: 0 };
+  music.set(key, entry);
   try { await a.play(); } catch { music.delete(key); return false; }
-  fade(key, m.info.volume / 100, 2500);
+  const len = m.info.end > m.info.start ? m.info.end - m.info.start : 0;
+  fade(key, m.info.volume / 100, Math.min(2500, len ? len * 300 : 2500));
+  if (len) {  // the chosen section: fade out over its last 1.5 seconds
+    const fadeOut = Math.min(1.5, len / 3);
+    let ending = false;
+    a.addEventListener("timeupdate", () => {
+      if (!ending && music.get(key) === entry && a.currentTime >= m.info.end - fadeOut) { ending = true; stopMusic(key, fadeOut * 1000); }
+    });
+  }
   return true;
 }
 

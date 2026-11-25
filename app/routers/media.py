@@ -39,16 +39,17 @@ def _key(key: str) -> str:
 
 def _info(m: Media | None) -> dict:
     if not m:
-        return {"has": False, "start": 0, "volume": 80, "size": 0, "updated": None}
-    return {"has": True, "start": m.start, "volume": m.volume, "size": len(m.data), "updated": m.updated_at.isoformat()}
+        return {"has": False, "start": 0, "end": 0, "volume": 80, "size": 0, "updated": None}
+    return {"has": True, "start": m.start, "end": m.end or 0, "volume": m.volume, "size": len(m.data), "updated": m.updated_at.isoformat()}
 
 
 @router.get("")
 def all_info(_: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
     """Which sound slots have a file, and their settings (without the files themselves)."""
     # Read only the small columns: the files can be several megabytes each.
-    rows = db.execute(select(Media.key, Media.start, Media.volume, Media.updated_at, func.length(Media.data))).all()
-    have = {k: {"has": True, "start": st, "volume": vol, "size": int(size or 0), "updated": up.isoformat()} for k, st, vol, up, size in rows}
+    rows = db.execute(select(Media.key, Media.start, Media.end, Media.volume, Media.updated_at, func.length(Media.data))).all()
+    have = {k: {"has": True, "start": st, "end": en or 0, "volume": vol, "size": int(size or 0), "updated": up.isoformat()}
+            for k, st, en, vol, up, size in rows}
     return {k: have.get(k, _info(None)) for k in sorted(KEYS)}
 
 
@@ -77,7 +78,7 @@ async def upload(key: str, request: Request, _: Viewer = Depends(require_admin),
         raise HTTPException(400, "The file is empty")
     if len(data) > MAX_BYTES:
         raise HTTPException(400, f"That file is {len(data) / 1_000_000:.1f} MB. The most is 4.3 MB")
-    m = db.get(Media, key) or Media(key=key, start=0, volume=80)
+    m = db.get(Media, key) or Media(key=key, start=0, end=0, volume=80)
     m.mime, m.data, m.updated_at = mime, data, datetime.now(timezone.utc)
     db.add(m)
     db.commit()
@@ -86,6 +87,7 @@ async def upload(key: str, request: Request, _: Viewer = Depends(require_admin),
 
 class MediaSettings(BaseModel):
     start: int = Field(ge=0, le=3600)
+    end: int = Field(default=0, ge=0, le=3600)  # 0 = play to the end of the file
     volume: int = Field(ge=0, le=100)
 
 
@@ -94,7 +96,9 @@ def settings(key: str, body: MediaSettings, _: Viewer = Depends(require_admin), 
     m = db.get(Media, _key(key))
     if not m:
         raise HTTPException(404, "Upload the music first")
-    m.start, m.volume = body.start, body.volume
+    if body.end and body.end <= body.start:
+        raise HTTPException(400, "The end must be after the start")
+    m.start, m.end, m.volume = body.start, body.end, body.volume
     db.commit()
     return _info(m)
 

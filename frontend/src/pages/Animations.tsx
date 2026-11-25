@@ -15,6 +15,13 @@ import RankUp from "./RankUp";
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
 const MUSIC: SoundKey[] = ["quest-music", "rankup-music"];
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+/** "1:20", "80" or "1:20.5" → seconds (rounded); "" → 0. NaN if it can't be read. */
+const toSec = (t: string) => {
+  const v = t.trim();
+  if (!v) return 0;
+  const m = v.match(/^(?:(\d+):)?(\d+(?:\.\d+)?)$/);
+  return m ? Math.round(Number(m[1] ?? 0) * 60 + Number(m[2])) : NaN;
+};
 
 type Preview = { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" };
 
@@ -26,11 +33,12 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
   const [busy, setBusy] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [open, setOpen] = useState(false);
-  const [start, setStart] = useState(String(info?.start ?? 0));
+  const [start, setStart] = useState(mmss(info?.start ?? 0));
+  const [end, setEnd] = useState(info?.end ? mmss(info.end) : "");
   const [vol, setVol] = useState(info?.volume ?? 80);
   const file = useRef<HTMLInputElement>(null);
   const isMusic = MUSIC.includes(k);
-  useEffect(() => { setStart(String(info?.start ?? 0)); setVol(info?.volume ?? 80); }, [info]);
+  useEffect(() => { setStart(mmss(info?.start ?? 0)); setEnd(info?.end ? mmss(info.end) : ""); setVol(info?.volume ?? 80); }, [info]);
   useEffect(() => () => stopMusic(k, 0), [k]);
 
   async function upload(f?: File) {
@@ -41,7 +49,10 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
     catch (e) { onError(msg(e)); } finally { setBusy(false); }
   }
   async function save() {
-    try { onChange(await api.musicSettings(Math.max(0, Number(start) || 0), vol, k)); resetSounds(k); onDone("Saved"); setOpen(false); }
+    const a = toSec(start), b = toSec(end);
+    if (Number.isNaN(a) || Number.isNaN(b)) { onError("Write times like 1:20 or 80"); return; }
+    if (b && b <= a) { onError("The end must be after the start"); return; }
+    try { onChange(await api.musicSettings(a, vol, k, b)); resetSounds(k); onDone("Saved"); setOpen(false); }
     catch (e) { onError(msg(e)); }
   }
   async function test() {
@@ -61,7 +72,7 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
       <div className="an-slot-txt">
         <b>{label}</b>
         <small>{when}</small>
-        <small className="an-slot-state">{info?.has ? `✓ Set · ${(info.size / 1_000_000).toFixed(1)} MB · from ${mmss(info.start)} · ${info.volume}%` : "No sound"}</small>
+        <small className="an-slot-state">{info?.has ? `✓ Set · ${(info.size / 1_000_000).toFixed(1)} MB · plays ${mmss(info.start)} → ${info.end ? mmss(info.end) : "end"} · ${info.volume}%` : "No sound"}</small>
       </div>
       <div className="an-slot-btns">
         {info?.has && <button onClick={test} aria-label={`Test ${label}`}>{isMusic && playing ? "■" : "▶"}</button>}
@@ -70,8 +81,13 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
       </div>
       {open && info?.has && (
         <div className="an-slot-set">
-          <label className="field"><span className="field-label">Start at (seconds)</span>
-            <input type="number" min={0} max={3600} value={start} onChange={(e) => setStart(e.target.value)} /></label>
+          <div className="an-range">
+            <label className="field"><span className="field-label">Play from</span>
+              <input inputMode="decimal" placeholder="0:00" value={start} onChange={(e) => setStart(e.target.value)} /></label>
+            <span aria-hidden="true">→</span>
+            <label className="field"><span className="field-label">to</span>
+              <input inputMode="decimal" placeholder="the end" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
+          </div>
           <label className="field"><span className="field-label">Volume · {vol}%</span>
             <input type="range" min={10} max={100} step={5} value={vol} onChange={(e) => setVol(Number(e.target.value))} /></label>
           <div className="ad-actions"><button className="primary" onClick={save}>Save</button><button className="danger" onClick={remove}>Remove sound</button></div>
