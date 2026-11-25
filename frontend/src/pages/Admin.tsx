@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { api, ApiError, type Adjustment, type AdminMember, type BoardRow, type Settings } from "../api";
+import { api, ApiError, type AdminMember, type BoardRow, type Settings } from "../api";
 import Avatar from "../lib/Avatar";
 import { notifyChanged, useToast } from "../lib/events";
 
@@ -19,7 +19,42 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-function MemberRow({ m, row, onDone, onError }: { m: AdminMember; row?: BoardRow; onDone: (s: string) => void; onError: (s: string) => void }) {
+function LevelControl({ m, row, onChanged, onError }: { m: AdminMember; row?: BoardRow; onChanged: () => void; onError: (s: string) => void }) {
+  const level = row?.level ?? m.base_honor;
+  const [busy, setBusy] = useState(false);
+  const [typing, setTyping] = useState<string | null>(null);
+
+  async function change(delta: number, note: string) {
+    if (!delta || busy) return;
+    setBusy(true);
+    try { await api.addAdjustment(m.id, delta, note); onChanged(); } catch (e) { onError(msg(e)); } finally { setBusy(false); }
+  }
+  async function setExact(e: FormEvent) {
+    e.preventDefault();
+    const target = Number(typing);
+    setTyping(null);
+    if (Number.isFinite(target)) await change(target - level, `Level set to ${target}`);
+  }
+
+  return (
+    <span className="level-ctl">
+      <button type="button" aria-label={`One less Honor for ${m.name}`} disabled={busy} onClick={() => change(-1, "−1 by admin")}>−</button>
+      {typing === null ? (
+        <button type="button" className="level-num" title="Tap to type an exact level" disabled={busy} onClick={() => setTyping(String(level))}>
+          {row?.label ?? level}
+        </button>
+      ) : (
+        <form onSubmit={setExact}>
+          <input className="level-input" type="number" autoFocus aria-label={`Exact level for ${m.name}`} value={typing}
+            onChange={(e) => setTyping(e.target.value)} onBlur={() => setTyping(null)} onKeyDown={(e) => e.key === "Escape" && setTyping(null)} />
+        </form>
+      )}
+      <button type="button" aria-label={`One more Honor for ${m.name}`} disabled={busy} onClick={() => change(1, "+1 by admin")}>+</button>
+    </span>
+  );
+}
+
+function MemberRow({ m, row, onDone, onChanged, onError }: { m: AdminMember; row?: BoardRow; onDone: (s: string) => void; onChanged: () => void; onError: (s: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(m.name);
   const [base, setBase] = useState(String(m.base_honor));
@@ -48,16 +83,17 @@ function MemberRow({ m, row, onDone, onError }: { m: AdminMember; row?: BoardRow
         <div className="mem-name">
           <b>{m.name}</b>
           <span className="note" style={{ margin: 0 }}>
-            {row ? `${row.tier.emoji} ${row.tier.name} · ${row.label}` : `Starting level ${m.base_honor}`}
+            {row ? `${row.tier.emoji} ${row.tier.name}` : "New"}
             {m.has_pin ? "" : " · no PIN yet"}
           </span>
         </div>
+        <LevelControl m={m} row={row} onChanged={onChanged} onError={onError} />
         <button onClick={() => { setEditing((x) => !x); setSure(false); }}>{editing ? "Close" : "Edit"}</button>
       </div>
       {editing && (
         <form className="mem-edit" onSubmit={save}>
           <Field label="Name"><input value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} /></Field>
-          <Field label="Starting level" hint="Their level before the app started counting">
+          <Field label="Starting level" hint="Their level before the app started counting. To change today's level, use − / + instead">
             <input type="number" value={base} onChange={(e) => setBase(e.target.value)} />
           </Field>
           <Field label="New PIN" hint="Leave empty to keep the current PIN">
@@ -76,7 +112,6 @@ function MemberRow({ m, row, onDone, onError }: { m: AdminMember; row?: BoardRow
 export default function Admin() {
   const [members, setMembers] = useState<AdminMember[]>([]);
   const [rows, setRows] = useState<BoardRow[]>([]);
-  const [adjs, setAdjs] = useState<Adjustment[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState("");
   const [toast, setToast] = useToast();
@@ -84,17 +119,15 @@ export default function Admin() {
   const reload = useCallback(() => {
     api.members().then(setMembers).catch((e) => setError(msg(e)));
     api.leaderboard().then((b) => setRows(b.rows)).catch(() => undefined);
-    api.adjustments().then(setAdjs).catch(() => undefined);
     api.settings().then(setSettings).catch(() => undefined);
   }, []);
   useEffect(reload, [reload]);
 
   const done = (s: string) => { setError(""); setToast(s); reload(); notifyChanged(); };
-  const nameOf = (id: string) => members.find((m) => m.id === id)?.name ?? "?";
+  const quiet = () => { setError(""); reload(); notifyChanged(); };
   const rowOf = (id: string) => rows.find((r) => r.member.id === id);
 
   const [nm, setNm] = useState({ name: "", pin: "", base: "1" });
-  const [adj, setAdj] = useState({ member: "", delta: 1, note: "" });
   const [pw, setPw] = useState({ current: "", next: "" });
 
   const run = (fn: () => Promise<unknown>, ok: string) => async (e: FormEvent) => {
@@ -111,7 +144,7 @@ export default function Admin() {
         <h2>Members</h2>
         {members.length === 0 && <p className="note">No members yet. Add the first one below.</p>}
         <ul className="mem-list">
-          {members.map((m) => <MemberRow key={`${m.id}${m.name}${m.base_honor}${m.has_pin}`} m={m} row={rowOf(m.id)} onDone={done} onError={setError} />)}
+          {members.map((m) => <MemberRow key={`${m.id}${m.name}${m.base_honor}${m.has_pin}`} m={m} row={rowOf(m.id)} onDone={done} onChanged={quiet} onError={setError} />)}
         </ul>
         <h3>Add a member</h3>
         <form className="add-form" onSubmit={run(async () => {
@@ -127,39 +160,6 @@ export default function Admin() {
           </Field>
           <button className="primary">Add member</button>
         </form>
-      </section>
-
-      <section className="card">
-        <h2>Give or take Honor</h2>
-        <form className="add-form" onSubmit={run(async () => {
-          await api.addAdjustment(adj.member || members[0]?.id, adj.delta, adj.note);
-          setAdj({ ...adj, note: "" });
-        }, "Honor updated")}>
-          <Field label="Member">
-            <select value={adj.member || members[0]?.id || ""} onChange={(e) => setAdj({ ...adj, member: e.target.value })}>
-              {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Amount">
-            <span className="stepper">
-              <button type="button" aria-label="Less" onClick={() => setAdj({ ...adj, delta: adj.delta - 1 || -1 })}>−</button>
-              <b>{adj.delta > 0 ? `+${adj.delta}` : adj.delta}</b>
-              <button type="button" aria-label="More" onClick={() => setAdj({ ...adj, delta: adj.delta + 1 || 1 })}>+</button>
-            </span>
-          </Field>
-          <Field label="Reason"><input maxLength={200} placeholder="Helped a lot today" value={adj.note} onChange={(e) => setAdj({ ...adj, note: e.target.value })} /></Field>
-          <button className="primary" disabled={!members.length}>Apply</button>
-        </form>
-        {adjs.length > 0 && (
-          <ul className="adj-list">
-            {adjs.slice(0, 10).map((a) => (
-              <li key={a.id}>
-                <span><b className={a.delta > 0 ? "pos" : "neg"}>{a.delta > 0 ? "+" : ""}{a.delta}</b> {nameOf(a.member_id)}{a.note ? ` — ${a.note}` : ""}</span>
-                <button onClick={async () => { try { await api.deleteAdjustment(a.id); done("Undone"); } catch (e) { setError(msg(e)); } }}>Undo</button>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
 
       <section className="card">

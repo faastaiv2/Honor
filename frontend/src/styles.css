@@ -225,3 +225,9 @@ button.wide { width: 100%; }
 @media (prefers-reduced-motion: reduce) { .pin-dots.shake { animation: none; } }
 @media (max-width: 420px) { .keypad { grid-template-columns: repeat(3, 64px); } .keypad button { height: 58px; } }
 @media (max-width: 700px) { .welcome { padding-top: 76px; align-items: start; } }
+
+.level-ctl { display: inline-flex; align-items: center; gap: 4px; }
+.level-ctl > button { width: 40px; min-height: 40px; padding: 0; font-size: 22px; font-weight: 700; border-radius: 50%; }
+.level-ctl .level-num { width: auto; min-width: 64px; border-radius: 10px; font: 22px Marcellus, Georgia, serif; border-color: transparent; background: var(--goldsoft); }
+.level-input { width: 72px; min-height: 40px; text-align: center; font-size: 18px; }
+@media (max-width: 520px) { .mem-line { flex-wrap: wrap; } .mem-name { flex-basis: calc(100% - 60px); } .level-ctl { margin-inline-start: 54px; } }
