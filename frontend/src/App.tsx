@@ -66,7 +66,7 @@ export default function App() {
             <NavLink to="/benefits">Benefits</NavLink>
             {viewer.is_admin && <NavLink to="/tasks">Tasks</NavLink>}
             {viewer.is_admin && <NavLink to="/animations">Animations</NavLink>}
-            {viewer.is_admin && <NavLink to="/admin" end>Admin</NavLink>}
+            {viewer.is_admin && <NavLink to="/admin" end>Members</NavLink>}
             <span className="who"><span>{viewer.name}</span><button onClick={signOut}>Sign out</button></span>
           </nav>
         </div>

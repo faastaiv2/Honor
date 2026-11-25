@@ -7,8 +7,8 @@ import RankIcon from "../lib/RankIcon";
 import { notifyChanged } from "../lib/events";
 import { Particles } from "../lib/particles";
 import { playQuestMusic, preloadQuestMusic, stopQuestMusic } from "../lib/questMusic";
-import { playCrack, preloadCrack } from "../lib/questMusic";
-import { playSound, preloadSound } from "../lib/sounds";
+import { preloadCrack } from "../lib/questMusic";
+import { preloadSound, scheduleSound } from "../lib/sounds";
 
 /**
  * The film for the greatest choice in the app: giving up Obsidian to start the Legendary quest.
@@ -68,11 +68,13 @@ export default function QuestFilm({ name, onClose, preview = false }: { name: st
     // Act 2 (9s): the choice. The storm gathers; lightning cracks the crest.
     at(9000, () => setAct(2));
     [9200, 9900, 10500, 11000, 11500, 11900, 12300, 12600].forEach((t) => at(t, () => e.lightning()));
-    [9200, 11500].forEach((t) => at(t, () => void playSound("quest-thunder"))); // the first strike and the biggest
+    const t0 = performance.now(), elapsed = () => performance.now() - t0;
+    [9200, 11500].forEach((t) => void scheduleSound("quest-thunder", t, elapsed)); // the first strike and the biggest (+ the parent's timing)
+    void scheduleSound("quest-crack", 13000, elapsed);
     at(10200, () => quake(1));
     at(11800, () => quake(1));
     // Act 3 (13s): it shatters.
-    at(13000, () => { setAct(3); quake(2); playCrack(); e.burst("ring", 60, PURPLE); e.burst("sparkle", 320, PURPLE); e.burst("firework", 140, PURPLE, { x: e.cx, y: e.cy }); });
+    at(13000, () => { setAct(3); quake(2); e.burst("ring", 60, PURPLE); e.burst("sparkle", 320, PURPLE); e.burst("firework", 140, PURPLE, { x: e.cx, y: e.cy }); });
     at(13300, () => e.burst("ring", 60, ["#ffffff", "#b69cff"]));
     // Act 4 (15.2s): the fall. Bronze I rises from the embers.
     at(15200, () => { setAct(4); e.emit("ember", 34, 4000, BRONZE); e.burst("crystal", 60, PURPLE); });

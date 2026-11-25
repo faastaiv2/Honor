@@ -23,6 +23,13 @@ const toSec = (t: string) => {
   return m ? Math.round(Number(m[1] ?? 0) * 60 + Number(m[2])) : NaN;
 };
 
+/** When each sound normally plays: seconds into the film (films), or the moment it follows (everything else). */
+const TIMELINE: Partial<Record<SoundKey, number>> = { "quest-music": 0, "quest-thunder": 9.2, "quest-crack": 13, "rankup-music": 0 };
+const MOMENT: Partial<Record<SoundKey, string>> = {
+  chest: "the chest is tapped", gems: "the gems start falling", "gems-crack": "the floor cracks", collect: "Collect is tapped",
+  achievement: "the reward appears", "event-win": "the prize chest appears",
+};
+
 type Preview = { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" };
 
 /** One sound slot: upload, test, start point, volume, remove. */
@@ -36,9 +43,12 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
   const [start, setStart] = useState(mmss(info?.start ?? 0));
   const [end, setEnd] = useState(info?.end ? mmss(info.end) : "");
   const [vol, setVol] = useState(info?.volume ?? 80);
+  const base = TIMELINE[k];
+  const whenOf = (i?: MusicInfo) => (base !== undefined ? base + (i?.offset_ms ?? 0) / 1000 : (i?.offset_ms ?? 0) / 1000);
+  const [atSec, setAtSec] = useState(String(whenOf(info)));
   const file = useRef<HTMLInputElement>(null);
   const isMusic = MUSIC.includes(k);
-  useEffect(() => { setStart(mmss(info?.start ?? 0)); setEnd(info?.end ? mmss(info.end) : ""); setVol(info?.volume ?? 80); }, [info]);
+  useEffect(() => { setStart(mmss(info?.start ?? 0)); setEnd(info?.end ? mmss(info.end) : ""); setVol(info?.volume ?? 80); setAtSec(String(whenOf(info))); }, [info]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => stopMusic(k, 0), [k]);
 
   async function upload(f?: File) {
@@ -52,7 +62,10 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
     const a = toSec(start), b = toSec(end);
     if (Number.isNaN(a) || Number.isNaN(b)) { onError("Write times like 1:20 or 80"); return; }
     if (b && b <= a) { onError("The end must be after the start"); return; }
-    try { onChange(await api.musicSettings(a, vol, k, b)); resetSounds(k); onDone("Saved"); setOpen(false); }
+    const w = Number(atSec.replace(",", "."));
+    if (!Number.isFinite(w) || w < 0) { onError("Write the time in seconds, like 4.5"); return; }
+    const offset = Math.round((base !== undefined ? w - base : w) * 1000);
+    try { onChange(await api.musicSettings(a, vol, k, b, offset)); resetSounds(k); onDone("Saved"); setOpen(false); }
     catch (e) { onError(msg(e)); }
   }
   async function test() {
@@ -72,7 +85,7 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
       <div className="an-slot-txt">
         <b>{label}</b>
         <small>{when}</small>
-        <small className="an-slot-state">{info?.has ? `✓ Set · ${(info.size / 1_000_000).toFixed(1)} MB · plays ${mmss(info.start)} → ${info.end ? mmss(info.end) : "end"} · ${info.volume}%` : "No sound"}</small>
+        <small className="an-slot-state">{info?.has ? `✓ Set · ${base !== undefined ? `starts at ${whenOf(info)} s` : info.offset_ms ? `${info.offset_ms / 1000} s after` : "right away"} · plays ${mmss(info.start)} → ${info.end ? mmss(info.end) : "end"} · ${info.volume}%` : "No sound"}</small>
       </div>
       <div className="an-slot-btns">
         {info?.has && <button onClick={test} aria-label={`Test ${label}`}>{isMusic && playing ? "■" : "▶"}</button>}
@@ -81,6 +94,13 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
       </div>
       {open && info?.has && (
         <div className="an-slot-set">
+          <label className="field an-when"><span className="field-label">{base !== undefined ? "Starts at (seconds into the film)" : `Delay after ${MOMENT[k] ?? "the moment"} (seconds)`}</span>
+            <input inputMode="decimal" value={atSec} onChange={(e) => setAtSec(e.target.value)} />
+            <span className="field-hint">{base !== undefined
+              ? (k === "quest-thunder" ? `Normally 9.2 s (and again 2.3 s later). Now: ${atSec || 0} s and ${(Number(atSec) + 2.3).toFixed(1)} s`
+                : `Normally ${base} s.${k === "quest-crack" ? " The crest breaks at 13 s." : ""}`)
+              : "0 = right on the moment"}</span>
+          </label>
           <div className="an-range">
             <label className="field"><span className="field-label">Play from</span>
               <input inputMode="decimal" placeholder="0:00" value={start} onChange={(e) => setStart(e.target.value)} /></label>

@@ -1841,3 +1841,5 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .ev-rules summary h2 { margin: 0; }
 .ev-rules ol { margin: 12px 0 6px; padding-inline-start: 22px; display: grid; gap: 8px; }
 .ev-rules li { line-height: 1.45; }
+.an-when { grid-column: 1 / -1; }
+.an-when input { max-width: 160px; }

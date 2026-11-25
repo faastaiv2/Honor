@@ -190,5 +190,6 @@ class Media(Base):
     data: Mapped[bytes] = mapped_column(LargeBinary)
     start: Mapped[int] = mapped_column(Integer, default=0)  # seconds into the track to start playing
     end: Mapped[int] = mapped_column(Integer, default=0)  # seconds into the track to stop (0 = play to the end)
+    offset_ms: Mapped[int] = mapped_column(Integer, default=0)  # when in the animation: later (+) or earlier (-) than its usual moment
     volume: Mapped[int] = mapped_column(Integer, default=80)  # percent
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

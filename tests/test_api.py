@@ -767,6 +767,7 @@ def test_quest_music_upload_is_admin_only_and_served_to_family(client, family):
     assert r.status_code == 200 and r.json()["size"] == len(song)
     assert client.patch("/api/media/quest-music", headers=ha, json={"start": 12, "volume": 70}).json()["start"] == 12
     assert client.patch("/api/media/quest-music", headers=ha, json={"start": 12, "end": 80, "volume": 70}).json()["end"] == 80
+    assert client.patch("/api/media/quest-music", headers=ha, json={"start": 12, "volume": 70, "offset_ms": 4500}).json()["offset_ms"] == 4500
     assert client.patch("/api/media/quest-music", headers=ha, json={"start": 30, "end": 20, "volume": 70}).status_code == 400
     got = client.get("/api/media/quest-music", headers=h)
     assert got.status_code == 200 and got.content == song and got.headers["content-type"] == "audio/mpeg"

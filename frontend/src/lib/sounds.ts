@@ -29,10 +29,27 @@ export function resetSounds(key?: SoundKey) {
   if (key) files.delete(key); else files.clear();
 }
 
-/** Play a sound once (no wait if it isn't set). */
-export async function playSound(key: SoundKey): Promise<boolean> {
+const sleep = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
+
+/** How much later (+) or earlier (-) than its usual moment the parent wants this sound, in ms. */
+export async function soundOffset(key: SoundKey): Promise<number> {
+  return (await allInfo())[key]?.offset_ms ?? 0;
+}
+
+/** For films: play a sound at `baseMs` into the film (plus the parent's offset). `elapsed` = ms since the film began. */
+export async function scheduleSound(key: SoundKey, baseMs: number, elapsed: () => number, music = false): Promise<void> {
+  const m = await preloadSound(key);
+  if (!m) return;
+  const wait = baseMs + (m.info.offset_ms ?? 0) - elapsed();
+  if (wait > 0) await sleep(wait);
+  if (music) await playMusic(key, false); else await playSound(key, false);
+}
+
+/** Play a sound once (no wait if it isn't set). With `delayed`, waits for the parent's offset first. */
+export async function playSound(key: SoundKey, delayed = true): Promise<boolean> {
   const m = await preloadSound(key);
   if (!m) return false;
+  if (delayed && m.info.offset_ms > 0) await sleep(m.info.offset_ms);
   const a = new Audio(m.url);
   a.volume = m.info.volume / 100;
   a.currentTime = m.info.start;
@@ -58,9 +75,10 @@ function fade(key: SoundKey, target: number, ms: number, then?: () => void) {
 }
 
 /** Play music for a film: fades in. Resolves false if not set or the browser blocked sound. */
-export async function playMusic(key: SoundKey): Promise<boolean> {
+export async function playMusic(key: SoundKey, delayed = true): Promise<boolean> {
   const m = await preloadSound(key);
   if (!m) return false;
+  if (delayed && m.info.offset_ms > 0) await sleep(m.info.offset_ms);
   stopMusic(key, 0);
   const a = new Audio(m.url);
   a.volume = 0;
