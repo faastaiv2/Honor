@@ -2,7 +2,7 @@
 const BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 const TOKEN_KEY = "honor.token";
 
-export interface Viewer { kind: "admin" | "member"; id: string; name: string; is_admin: boolean }
+export interface Viewer { kind: "admin" | "member"; id: string; name: string; is_admin: boolean; theme?: string }
 export interface SignInMember { id: string; name: string; avatar: string; frame: string; has_pin: boolean }
 export interface Score { gain: number; bonus: number; cut: number; delta: number; done: number; of: number; weekend: boolean; excused: boolean }
 export interface Tier { key: string; min: number | null; max: number | null; emoji: string; name: string; color: string; range: string; games: string; benefits: string }
@@ -18,6 +18,7 @@ export interface TodayInfo {
   bonus: { count: string; dhikr: string };
   rules: { cut_misses: number; score_from: string; timezone: string };
   tiers: Tier[]; avatars: string[]; viewer: Viewer;
+  gems: { per_task: number; per_level: number; per_rank: number };
 }
 export interface TaskItem { key: string; label: string; done: boolean; fitness?: boolean; late?: boolean }
 export interface DayView {
@@ -31,10 +32,13 @@ export interface BoardRow extends Status {
   rank: number; member: { id: string; name: string; avatar: string; frame: string };
   today: Score; week_delta: number; is_me: boolean;
 }
-export interface Frame { key: string; name: string; unlocked: boolean; tier: Tier }
+export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null }
 export interface Profile extends Status {
-  member: { id: string; name: string; avatar: string; frame: string };
-  week_delta: number; frames: Frame[]; avatars: string[];
+  member: { id: string; name: string; avatar: string; frame: string; theme: string };
+  week_delta: number; streak: number;
+  gems: { balance: number; earned: number; spent: number; today: number; from_tasks: number; from_levels: number };
+  next_level_reward: { level: string; gems: number } | null;
+  frames: ShopItem[]; themes: ShopItem[]; avatars: ShopItem[];
 }
 export interface Board { week: Week; rows: BoardRow[]; weekly: { member_id: string; week_delta: number }[] }
 export interface History {
@@ -94,7 +98,8 @@ export const api = {
   leaderboard: () => request<Board>("/board/leaderboard"),
   setAvatar: (avatar: string) => request<{ avatar: string }>("/board/avatar", send("PUT", { avatar })),
   profile: () => request<Profile>("/board/profile"),
-  saveProfile: (body: { avatar?: string; frame?: string }) => request<Profile>("/board/profile", send("PUT", body)),
+  saveProfile: (body: { avatar?: string; frame?: string; theme?: string }) => request<Profile>("/board/profile", send("PUT", body)),
+  buy: (kind: "frame" | "theme" | "avatar", key: string) => request<Profile>("/board/shop/buy", send("POST", { kind, key })),
   startQuest: (member_id: string) => request<Status>("/board/quest", send("POST", { member_id })),
   history: (days = 14) => request<History>(`/board/history?days=${days}`),
 

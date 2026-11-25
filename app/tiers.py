@@ -14,7 +14,7 @@ from dataclasses import dataclass
 WED, THU = 2, 3
 
 LEGENDARY_LEVEL = 50
-DIAMOND_FLOOR = 47
+OBSIDIAN_FLOOR = 47  # the top rank below Legendary (XLVII–XLIX)
 CAP_WITHOUT_LEGENDARY = 49
 
 
@@ -37,30 +37,30 @@ class Tier:
 
 TIERS: list[Tier] = [
     Tier("low", -10**6, 0, "👺", "Low Honor", "#b4322a", "0 mins", "None"),
-    Tier("honor", 1, 3, "🥉", "Honor", "#a8673a", "0 mins / week (after finishing tasks)", "None"),
-    Tier("good", 4, 7, "🥈", "Good Honor", "#7d8a96", "10 mins / Sunday (after finishing tasks)",
+    Tier("bronze", 1, 3, "🥉", "Bronze", "#b0703a", "0 mins / week (after finishing tasks)", "None"),
+    Tier("silver", 4, 7, "🥈", "Silver", "#8a97a3", "10 mins / Sunday (after finishing tasks)",
          "Can miss up to 1 task and make up next day", next_day=1),
-    Tier("great", 8, 12, "🥇", "Great Honor", "#c9962b", "15 mins / Sunday (after finishing tasks)",
+    Tier("gold", 8, 12, "🥇", "Gold", "#d4a017", "15 mins / Sunday (after finishing tasks)",
          "Can miss up to 1 task and make up next day", next_day=1),
-    Tier("high", 13, 18, "⭐", "High Honor", "#d4a017", "20 mins / Sunday (after finishing tasks)",
+    Tier("platinum", 13, 18, "💠", "Platinum", "#5f9eb0", "20 mins / Sunday (after finishing tasks)",
          "Can miss up to 1 task and make up next day + miss a task on Thursday and make up on Fri or Sat",
          next_day=1, mid_days=(THU,), mid_cap=1),
-    Tier("higher", 19, 24, "🌟", "Higher Honor", "#e08a00", "25 mins / Sunday + Monday (after finishing tasks)",
+    Tier("emerald", 19, 24, "💚", "Emerald", "#1e9e6a", "25 mins / Sunday + Monday (after finishing tasks)",
          "Can miss up to 1 task and make up next day + miss a task on Thursday and make up on Fri or Sat",
          next_day=1, mid_days=(THU,), mid_cap=1),
-    Tier("highest", 25, 31, "🎗️", "Highest Honor", "#0d7680", "30 mins / Sunday + Monday (after finishing tasks)",
+    Tier("sapphire", 25, 31, "🔷", "Sapphire", "#1f5fbf", "30 mins / Sunday + Monday (after finishing tasks)",
          "Can miss up to 2 tasks and make up next day + miss a task on Thursday and make up on Fri or Sat + Mehmed",
          next_day=2, mid_days=(THU,), mid_cap=1),
-    Tier("ultimate", 32, 39, "🏆", "Ultimate Honor", "#1f6fb2", "40 mins / Sunday + Monday + Tuesday (after finishing tasks)",
+    Tier("ruby", 32, 39, "♦️", "Ruby", "#c0294a", "40 mins / Sunday + Monday + Tuesday (after finishing tasks)",
          "Can miss up to 2 tasks and make up next day + miss a task on Thursday and make up on Fri or Sat + Mehmed",
          next_day=2, mid_days=(THU,), mid_cap=1),
-    Tier("supreme", 40, 46, "⚔️", "Supreme Honor", "#8e2b4a", "50 mins / Sunday + Monday + Tuesday (after finishing tasks)",
+    Tier("diamond", 40, 46, "💎", "Diamond", "#3ba7cf", "50 mins / Sunday + Monday + Tuesday (after finishing tasks)",
          "Can miss up to 2 tasks and make up next day + miss a task on Wed or Thursday and make up on Fri or Sat + Mehmed",
          next_day=2, mid_days=(WED, THU), mid_cap=1),
-    Tier("diamond", 47, 49, "💎", "Diamond Honor", "#5b3a91", "60 mins / Sunday + Monday + Tuesday (after finishing tasks)",
+    Tier("obsidian", 47, 49, "🖤", "Obsidian", "#3a2c52", "60 mins / Sunday + Monday + Tuesday (after finishing tasks)",
          "Can miss up to 3 tasks and make up next day + miss up to 2 tasks on Wed and Thu and make up on Fri and Sat + Mehmed",
          next_day=3, mid_days=(WED, THU), mid_cap=2, mid_each=True),
-    Tier("legendary", 50, None, "👑", "Legendary Honor", "#9a7400", "Unlimited / day (before finishing tasks, anytime)",
+    Tier("legendary", 50, None, "👑", "Legendary", "#b8860b", "Unlimited / day (before finishing tasks, anytime)",
          "Can miss up to 15 tasks a week and make up on the weekend or any day", weekly_any=15),
 ]
 BY_KEY = {t.key: t for t in TIERS}
@@ -105,30 +105,89 @@ def tier_dict(t: Tier) -> dict:
             "color": t.color, "range": tier_range(t), "games": t.games, "benefits": t.benefits}
 
 
-# Picture frames members can choose for the leaderboard. Each unlocks at a rank.
-FRAMES: list[tuple[str, str, str]] = [  # (key, name, tier that unlocks it)
-    ("plain", "Classic white", "low"),
-    ("emerald", "Emerald", "low"),
-    ("bronze", "Bronze", "honor"),
-    ("silver", "Silver", "good"),
-    ("gold", "Gold", "great"),
-    ("star", "Starlight", "high"),
-    ("sun", "Sunburst", "higher"),
-    ("ribbon", "Teal ribbon", "highest"),
-    ("sapphire", "Sapphire", "ultimate"),
-    ("ruby", "Ruby", "supreme"),
-    ("diamond", "Diamond", "diamond"),
-    ("crown", "Royal crown", "legendary"),
+# ---------------------------------------------------------------- rewards and the shop
+GEMS_PER_TASK = 5          # each of the 17 tasks and the bonus, once per day
+GEMS_PER_LEVEL = 10        # the first time a member reaches each new level
+GEMS_PER_RANK = 50         # extra, the first time they reach each new rank
+GEMS_FOR_LEGENDARY = 500
+
+# Each rank unlocks its own frame and theme for free. Others are bought with gems.
+# (key, name, unlocked by rank key, or None if it is bought; price in gems)
+FRAMES: list[tuple[str, str, str | None, int]] = [
+    ("plain", "Classic white", "low", 0),
+    ("bronze", "Bronze", "bronze", 0),
+    ("silver", "Silver", "silver", 0),
+    ("gold", "Gold", "gold", 0),
+    ("platinum", "Platinum", "platinum", 0),
+    ("emerald", "Emerald", "emerald", 0),
+    ("sapphire", "Sapphire", "sapphire", 0),
+    ("ruby", "Ruby", "ruby", 0),
+    ("diamond", "Diamond", "diamond", 0),
+    ("obsidian", "Obsidian", "obsidian", 0),
+    ("crown", "Royal crown", "legendary", 0),
+    ("star", "Starlight", None, 150),
+    ("ribbon", "Teal ribbon", None, 150),
+    ("sun", "Sunburst", None, 200),
+    ("rainbow", "Rainbow", None, 400),
+    ("fire", "Fire", None, 500),
+    ("galaxy", "Galaxy", None, 600),
 ]
-FRAME_KEYS = {f[0] for f in FRAMES}
+THEMES: list[tuple[str, str, str | None, int]] = [
+    ("classic", "Classic emerald", "low", 0),
+    ("bronze", "Bronze", "bronze", 0),
+    ("silver", "Silver", "silver", 0),
+    ("gold", "Gold", "gold", 0),
+    ("platinum", "Platinum", "platinum", 0),
+    ("emerald", "Emerald", "emerald", 0),
+    ("sapphire", "Sapphire", "sapphire", 0),
+    ("ruby", "Ruby", "ruby", 0),
+    ("diamond", "Diamond", "diamond", 0),
+    ("obsidian", "Obsidian night", "obsidian", 0),
+    ("legendary", "Legendary gold", "legendary", 0),
+    ("rose", "Rose garden", None, 250),
+    ("ocean", "Ocean", None, 250),
+    ("desert", "Desert dusk", None, 300),
+    ("midnight", "Midnight", None, 350),
+]
+FREE_AVATARS = ["🦁", "🐯", "🦅", "🐺", "🐎", "🦊", "🐪", "🐆", "🦉", "🐬", "🐢", "🐘", "⚔️", "🛡️", "🏹", "🌙", "⭐", "🔥", "⚽", "🏏"]
+SHOP_AVATARS: list[tuple[str, int]] = [("🐼", 100), ("🧸", 100), ("🦄", 150), ("🦖", 150), ("🚀", 200), ("🐉", 250)]
+
 TIER_ORDER = [t.key for t in TIERS]
+FRAME_KEYS = {f[0] for f in FRAMES}
+THEME_KEYS = {t[0] for t in THEMES}
 
 
-def frame_unlocked(frame_key: str, current: Tier) -> bool:
-    need = next(f[2] for f in FRAMES if f[0] == frame_key)
-    return TIER_ORDER.index(current.key) >= TIER_ORDER.index(need)
+def rank_reached(need: str | None, current: Tier) -> bool:
+    return need is not None and TIER_ORDER.index(current.key) >= TIER_ORDER.index(need)
 
 
-def frames_for(current: Tier) -> list[dict]:
-    return [{"key": k, "name": n, "unlocked": frame_unlocked(k, current), "tier": tier_dict(BY_KEY[need])}
-            for k, n, need in FRAMES]
+def shop_key(kind: str, key: str) -> str:
+    return f"{kind}:{key}"
+
+
+def item_available(kind: str, key: str, current: Tier, owned: set[str]) -> bool:
+    """Free with the member's rank, or bought with gems."""
+    if kind == "avatar":
+        return key in FREE_AVATARS or shop_key("avatar", key) in owned
+    table = FRAMES if kind == "frame" else THEMES
+    need = next(x[2] for x in table if x[0] == key)
+    return rank_reached(need, current) or shop_key(kind, key) in owned
+
+
+def price_of(kind: str, key: str) -> int | None:
+    """Gems needed to buy an item, or None if it is not sold (rank items are earned, not bought)."""
+    if kind == "avatar":
+        return next((c for a, c in SHOP_AVATARS if a == key), None)
+    table = FRAMES if kind == "frame" else THEMES if kind == "theme" else []
+    row = next((x for x in table if x[0] == key), None)
+    return row[3] if row and row[2] is None else None
+
+
+def catalogue(kind: str, current: Tier, owned: set[str]) -> list[dict]:
+    if kind == "avatar":
+        free = [{"key": a, "name": a, "available": True, "price": 0, "tier": None} for a in FREE_AVATARS]
+        return free + [{"key": a, "name": a, "available": shop_key("avatar", a) in owned, "price": c, "tier": None}
+                       for a, c in SHOP_AVATARS]
+    table = FRAMES if kind == "frame" else THEMES
+    return [{"key": k, "name": n, "available": item_available(kind, k, current, owned), "price": c,
+             "tier": tier_dict(BY_KEY[need]) if need else None} for k, n, need, c in table]

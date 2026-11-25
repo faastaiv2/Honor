@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, type DayView, type SignInMember, type TaskItem, type TodayInfo } from "../api";
 import { useAuth } from "../auth";
 import { addDays, fmt } from "../lib/dates";
+import { confetti } from "../lib/confetti";
 import { notifyChanged, useToast } from "../lib/events";
 
 function doneKeys(v: DayView): string[] {
@@ -31,19 +32,19 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
         <div>
           <b>{st.tier.name} · {st.label}</b>
           <div className="note" style={{ margin: 0 }}>
-            {st.next ? `${st.next.needed} more to ${st.next.emoji} ${st.next.name}` : st.legendary ? "The highest honor" : st.tier.key === "diamond" ? "XLIX is the top without the Legendary quest" : ""}
+            {st.next ? `${st.next.needed} more to ${st.next.emoji} ${st.next.name}` : st.legendary ? "The highest honor" : st.tier.key === "obsidian" ? "XLIX is the top without the Legendary quest" : ""}
           </div>
         </div>
       </div>
       <p><span aria-hidden="true">🎮</span> {st.tier.games}</p>
       <p><span aria-hidden="true">🎁</span> {st.tier.benefits}</p>
       {st.quest.active && <p className="quest">👑 Legendary quest, day {st.quest.days + 1}: finish every task <b>and</b> the bonus every day until L.</p>}
-      {st.quest.broken_on && !st.quest.active && st.tier.key !== "honor" && <p className="note">The last Legendary quest ended on {fmt(st.quest.broken_on, { day: "numeric", month: "short" })}.</p>}
+      {st.quest.broken_on && !st.quest.active && st.tier.key !== "bronze" && <p className="note">The last Legendary quest ended on {fmt(st.quest.broken_on, { day: "numeric", month: "short" })}.</p>}
       {st.banned && <p className="note">Legendary Honor was lost and cannot be received again.</p>}
       {st.can_start_quest && canAct && (
         <div className="quest">
-          <p style={{ margin: "0 0 8px" }}>👑 <b>Legendary quest.</b> Give up {st.tier.emoji} {st.tier.name}, start again from 🥉 I, and finish <b>every task and every bonus, every day</b> until L. One missed day ends the quest.</p>
-          <button className="primary" onClick={() => (sure ? onQuest() : setSure(true))}>{sure ? "Yes, give up my Diamond title and start" : "Start the Legendary quest"}</button>
+          <p style={{ margin: "0 0 8px" }}>👑 <b>Legendary quest.</b> Give up {st.tier.emoji} {st.tier.name}, start again from 🥉 Bronze I, and finish <b>every task and every bonus, every day</b> until L. One missed day ends the quest.</p>
+          <button className="primary" onClick={() => (sure ? onQuest() : setSure(true))}>{sure ? "Yes, give up my Obsidian title and start" : "Start the Legendary quest"}</button>
           {sure && <button className="link" onClick={() => setSure(false)}>Not now</button>}
         </div>
       )}
@@ -60,6 +61,7 @@ export default function Today(_: { info: TodayInfo | null }) {
   const [excuse, setExcuse] = useState("");
   const [error, setError] = useState("");
   const [toast, setToast] = useToast();
+  const [pops, setPops] = useState<Record<string, number>>({});
   const saving = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(() => {
@@ -89,9 +91,14 @@ export default function Today(_: { info: TodayInfo | null }) {
     setError("");
     const next = withToggled(view, key, on);
     setView(next);
+    if (on && key !== "gate") {
+      const id = Date.now();
+      setPops((p) => ({ ...p, [key]: id }));
+      setTimeout(() => setPops((p) => (p[key] === id ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== key)) : p)), 900);
+    }
     save(next, excuse).then((saved) => {
       const s = saved?.score;
-      if (on && s && s.done === s.of && s.gain) setToast("All tasks done — Honor received! 🏆");
+      if (on && s && s.done === s.of && s.gain) { setToast("All tasks done — Honor received! 🏆"); confetti(); }
       else if (on && saved?.mode === "makeup") setToast("Made up ✔");
     });
   }
@@ -116,6 +123,7 @@ export default function Today(_: { info: TodayInfo | null }) {
     <label key={t.key} className={`task ${cls}${t.done ? " done" : ""}${canTick(t, isBonus) ? "" : " off"}`}>
       <input type="checkbox" checked={t.done} disabled={!canTick(t, isBonus)} onChange={(e) => toggle(t.key, e.target.checked)} />
       <span>{label}</span>{t.late && <i className="late">made up</i>}{extra}
+      {pops[t.key] && <span className="gem-pop" key={pops[t.key]} aria-hidden="true">+5 💎</span>}
     </label>
   );
 

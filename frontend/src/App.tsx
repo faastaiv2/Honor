@@ -10,6 +10,7 @@ import Leaderboard from "./pages/Leaderboard";
 import ProfilePage from "./pages/Profile";
 import Rules from "./pages/Rules";
 import SignIn from "./pages/SignIn";
+import Welcome from "./pages/Welcome";
 import Today from "./pages/Today";
 
 export default function App() {
@@ -22,6 +23,11 @@ export default function App() {
     if (!viewer) { setInfo(null); return; }
     api.today().then(setInfo).catch(() => undefined);
   }, [viewer, changes]);
+
+  useEffect(() => {
+    // Each member's chosen colour theme; the admin always sees the classic one.
+    document.documentElement.dataset.skin = viewer && !viewer.is_admin ? info?.viewer.theme || "classic" : "classic";
+  }, [viewer, info]);
 
   if (loading) return <p className="band note">Loading…</p>;
   if (!viewer) return <SignIn key={pathname.startsWith("/admin") ? "admin" : "member"} admin={pathname.startsWith("/admin")} />;
@@ -57,7 +63,9 @@ export default function App() {
       <main className="band">
         <div className="wrap">
           <Routes>
-            <Route path="/" element={<div className="main"><Today info={info} /><Leaderboard info={info} /></div>} />
+            <Route path="/" element={viewer.is_admin
+              ? <div className="main"><Today info={info} /><Leaderboard info={info} /></div>
+              : <div className="home"><Welcome info={info} /><Today info={info} /></div>} />
             <Route path="/leaderboard" element={<Leaderboard info={info} />} />
             <Route path="/history" element={viewer.is_admin ? <HistoryPage /> : <Navigate to="/profile" />} />
             <Route path="/profile" element={viewer.is_admin ? <Navigate to="/admin" /> : <ProfilePage info={info} />} />

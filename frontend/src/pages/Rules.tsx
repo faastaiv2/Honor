@@ -11,6 +11,7 @@ export default function Rules({ info }: { info: TodayInfo | null }) {
         <div><b>−1 Honor cut 👺</b><p>{(info?.rules.cut_misses ?? 1) <= 1 ? "A weekday ends with any task not completed (and no excuse)." : `A weekday ends with ${info?.rules.cut_misses} or more tasks missed and no excuse.`} Tasks made up later, as your rank allows, count as completed.</p></div>
         <div><b>Excused days</b><p>Write a reason on the day (sick, injury): fitness tasks are excused and no Honor is cut.</p></div>
         <div><b>Weekends (Fri &amp; Sat)</b><p>Games and YouTube allowed. Tasks are optional: you can still earn, never lose.</p></div>
+        <div><b>💎 Gems</b><p>Every task ticked gives {info?.gems.per_task ?? 5} gems. Each new level gives {info?.gems.per_level ?? 10}, and each new rank {info?.gems.per_rank ?? 50} more. Spend them in your Profile's shop.</p></div>
         <div><b>Making up tasks</b><p>Higher ranks may tick missed tasks after the day, as their benefits say. Tasks ticked on the day can't be changed afterwards.</p></div>
       </div>
 
@@ -29,10 +30,10 @@ export default function Rules({ info }: { info: TodayInfo | null }) {
       </div>
 
       <div className="legend-box">
-        <h3>👑 Legendary Honor</h3>
-        <p>Without it, the highest rank is 💎 Diamond Honor (XLIX).</p>
-        <p>To earn 👑 Legendary Honor, a 💎 Diamond member gives up the title and starts again from 🥉 Honor (I), then must do <b>all tasks in a row without missing a single day or a single Bonus Honor</b> until reaching L. One missed day ends the quest.</p>
-        <p>The only way to lose 👑 Legendary Honor is to not complete tasks for 3 days in a row (weekdays). Then you are demoted to 💎 Diamond Honor and can never receive 👑 Legendary Honor again.</p>
+        <h3>👑 Legendary</h3>
+        <p>Without it, the highest rank is 🖤 Obsidian (XLIX).</p>
+        <p>To earn 👑 Legendary, an 🖤 Obsidian member gives up the title and starts again from 🥉 Bronze (I), then must do <b>all tasks in a row without missing a single day or a single Bonus Honor</b> until reaching L. One missed day ends the quest.</p>
+        <p>The only way to lose 👑 Legendary Honor is to not complete tasks for 3 days in a row (weekdays). Then you are demoted to 🖤 Obsidian and can never receive 👑 Legendary again.</p>
       </div>
       <p className="note">Weeks run Sunday to Saturday. Days change at midnight{info ? `, ${info.rules.timezone} time` : ""}.</p>
     </section>

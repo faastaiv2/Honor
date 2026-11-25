@@ -10,12 +10,12 @@ MON, TUE, WED, THU, FRI, SAT, SUN = (date(2026, 11, 23) + timedelta(days=i) for 
 
 
 def test_tier_boundaries_match_the_table():
-    expect = {1: "honor", 3: "honor", 4: "good", 7: "good", 8: "great", 12: "great", 13: "high", 18: "high",
-              19: "higher", 24: "higher", 25: "highest", 31: "highest", 32: "ultimate", 39: "ultimate",
-              40: "supreme", 46: "supreme", 47: "diamond", 49: "diamond", 0: "low", -3: "low"}
+    expect = {1: "bronze", 3: "bronze", 4: "silver", 7: "silver", 8: "gold", 12: "gold", 13: "platinum", 18: "platinum",
+              19: "emerald", 24: "emerald", 25: "sapphire", 31: "sapphire", 32: "ruby", 39: "ruby",
+              40: "diamond", 46: "diamond", 47: "obsidian", 49: "obsidian", 0: "low", -3: "low"}
     for level, key in expect.items():
         assert tier_for(level, False).key == key, level
-    assert tier_for(60, False).key == "diamond"  # no Legendary without the quest
+    assert tier_for(60, False).key == "obsidian"  # no Legendary without the quest
     assert tier_for(50, True).key == "legendary"
 
 
@@ -24,19 +24,19 @@ def test_week_starts_on_sunday():
 
 
 def test_next_day_makeup_limits():
-    good, highest, diamond = BY_KEY["good"], BY_KEY["highest"], BY_KEY["diamond"]
+    good, highest, diamond = BY_KEY["silver"], BY_KEY["sapphire"], BY_KEY["obsidian"]
     one = {MON: {"fajr": TUE}}
     two = {MON: {"fajr": TUE, "mulk": TUE}}
     assert check_week(good, one) is None and check_week(good, two)
     assert check_week(highest, two) is None
-    assert check_week(BY_KEY["honor"], one)
+    assert check_week(BY_KEY["bronze"], one)
     assert check_week(good, {MON: {"fajr": WED}})  # two days late
     assert remaining(good, MON, TUE, {}) == 1 and remaining(highest, MON, TUE, {}) == 2
     assert remaining(diamond, MON, TUE, {}) == 3 and remaining(good, MON, WED, {}) == 0
 
 
 def test_thursday_rule():
-    high = BY_KEY["high"]
+    high = BY_KEY["platinum"]
     assert check_week(high, {THU: {"fajr": SAT}}) is None  # Thursday task made up on Saturday
     assert check_week(high, {THU: {"fajr": FRI, "mulk": FRI}}) is None  # 1 next-day + 1 Thursday
     assert check_week(high, {THU: {"fajr": FRI, "mulk": FRI, "milk": SAT}})  # 3 is too many
@@ -45,7 +45,7 @@ def test_thursday_rule():
 
 
 def test_supreme_shares_wed_or_thu_and_diamond_gets_both():
-    sup, dia = BY_KEY["supreme"], BY_KEY["diamond"]
+    sup, dia = BY_KEY["diamond"], BY_KEY["obsidian"]
     assert check_week(sup, {WED: {"fajr": FRI}}) is None
     assert check_week(sup, {WED: {"fajr": FRI}, THU: {"mulk": SAT}})  # only one of Wed or Thu
     assert check_week(dia, {WED: {"fajr": FRI, "mulk": FRI}, THU: {"milk": SAT, "lang": SAT}}) is None
@@ -103,3 +103,25 @@ def test_week_delta_counts_only_this_week():
     p = simulate(10, {SAT - timedelta(days=7): (FULL, ""), MON: (FULL, "")}, {}, [], SAT - timedelta(days=7), TUE, 5,
                  week_from=week_start(TUE))
     assert p.week_delta == 2 + (-1)  # Monday +2, Tuesday still open, Sunday rest; previous week excluded
+
+
+def test_gems_from_tasks_levels_and_ranks():
+    # base 6 (Silver). Monday: all 17 + bonus (+2 levels: VII, then VIII = new Gold rank).
+    p = run(6, [FULL])
+    assert p.gems_tasks == 18 * 5
+    assert p.gems_levels == 10 + 10 + 50  # VII, VIII, and Gold reached for the first time
+    assert p.best_level == 8 and p.streak == 1
+
+
+def test_no_gems_twice_for_the_same_level():
+    # up 2, down 1 (empty weekday), up 2 again: only levels never reached before pay
+    p = run(10, [FULL, [], FULL])
+    assert p.level == 13 and p.gems_levels == (10 + 10) + 0 + (10 + 50)  # XI, XII; then XIII (+Platinum rank)
+
+
+def test_streak_skips_weekends_and_resets_on_a_missed_weekday():
+    start = date(2026, 11, 26)  # Thursday
+    p = run(10, [FULL, [], [], FULL], start=start)  # Thu done, Fri+Sat empty (weekend), Sun done
+    assert p.streak == 2
+    p = run(10, [FULL, FULL, [], FULL], start=MON)  # Wednesday missed
+    assert p.streak == 1

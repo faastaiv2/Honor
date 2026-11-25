@@ -84,4 +84,16 @@ def tier_of_progress(p: Progress):
 
 
 def can_start_quest(p: Progress) -> bool:
-    return not p.legendary and not p.banned and p.quest_start is None and tier_of_progress(p).key == "diamond"
+    return not p.legendary and not p.banned and p.quest_start is None and tier_of_progress(p).key == "obsidian"
+
+
+def owned_items(db: Session, member_id: str) -> set[str]:
+    from app.models import Purchase
+    return {r.item for r in db.scalars(select(Purchase).where(Purchase.member_id == member_id))}
+
+
+def gems_spent(db: Session, member_id: str) -> int:
+    from sqlalchemy import func
+
+    from app.models import Purchase
+    return int(db.scalar(select(func.coalesce(func.sum(Purchase.price), 0)).where(Purchase.member_id == member_id)) or 0)

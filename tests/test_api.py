@@ -55,7 +55,7 @@ def test_member_marks_own_day_and_scores(client, family):
     alpha = next(r for r in rows if r["member"]["name"] == "Alpha")
     # base 10, +2 today; 22 and 23 Nov were empty weekdays: -1 each
     assert alpha["level"] == 10 + 2 - 2 and alpha["label"] == "X" and alpha["is_me"]
-    assert alpha["tier"]["name"] == "Great Honor" and alpha["week_delta"] == 0
+    assert alpha["tier"]["name"] == "Gold" and alpha["week_delta"] == 0
     assert rows[0]["member"]["name"] == "Sierra" and rows[0]["rank"] == 1
     assert board["week"] == {"number": 1, "start": "2026-11-22", "days_left": 4}  # scoring began 22 Nov
     assert board["weekly"][0]["member_id"] == family["A"].id
@@ -209,9 +209,9 @@ def test_legendary_quest_flow(client, family, db):
     a, b = at_today()
     with a, b:
         me = next(r for r in client.get("/api/board/leaderboard", headers=h).json()["rows"] if r["is_me"])
-        assert me["tier"]["key"] == "diamond" and me["can_start_quest"]
+        assert me["tier"]["key"] == "obsidian" and me["can_start_quest"]
         q = client.post("/api/board/quest", headers=h, json={"member_id": m.id}).json()
-        assert q["level"] == 1 and q["quest"]["active"] and q["tier"]["key"] == "honor"
+        assert q["level"] == 1 and q["quest"]["active"] and q["tier"]["key"] == "bronze"
         assert client.post("/api/board/quest", headers=h, json={"member_id": m.id}).status_code == 400
 
 
@@ -332,17 +332,42 @@ def test_new_member_is_not_cut_for_days_before_joining(client, family, db):
     assert [c["state"] for c in tom] == ["pre", "pre", "pre", "open"]
 
 
-def test_profile_frames_unlock_by_rank(client, family):
-    h = auth(client, family["A"])  # Alpha: base 10 -> Great Honor after the cuts; gold unlocked, ruby not
+def test_profile_frames_and_themes_unlock_by_rank(client, family):
+    h = auth(client, family["A"])  # Alpha: base 10 (Gold), 8 after two empty days: Gold
     a, b = at_today()
     with a, b:
         prof = client.get("/api/board/profile", headers=h).json()
-        assert prof["member"]["name"] == "Alpha" and prof["tier"]["key"] in ("great", "good")
-        frames = {f["key"]: f["unlocked"] for f in prof["frames"]}
-        assert frames["emerald"] and frames["silver"] and not frames["ruby"] and not frames["crown"]
-        assert client.put("/api/board/profile", headers=h, json={"frame": "silver", "avatar": "🦅"}).status_code == 200
+        assert prof["member"]["name"] == "Alpha" and prof["tier"]["key"] == "gold"
+        frames = {f["key"]: f["available"] for f in prof["frames"]}
+        themes = {t["key"]: t["available"] for t in prof["themes"]}
+        assert frames["plain"] and frames["silver"] and frames["gold"] and not frames["ruby"] and not frames["galaxy"]
+        assert themes["classic"] and themes["gold"] and not themes["obsidian"] and not themes["ocean"]
+        assert client.put("/api/board/profile", headers=h, json={"frame": "silver", "avatar": "🦅", "theme": "gold"}).status_code == 200
         assert client.put("/api/board/profile", headers=h, json={"frame": "ruby"}).status_code == 403
+        assert client.put("/api/board/profile", headers=h, json={"theme": "ocean"}).status_code == 403
         assert client.put("/api/board/profile", headers=h, json={"frame": "neon"}).status_code == 400
         row = next(r for r in client.get("/api/board/leaderboard", headers=h).json()["rows"] if r["is_me"])
-    assert row["member"]["frame"] == "silver" and row["member"]["avatar"] == "🦅"
+        info = client.get("/api/board/today", headers=h).json()
+    assert row["member"]["frame"] == "silver" and row["member"]["avatar"] == "🦅" and info["viewer"]["theme"] == "gold"
     assert client.get("/api/board/profile", headers=auth(client, admin=True)).status_code == 400
+
+
+def test_shop_spends_gems(client, family, db):
+    h = auth(client, family["S"])  # Sierra
+    a, b = at_today()
+    with a, b:
+        # earn: 18 ticks a day = 90 gems a day (Monday filled in by the admin), plus any new-level rewards
+        put_day(client, auth(client, admin=True), family["S"], date(2026, 11, 23), ALL)
+        put_day(client, h, family["S"], TODAY, ALL)
+        prof = client.get("/api/board/profile", headers=h).json()
+        earned = prof["gems"]["earned"]
+        assert prof["gems"]["today"] == 90 and prof["gems"]["balance"] == earned
+        too_dear = client.post("/api/board/shop/buy", headers=h, json={"kind": "frame", "key": "galaxy"})
+        assert too_dear.status_code == 400 and "more gems" in too_dear.json()["detail"]
+        assert client.post("/api/board/shop/buy", headers=h, json={"kind": "frame", "key": "gold"}).status_code == 400  # earned, not sold
+        r = client.post("/api/board/shop/buy", headers=h, json={"kind": "avatar", "key": "🐼"})
+        assert r.status_code == 200 and r.json()["gems"]["balance"] == earned - 100 and r.json()["member"]["avatar"] == "🐼"
+        assert client.post("/api/board/shop/buy", headers=h, json={"kind": "avatar", "key": "🐼"}).status_code == 400
+        # unticking tasks takes their gems back
+        put_day(client, h, family["S"], TODAY, [])
+        assert client.get("/api/board/profile", headers=h).json()["gems"]["today"] == 0

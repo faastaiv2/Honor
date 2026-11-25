@@ -9,15 +9,17 @@ from app import scoring
 from app.db import get_db
 from app.deps import Viewer, current_viewer
 from app.makeup import check_week, remaining, week_start
-from app.models import DayLog, Member
-from app.progress import Progress
-from app.services import (active_members, can_start_quest, get_settings_row, logs_between, member_start,
-                          progress_for, tier_of_progress, today_for, week_info)
-from app.tiers import FRAME_KEYS, TIERS, frame_unlocked, frames_for, next_tier, roman, tier_dict
+from app.models import DayLog, Member, Purchase
+from app.progress import Progress, gems_earned
+from app.services import (active_members, can_start_quest, gems_spent, get_settings_row, logs_between,
+                          member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
+from app.tiers import (CAP_WITHOUT_LEGENDARY, FRAME_KEYS, GEMS_PER_LEVEL, GEMS_PER_RANK, GEMS_PER_TASK, THEME_KEYS,
+                       FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
+                       tier_for)
 
 router = APIRouter(prefix="/board", tags=["board"])
 
-AVATARS = ["🦁", "🐯", "🦅", "🐺", "🐎", "🦊", "🐪", "🐆", "🦉", "🐬", "🐢", "🐘", "⚔️", "🛡️", "🏹", "🌙", "⭐", "🔥", "⚽", "🏏"]
+AVATARS = FREE_AVATARS
 
 
 class DayUpdate(BaseModel):
@@ -34,6 +36,12 @@ class AvatarIn(BaseModel):
 class ProfileIn(BaseModel):
     avatar: str | None = Field(default=None, max_length=16)
     frame: str | None = Field(default=None, max_length=16)
+    theme: str | None = Field(default=None, max_length=16)
+
+
+class BuyIn(BaseModel):
+    kind: str = Field(pattern="^(frame|theme|avatar)$")
+    key: str = Field(max_length=16)
 
 
 class QuestIn(BaseModel):
@@ -84,7 +92,9 @@ def today_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db
         "rules": {"cut_misses": cfg.cut_misses, "score_from": cfg.score_from.isoformat(), "timezone": cfg.timezone},
         "tiers": [tier_dict(x) for x in TIERS],
         "avatars": AVATARS,
-        "viewer": {"kind": v.kind, "id": v.id, "name": v.name, "is_admin": v.is_admin},
+        "viewer": {"kind": v.kind, "id": v.id, "name": v.name, "is_admin": v.is_admin,
+                   "theme": (db.get(Member, v.id).theme if v.kind == "member" else "") or "classic"},
+        "gems": {"per_task": GEMS_PER_TASK, "per_level": GEMS_PER_LEVEL, "per_rank": GEMS_PER_RANK},
     }
 
 
@@ -265,8 +275,18 @@ def _profile(db: Session, m: Member) -> dict:
     cfg = get_settings_row(db)
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
     tier = tier_of_progress(p)
-    return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame}, **_status(p),
-            "week_delta": p.week_delta, "frames": frames_for(tier), "avatars": AVATARS}
+    owned = owned_items(db, m.id)
+    spent = gems_spent(db, m.id)
+    nxt = p.best_level + 1
+    reward = 0 if p.legendary or nxt > CAP_WITHOUT_LEGENDARY else GEMS_PER_LEVEL + (
+        GEMS_PER_RANK if tier_for(nxt, False).min == nxt else 0)
+    return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "theme": m.theme or "classic"},
+            **_status(p), "week_delta": p.week_delta, "streak": p.streak,
+            "gems": {"balance": gems_earned(p) - spent, "earned": gems_earned(p), "spent": spent,
+                     "today": p.today_tasks_gems, "from_tasks": p.gems_tasks, "from_levels": p.gems_levels},
+            "next_level_reward": {"level": roman(nxt), "gems": reward} if reward else None,
+            "frames": catalogue("frame", tier, owned), "themes": catalogue("theme", tier, owned),
+            "avatars": catalogue("avatar", tier, owned)}
 
 
 @router.get("/profile")
@@ -278,30 +298,54 @@ def get_profile(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
 
 @router.put("/profile")
 def save_profile(body: ProfileIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
-    """A member picks their own picture and frame. Frames unlock as they climb the ranks."""
+    """A member picks their picture, frame and theme from what their rank unlocked or they bought."""
     if v.kind != "member":
         raise HTTPException(400, "Profiles are for members")
     m = db.get(Member, v.id)
-    if body.avatar is not None:
-        if body.avatar and body.avatar not in AVATARS:
+    cfg = get_settings_row(db)
+    tier = tier_of_progress(progress_for(db, cfg, [m], today_for(cfg))[m.id])
+    owned = owned_items(db, m.id)
+    for kind, value, keys in (("avatar", body.avatar, None), ("frame", body.frame, FRAME_KEYS), ("theme", body.theme, THEME_KEYS)):
+        if value is None or value == "":
+            if value == "":
+                setattr(m, kind, "")
+            continue
+        if kind == "avatar" and value not in AVATARS and price_of("avatar", value) is None:
             raise HTTPException(400, "Choose one of the pictures shown")
-        m.avatar = body.avatar
-    if body.frame is not None:
-        if body.frame and body.frame not in FRAME_KEYS:
-            raise HTTPException(400, "Choose one of the frames shown")
-        if body.frame:
-            cfg = get_settings_row(db)
-            tier = tier_of_progress(progress_for(db, cfg, [m], today_for(cfg))[m.id])
-            if not frame_unlocked(body.frame, tier):
-                raise HTTPException(403, "That frame unlocks at a higher rank. Keep climbing!")
-        m.frame = body.frame
+        if keys is not None and value not in keys:
+            raise HTTPException(400, f"Choose one of the {kind}s shown")
+        if not item_available(kind, value, tier, owned):
+            raise HTTPException(403, "Unlock it first: climb to its rank or buy it in the shop")
+        setattr(m, kind, value)
+    db.commit()
+    return _profile(db, m)
+
+
+@router.post("/shop/buy")
+def buy(body: BuyIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """Spend gems on a frame, theme or picture from the shop."""
+    if v.kind != "member":
+        raise HTTPException(400, "The shop is for members")
+    m = db.get(Member, v.id)
+    price = price_of(body.kind, body.key)
+    if price is None:
+        raise HTTPException(400, "That item is not sold in the shop")
+    if shop_key(body.kind, body.key) in owned_items(db, m.id):
+        raise HTTPException(400, "You already have it")
+    cfg = get_settings_row(db)
+    p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
+    balance = gems_earned(p) - gems_spent(db, m.id)
+    if balance < price:
+        raise HTTPException(400, f"You need {price - balance} more gems. Finish tasks to earn more!")
+    db.add(Purchase(member_id=m.id, item=shop_key(body.kind, body.key), price=price))
+    setattr(m, body.kind, body.key)  # put it on straight away
     db.commit()
     return _profile(db, m)
 
 
 @router.post("/quest")
 def start_quest(body: QuestIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
-    """Give up 💎 Diamond Honor and restart at I on the road to 👑 Legendary Honor."""
+    """Give up 🖤 Obsidian and restart at I on the road to 👑 Legendary."""
     m = _member_or_404(db, body.member_id)
     if not v.is_admin and v.id != m.id:
         raise HTTPException(403, "Only you or a parent can start your quest")
@@ -309,7 +353,7 @@ def start_quest(body: QuestIn, v: Viewer = Depends(current_viewer), db: Session 
     today = today_for(cfg)
     p = progress_for(db, cfg, [m], today)[m.id]
     if not can_start_quest(p):
-        raise HTTPException(400, "Only a 💎 Diamond Honor member can start the Legendary quest")
+        raise HTTPException(400, "Only an 🖤 Obsidian member can start the Legendary quest")
     m.quest_starts = [*(m.quest_starts or []), today.isoformat()]
     db.commit()
     return _status(progress_for(db, cfg, [m], today)[m.id])

@@ -36,6 +36,7 @@ class Member(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     avatar: Mapped[str] = mapped_column(String(16), default="")  # an emoji the member picks
     frame: Mapped[str] = mapped_column(String(16), default="")  # picture frame on the leaderboard
+    theme: Mapped[str] = mapped_column(String(16), default="")  # colour theme of the app for this member
     quest_starts: Mapped[list] = mapped_column(JSON, default=list)  # days a Legendary quest was started
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
@@ -73,3 +74,14 @@ class AppSettings(Base):
     score_from: Mapped[date] = mapped_column(Date, default=date(2026, 11, 22))
     cut_misses: Mapped[int] = mapped_column(Integer, default=1)  # 1 = any missed task cuts Honor
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")
+
+
+class Purchase(Base):
+    """Something a member bought with gems (a frame, a theme or a picture)."""
+    __tablename__ = "purchases"
+    __table_args__ = (UniqueConstraint("member_id", "item", name="uq_member_item"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    item: Mapped[str] = mapped_column(String(40))  # e.g. "frame:galaxy", "theme:ocean", "avatar:🐉"
+    price: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

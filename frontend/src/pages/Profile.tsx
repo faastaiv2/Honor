@@ -1,76 +1,102 @@
 import { useEffect, useState } from "react";
-import { api, ApiError, type Profile, type TodayInfo } from "../api";
+import { api, ApiError, type Profile, type ShopItem, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
+import { confetti } from "../lib/confetti";
 import { notifyChanged, useToast } from "../lib/events";
+import { RankBadge } from "./Welcome";
 
-/** "🥇 Great Honor member", the title shown under a member's name. */
-export function memberTitle(p: { tier: { emoji: string; name: string }; legendary: boolean }): string {
-  return `${p.tier.emoji} ${p.tier.name} member`;
-}
+type Kind = "frame" | "theme" | "avatar";
+const TABS: { kind: Kind; label: string }[] = [{ kind: "frame", label: "Frames" }, { kind: "theme", label: "Themes" }, { kind: "avatar", label: "Pictures" }];
+
+/** Two-colour swatch for a theme, matching the colours in styles.css. */
+const THEME_SWATCH: Record<string, [string, string]> = {
+  classic: ["#0b4a3a", "#c9962b"], bronze: ["#6b3e1d", "#d49a5c"], silver: ["#3c4a57", "#b9c4ce"], gold: ["#6b4a00", "#f0c040"],
+  platinum: ["#24515e", "#9fd3e0"], emerald: ["#0f6b47", "#7fe0b0"], sapphire: ["#163f86", "#7fb0ff"], ruby: ["#7a1631", "#ff8fa8"],
+  diamond: ["#1d5f7a", "#a8ecff"], obsidian: ["#1a1426", "#b69cff"], legendary: ["#3a2a00", "#ffd24a"], rose: ["#8a2f55", "#ffb3c7"],
+  ocean: ["#0b5c7a", "#7fe3e0"], desert: ["#8a4b1e", "#ffc46b"], midnight: ["#111a3a", "#8fb4ff"],
+};
 
 export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const [p, setP] = useState<Profile | null>(null);
+  const [tab, setTab] = useState<Kind>("frame");
   const [error, setError] = useState("");
   const [toast, setToast] = useToast();
 
   useEffect(() => { api.profile().then(setP).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load your profile")); }, []);
 
-  async function save(body: { avatar?: string; frame?: string }, ok: string) {
-    try { setP(await api.saveProfile(body)); setError(""); setToast(ok); notifyChanged(); }
+  async function use(kind: Kind, key: string, name: string) {
+    try { setP(await api.saveProfile({ [kind]: key })); setError(""); setToast(`${name} is on`); notifyChanged(); }
     catch (e) { setError(e instanceof ApiError ? e.message : "Could not save"); }
+  }
+  async function buy(kind: Kind, item: ShopItem) {
+    try { setP(await api.buy(kind, item.key)); setError(""); setToast(`Bought ${item.name}! −${item.price} 💎`); confetti(); notifyChanged(); }
+    catch (e) { setError(e instanceof ApiError ? e.message : "Could not buy"); }
   }
 
   if (!p) return <section className="card"><p className={error ? "err" : "note"}>{error || "Loading…"}</p></section>;
 
   const t = p.tier;
   const nextMin = info?.tiers.find((x) => x.name === p.next?.name)?.min ?? null;
-  const pct = p.legendary || !p.next || nextMin === null || t.min === null ? 100 : Math.max(4, Math.min(100, ((p.level - t.min) / (nextMin - t.min)) * 100));
+  const pct = p.legendary || !p.next || nextMin === null || t.min === null ? 100 : Math.max(6, Math.min(100, ((p.level - t.min) / (nextMin - t.min)) * 100));
+  const items = tab === "frame" ? p.frames : tab === "theme" ? p.themes : p.avatars;
+  const current = tab === "frame" ? p.member.frame || "plain" : tab === "theme" ? p.member.theme || "classic" : p.member.avatar;
 
   return (
     <div className="profile">
       <section className="card profile-hero" style={{ ["--tc" as string]: t.color }}>
-        <Avatar avatar={p.member.avatar} color={t.color} frame={p.member.frame} size={112} />
+        <div className="wc-avatar">
+          <Avatar avatar={p.member.avatar} color={t.color} frame={p.member.frame} size={116} />
+          <span className="wc-badge"><RankBadge color={t.color} label={p.label} size={56} /></span>
+        </div>
         <h2 className="profile-name">{p.member.name}</h2>
-        <p className="profile-title">{memberTitle(p)}</p>
-        <div className="profile-level">{p.label}</div>
-        {p.next ? (
-          <div className="profile-next">
-            <div className="meter"><i style={{ width: `${pct}%`, background: t.color }} /></div>
-            <span>{p.next.needed} more to {p.next.emoji} {p.next.name}</span>
-          </div>
-        ) : <p className="note">{p.legendary ? "👑 You hold Legendary Honor" : "XLIX is the top without the Legendary quest"}</p>}
-        <p className="note">This week: {p.week_delta > 0 ? "+" : ""}{p.week_delta} Honor</p>
-      </section>
-
-      <section className="card">
-        <h2>Your rewards</h2>
-        <p><span aria-hidden="true">🎮</span> <b>Game / YouTube:</b> {t.games}</p>
-        <p><span aria-hidden="true">🎁</span> <b>Benefits:</b> {t.benefits}</p>
-      </section>
-
-      <section className="card">
-        <h2>Your frame</h2>
-        <p className="note">This is how your picture looks on the leaderboard. Climb the ranks to unlock more.</p>
-        <div className="frame-grid">
-          {p.frames.map((f) => (
-            <button key={f.key} className={`frame-pick${p.member.frame === f.key || (!p.member.frame && f.key === "plain") ? " on" : ""}`}
-              disabled={!f.unlocked} title={f.unlocked ? f.name : `Unlocks at ${f.tier.emoji} ${f.tier.name}`}
-              onClick={() => save({ frame: f.key }, `${f.name} frame on`)}>
-              <Avatar avatar={p.member.avatar} color={t.color} frame={f.key} size={52} />
-              <span>{f.name}</span>
-              {!f.unlocked && <small>🔒 {f.tier.emoji} {f.tier.name}</small>}
-            </button>
-          ))}
+        <p className="profile-title">{t.emoji} {t.name} member</p>
+        <div className="fat-bar" style={{ width: "min(100%, 340px)" }}><i style={{ width: `${pct}%` }} /></div>
+        <p className="note" style={{ margin: 0 }}>{p.next ? `${p.next.needed} more to ${p.next.emoji} ${p.next.name}` : p.legendary ? "👑 You hold Legendary" : "XLIX is the top without the Legendary quest"}</p>
+        <div className="wc-stats" style={{ width: "100%" }}>
+          <div className="stat"><span className="stat-ico">💎</span><b>{p.gems.balance}</b><small>gems</small></div>
+          <div className="stat"><span className="stat-ico">🔥</span><b>{p.streak}</b><small>day streak</small></div>
+          <div className="stat"><span className="stat-ico">🏅</span><b>{p.gems.earned}</b><small>gems earned</small></div>
+        </div>
+        <div className="perks-mini">
+          <p><span aria-hidden="true">🎮</span> {t.games}</p>
+          <p><span aria-hidden="true">🎁</span> {t.benefits}</p>
         </div>
       </section>
 
-      <section className="card">
-        <h2>Your picture</h2>
-        <div className="chips avatars" role="group" aria-label="Choose your picture">
-          <button className={`chip${!p.member.avatar ? " on" : ""}`} onClick={() => save({ avatar: "" }, "Picture saved")} aria-label="Plain person">👤</button>
-          {p.avatars.map((a) => (
-            <button key={a} className={`chip${p.member.avatar === a ? " on" : ""}`} onClick={() => save({ avatar: a }, "Picture saved")}>{a}</button>
-          ))}
+      <section className="card shop">
+        <div className="shop-head">
+          <h2>Shop &amp; style</h2>
+          <span className="gem-wallet">💎 {p.gems.balance}</span>
+        </div>
+        <p className="note">Your rank unlocks its own frame and theme for free. Buy extra ones with gems: every task is +5 💎.</p>
+        <div className="seg" role="tablist">
+          {TABS.map((x) => <button key={x.kind} role="tab" aria-selected={tab === x.kind} className={tab === x.kind ? "on" : ""} onClick={() => setTab(x.kind)}>{x.label}</button>)}
+        </div>
+        <div className={`shop-grid ${tab}`}>
+          {tab === "avatar" && (
+            <button className={`shop-item${!p.member.avatar ? " on" : ""}`} onClick={() => use("avatar", "", "Plain picture")}>
+              <span className="shop-face">👤</span><span className="shop-name">Plain</span><span className="shop-act">{!p.member.avatar ? "In use" : "Use"}</span>
+            </button>
+          )}
+          {items.map((it) => {
+            const inUse = current === it.key;
+            const locked = !it.available;
+            const forSale = locked && it.price > 0;
+            return (
+              <div key={it.key} className={`shop-item${inUse ? " on" : ""}${locked ? " locked" : ""}`}>
+                <span className="shop-face">
+                  {tab === "frame" ? <Avatar avatar={p.member.avatar} color={t.color} frame={it.key} size={54} />
+                    : tab === "theme" ? <span className="swatch" style={{ background: `linear-gradient(135deg, ${(THEME_SWATCH[it.key] ?? ["#0b4a3a", "#c9962b"])[0]} 50%, ${(THEME_SWATCH[it.key] ?? ["#0b4a3a", "#c9962b"])[1]} 50%)` }} />
+                    : <span className="emoji-face">{it.key}</span>}
+                </span>
+                {tab !== "avatar" && <span className="shop-name">{it.name}</span>}
+                {inUse ? <span className="shop-act on">In use ✓</span>
+                  : it.available ? <button className="shop-act" onClick={() => use(tab, it.key, it.name)}>Use</button>
+                  : forSale ? <button className="shop-act buy" disabled={p.gems.balance < it.price} onClick={() => buy(tab, it)}>💎 {it.price}</button>
+                  : <span className="shop-lock">🔒 {it.tier?.emoji} {it.tier?.name}</span>}
+              </div>
+            );
+          })}
         </div>
       </section>
       {error && <p className="err" role="alert">{error}</p>}
