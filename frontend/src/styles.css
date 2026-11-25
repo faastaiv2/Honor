@@ -1616,3 +1616,12 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .ev-day.on small { color: #fff; }
 .ev-other-day { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--mute); }
 .ev-other-day input { width: auto; padding: 6px 8px; }
+
+/* Phones: every tab visible (no hidden sideways scrolling) */
+@media (max-width: 700px) {
+  nav.tabs.scroll { overflow: visible; }
+  nav.tabs { flex-wrap: wrap; gap: 6px; margin-top: 14px; padding-bottom: 12px; }
+  nav.tabs a { padding: 8px 13px; border-radius: 999px; font-size: 15px; background: #ffffff12; box-shadow: inset 0 0 0 1px #ffffff26; }
+  nav.tabs a.active { background: var(--bg); color: var(--ink); box-shadow: 0 2px 8px #0003; }
+  nav.tabs .who { order: -1; width: 100%; justify-content: flex-end; padding: 0; margin: -6px 0 2px; }
+}
