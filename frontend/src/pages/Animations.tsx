@@ -13,7 +13,7 @@ import RankUp from "./RankUp";
  */
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
-const MUSIC: SoundKey[] = ["quest-music", "rankup-music"];
+const isMusicKey = (k: SoundKey) => k === "quest-music" || k.startsWith("rankup-music");
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 /** "1:20", "80" or "1:20.5" → seconds (rounded); "" → 0. NaN if it can't be read. */
 const toSec = (t: string) => {
@@ -25,6 +25,7 @@ const toSec = (t: string) => {
 
 /** When each sound normally plays: seconds into the film (films), or the moment it follows (everything else). */
 const TIMELINE: Partial<Record<SoundKey, number>> = { "quest-music": 0, "quest-thunder": 9.2, "quest-crack": 13, "rankup-music": 0 };
+const timelineOf = (k: SoundKey) => (k.startsWith("rankup-music") ? 0 : TIMELINE[k]);
 const MOMENT: Partial<Record<SoundKey, string>> = {
   chest: "the chest is tapped", gems: "the gems start falling", "gems-crack": "the floor cracks", collect: "Collect is tapped",
   achievement: "the reward appears", "event-win": "the prize chest appears",
@@ -43,11 +44,11 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
   const [start, setStart] = useState(mmss(info?.start ?? 0));
   const [end, setEnd] = useState(info?.end ? mmss(info.end) : "");
   const [vol, setVol] = useState(info?.volume ?? 80);
-  const base = TIMELINE[k];
+  const base = timelineOf(k);
   const whenOf = (i?: MusicInfo) => (base !== undefined ? base + (i?.offset_ms ?? 0) / 1000 : (i?.offset_ms ?? 0) / 1000);
   const [atSec, setAtSec] = useState(String(whenOf(info)));
   const file = useRef<HTMLInputElement>(null);
-  const isMusic = MUSIC.includes(k);
+  const isMusic = isMusicKey(k);
   useEffect(() => { setStart(mmss(info?.start ?? 0)); setEnd(info?.end ? mmss(info.end) : ""); setVol(info?.volume ?? 80); setAtSec(String(whenOf(info))); }, [info]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => stopMusic(k, 0), [k]);
 
@@ -126,7 +127,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
   const [rank, setRank] = useState("gold");
   useEffect(() => { api.soundsInfo().then(setSounds).catch((e) => setError(msg(e))); }, []);
 
-  const tiers = (info?.tiers ?? []).filter((t) => t.key !== "low");
+  const tiers = (info?.tiers ?? []).filter((t) => t.key !== "low" && t.key !== "member");
   const slot = (k: SoundKey, label: string, when: string) => (
     <SoundSlot key={k} k={k} label={label} when={when} info={sounds[k]}
       onChange={(i) => setSounds((s) => ({ ...s, [k]: i }))} onError={setError} onDone={(m) => { setError(""); setToast(m); }} />
@@ -161,12 +162,15 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
       {card(<RankIcon rank={rank} size={44} />, "Rank-up film",
         "When a member reaches a new rank: the crest, the name, then their new frame, theme and gems.",
         () => { const t = tiers.find((x) => x.key === rank); if (t) setPreview({ kind: "rank", tier: t }); },
-        slot("rankup-music", "Music", "Plays through the whole rank-up show"),
+        <>{slot(`rankup-music-${rank}` as SoundKey, `${tiers.find((t) => t.key === rank)?.name ?? ""} music`,
+            `Only for reaching ${tiers.find((t) => t.key === rank)?.name ?? "this rank"}. Pick another rank above to set its music`)}
+          {slot("rankup-music", "All ranks music", "Plays for any rank that has no music of its own")}</>,
         <div className="an-ranks" role="radiogroup" aria-label="Rank to preview">
           {tiers.map((t) => (
             <button key={t.key} role="radio" aria-checked={rank === t.key} className={`an-rank${rank === t.key ? " on" : ""}`}
               style={{ ["--tc" as string]: t.color }} onClick={() => setRank(t.key)} title={t.name}>
               <RankIcon rank={t.key} size={28} /><small>{t.name}</small>
+              {sounds[`rankup-music-${t.key}` as SoundKey]?.has && <i className="an-rank-note" title="Has its own music">♪</i>}
             </button>
           ))}
         </div>)}

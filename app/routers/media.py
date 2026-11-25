@@ -26,7 +26,8 @@ KEYS = {
     "collect",       # gems fly into the wallet
     "achievement",   # an achievement is collected
     "event-win",     # winning a place in an art tournament
-}
+} | {f"rankup-music-{r}" for r in ("bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond",
+                                   "obsidian", "legendary")}  # music for one rank's show (else the general rank-up music)
 MAX_BYTES = 4_300_000  # the host accepts uploads up to about 4.5 MB
 AUDIO = {"audio/mpeg", "audio/mp3", "audio/ogg", "audio/wav", "audio/x-wav", "audio/aac", "audio/mp4", "audio/x-m4a", "audio/webm"}
 

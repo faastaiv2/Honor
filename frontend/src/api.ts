@@ -82,7 +82,8 @@ export class ApiError extends Error {
   }
 }
 
-export type SoundKey = "quest-music" | "quest-thunder" | "quest-crack" | "rankup-music" | "chest" | "gems" | "gems-crack" | "collect" | "achievement" | "event-win";
+export type RankSoundKey = `rankup-music-${"bronze" | "silver" | "gold" | "platinum" | "emerald" | "sapphire" | "ruby" | "diamond" | "obsidian" | "legendary"}`;
+export type SoundKey = RankSoundKey | "quest-music" | "quest-thunder" | "quest-crack" | "rankup-music" | "chest" | "gems" | "gems-crack" | "collect" | "achievement" | "event-win";
 export interface MusicInfo { has: boolean; start: number; end: number; offset_ms: number; volume: number; size: number; updated: string | null }
 
 export const token = {

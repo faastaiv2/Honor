@@ -23,6 +23,12 @@ export async function preloadSound(key: SoundKey): Promise<{ url: string; info: 
   return url ? { url, info } : null;
 }
 
+/** The first of these sounds that the parent has set (e.g. this rank's music, else the general one). */
+export async function firstSet(keys: SoundKey[]): Promise<SoundKey | null> {
+  const all = await allInfo();
+  return keys.find((k) => all[k]?.has) ?? null;
+}
+
 /** After an upload or a change: fetch fresh next time. */
 export function resetSounds(key?: SoundKey) {
   infos = null;

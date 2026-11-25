@@ -9,7 +9,8 @@ import ThemePreview from "../lib/ThemePreview";
 import { api } from "../api";
 import { notifyChanged } from "../lib/events";
 import { Particles } from "../lib/particles";
-import { playMusic, stopMusic } from "../lib/sounds";
+import { firstSet, playMusic, stopMusic } from "../lib/sounds";
+import type { SoundKey } from "../api";
 
 /** Rank order: the higher the rank, the bigger the show. */
 const ORDER = ["bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond", "obsidian", "legendary"];
@@ -142,7 +143,15 @@ function DrawnPattern() {
 
 export default function RankUp({ tier, name, profile, reward, onClose }: RankUpProps) {
   // The rank-up music (set on the Animations page) plays through the whole show.
-  useEffect(() => { void playMusic("rankup-music"); return () => stopMusic("rankup-music", 1500); }, []);
+  useEffect(() => {
+    let key: SoundKey | null = null, live = true;
+    void firstSet([`rankup-music-${tier.key}` as SoundKey, "rankup-music"]).then((k) => {  // this rank's own music, else the general one
+      if (!live || !k) return;
+      key = k;
+      void playMusic(k);
+    });
+    return () => { live = false; if (key) stopMusic(key, 1500); };
+  }, [tier.key]);
   const idx = Math.max(0, ORDER.indexOf(tier.key));
   const lvl = idx + 1;
   const legendary = tier.key === "legendary";
