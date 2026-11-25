@@ -37,6 +37,11 @@ def today_for(cfg: AppSettings) -> date:
     return datetime.now(zone(cfg)).date()
 
 
+def clock_for(cfg: AppSettings) -> str:
+    """The board's time of day now, as "HH:MM"."""
+    return datetime.now(zone(cfg)).strftime("%H:%M")
+
+
 def week_info(today: date, score_from: date) -> dict:
     """Week 1 is the week (Sunday to Saturday) in which the board started scoring."""
     start = week_start(today)
@@ -61,8 +66,8 @@ def load_tasks(db: Session) -> list[scoring.TaskSpec]:
     rows = list(db.scalars(select(TaskDef).order_by(TaskDef.sort_order, TaskDef.key)))
     if not rows:
         return list(scoring.DEFAULT_SPECS)
-    return [scoring.TaskSpec(r.key, r.label, r.group, r.fitness, r.number, r.step, r.every, r.start_day, r.next_day)
-            for r in rows]
+    return [scoring.TaskSpec(r.key, r.label, r.group, r.fitness, r.number, r.step, r.every, r.start_day, r.next_day,
+                             r.not_before) for r in rows]
 
 
 def load_periods(db: Session) -> list:

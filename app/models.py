@@ -42,6 +42,8 @@ class Member(Base):
     seen_level_gems: Mapped[int] = mapped_column(Integer, default=0)  # level/rank gems already shown at that show
     oath_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # swore the Oath of Honor
     toured: Mapped[bool] = mapped_column(Boolean, default=False)  # saw the welcome tour
+    oath_note: Mapped[str] = mapped_column(String(160), default="")  # why the oath must be sworn again
+    early_ticks: Mapped[int] = mapped_column(Integer, default=0)  # tries to tick a task before its time
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
@@ -57,6 +59,7 @@ class DayLog(Base):
     excuse: Mapped[str] = mapped_column(String(120), default="")
     late: Mapped[dict] = mapped_column(JSON, default=dict)  # task -> day it was made up (ticked after the day)
     task_excuses: Mapped[dict] = mapped_column(JSON, default=dict)  # task -> reason it was excused that day
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # when every task got done
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
     updated_by: Mapped[str] = mapped_column(String(120), default="")
 
@@ -138,4 +141,5 @@ class TaskDef(Base):
     every: Mapped[int] = mapped_column(Integer, default=1)
     start_day: Mapped[date] = mapped_column(Date)
     next_day: Mapped[bool] = mapped_column(Boolean, default=False)  # done at night, counts for the next day
+    not_before: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "12:00": can't be ticked earlier
     sort_order: Mapped[int] = mapped_column(Integer, default=0)

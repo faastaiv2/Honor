@@ -86,7 +86,7 @@ def _make_code(name: str, taken: set[str]) -> str:
 
 def _member_out(m: Member) -> dict:
     return {"id": m.id, "name": m.name, "code": m.code, "base_honor": m.base_honor, "has_pin": bool(m.pin_hash),
-            "sort_order": m.sort_order, "active": m.active, "avatar": m.avatar}
+            "sort_order": m.sort_order, "active": m.active, "avatar": m.avatar, "early_ticks": m.early_ticks or 0}
 
 
 @router.get("/members")
@@ -230,6 +230,7 @@ class TaskIn(BaseModel):
     step: int = Field(default=0, ge=-1000, le=1000)
     every: int = Field(default=1, ge=1, le=365)
     next_day: bool = False
+    not_before: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
 class TaskPatch(BaseModel):
@@ -242,11 +243,13 @@ class TaskPatch(BaseModel):
     every: int | None = Field(default=None, ge=1, le=365)
     move: int | None = Field(default=None, ge=-1, le=1)  # -1 up, +1 down
     next_day: bool | None = None
+    not_before: str | None = Field(default=None, pattern=r"^(([01]\d|2[0-3]):[0-5]\d)?$")  # "" clears it
 
 
 def _task_out(t: TaskDef, today: date) -> dict:
     spec = TaskSpec(t.key, t.label, t.group, t.fitness, t.number, t.step, t.every, t.start_day)
     return {"key": t.key, "label": t.label, "group": t.group, "fitness": t.fitness, "next_day": bool(t.next_day),
+            "not_before": t.not_before or None,
             "number_today": spec.number_on(today),
             "step": t.step, "every": t.every, "shown_today": spec.label_on(today),
             "shown_tomorrow": spec.label_on(today + timedelta(days=1))}
@@ -257,7 +260,7 @@ def _ensure_tasks(db: Session) -> list[TaskDef]:
     if not rows:  # a board made before tasks were editable: store the sheet's tasks first
         for i, t in enumerate(DEFAULT_SPECS):
             db.add(TaskDef(key=t.key, label=t.label, group=t.group, fitness=t.fitness, number=t.number, step=t.step,
-                           every=t.every, start_day=t.start_day, next_day=t.next_day, sort_order=i))
+                           every=t.every, start_day=t.start_day, next_day=t.next_day, not_before=t.not_before, sort_order=i))
         db.commit()
         rows = list(db.scalars(select(TaskDef).order_by(TaskDef.sort_order, TaskDef.key)))
     return rows
@@ -287,7 +290,7 @@ def add_task(body: TaskIn, _: Viewer = Depends(require_admin), db: Session = Dep
         key, i = f"{base[:14]}{i}", i + 1
     t = TaskDef(key=key, label=_label_with_number(body.label, body.number_today is not None), group=body.group.strip(),
                 fitness=body.fitness, number=body.number_today, step=body.step, every=body.every, start_day=today,
-                next_day=body.next_day,
+                next_day=body.next_day, not_before=body.not_before,
                 sort_order=max((r.sort_order for r in rows), default=0) + 1)
     db.add(t)
     db.commit()
@@ -331,6 +334,8 @@ def edit_task(key: str, body: TaskPatch, _: Viewer = Depends(require_admin), db:
         t.fitness = body.fitness
     if body.next_day is not None:
         t.next_day = body.next_day
+    if body.not_before is not None:
+        t.not_before = body.not_before or None
     db.commit()
     return _task_out(t, today)
 
@@ -355,7 +360,7 @@ def reset_tasks(_: Viewer = Depends(require_admin), db: Session = Depends(get_db
     db.flush()
     for i, t in enumerate(DEFAULT_SPECS):
         db.add(TaskDef(key=t.key, label=t.label, group=t.group, fitness=t.fitness, number=t.number, step=t.step,
-                       every=t.every, start_day=t.start_day, next_day=t.next_day, sort_order=i))
+                       every=t.every, start_day=t.start_day, next_day=t.next_day, not_before=t.not_before, sort_order=i))
     db.commit()
     today = today_for(get_settings_row(db))
     return [_task_out(r, today) for r in db.scalars(select(TaskDef).order_by(TaskDef.sort_order))]

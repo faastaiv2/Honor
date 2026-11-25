@@ -6,20 +6,20 @@ import { notifyChanged, useToast } from "../lib/events";
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
 const days = (n: number) => (n === 1 ? "day" : `${n} days`);
 
-interface Draft { numLast?: boolean; label: string; group: string; hasNum: boolean; num: string; step: string; every: string; fitness: boolean; nextDay: boolean }
+interface Draft { notBefore: string; numLast?: boolean; label: string; group: string; hasNum: boolean; num: string; step: string; every: string; fitness: boolean; nextDay: boolean }
 
 const fromTask = (t: TaskDef): Draft => ({
   // The name box holds only the words; the number is set separately and goes before them
   // (or after, if the task was written that way, like "Read pages {n}").
   label: t.label.replace("{n}", "").replace(/\s+/g, " ").trim(), numLast: t.label.trim().endsWith("{n}") && !t.label.trim().startsWith("{n}"),
-  group: t.group, hasNum: t.number_today !== null,
+  group: t.group, hasNum: t.number_today !== null, notBefore: t.not_before ?? "",
   num: String(t.number_today ?? 10), step: String(t.step || 1), every: String(t.every), fitness: t.fitness, nextDay: t.next_day,
 });
 /** "#" in the name marks where the number goes ("# push-ups"); without one the number goes first. */
 const words = (d: Draft) => d.label.replace(/\{n\}|#/g, "").replace(/\s+/g, " ").trim();
 const labelOut = (d: Draft) => (d.hasNum ? (d.numLast ? `${words(d)} {n}` : `{n} ${words(d)}`) : words(d));
 const shownAs = (d: Draft) => (d.hasNum ? (d.numLast ? `${words(d)} ${Number(d.num) || 0}` : `${Number(d.num) || 0} ${words(d)}`) : words(d));
-const EMPTY: Draft = { label: "", group: "Ibadah", hasNum: false, num: "10", step: "1", every: "1", fitness: false, nextDay: false };
+const EMPTY: Draft = { notBefore: "", label: "", group: "Ibadah", hasNum: false, num: "10", step: "1", every: "1", fitness: false, nextDay: false };
 
 /** A yes/no choice shown as a tappable card. */
 function Toggle({ on, set, icon, title, text }: { on: boolean; set: (v: boolean) => void; icon: string; title: string; text: string }) {
@@ -68,6 +68,14 @@ function Editor({ d, set, groups, onSubmit, submit, children }: { d: Draft; set:
       )}
       <Toggle on={d.fitness} set={(v) => set({ ...d, fitness: v })} icon="🤒" title="Excused on sick days" text="Skipped when a member writes a reason (like exercise)" />
       <Toggle on={d.nextDay} set={(v) => set({ ...d, nextDay: v })} icon="🌙" title="Done at night, counts for the next day" text="Like Surah Mulk: tonight's reading counts for tomorrow" />
+      <div className={`tk-toggle tk-time${d.notBefore ? " on" : ""}`}>
+        <span className="tk-toggle-ico">🕛</span>
+        <span><b>Not before a time</b><small>Members can't tick it earlier in the day. Trying means swearing the oath again.</small></span>
+        <span className="tk-time-in">
+          <input type="time" aria-label="Earliest time" value={d.notBefore} onChange={(e) => set({ ...d, notBefore: e.target.value })} />
+          {d.notBefore && <button type="button" className="link" onClick={() => set({ ...d, notBefore: "" })}>Clear</button>}
+        </span>
+      </div>
       <div className="tk-actions">
         <button className="primary">{submit}</button>
         {children}
@@ -85,8 +93,8 @@ function TaskRow({ t, first, last, groups, onSaved, onError }: { t: TaskDef; fir
     e.preventDefault();
     try {
       await api.editTask(t.key, d.hasNum
-        ? { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, number_today: Number(d.num), step: Number(d.step), every: Number(d.every) }
-        : { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, clear_number: t.number_today !== null });
+        ? { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, not_before: d.notBefore, number_today: Number(d.num), step: Number(d.step), every: Number(d.every) }
+        : { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, not_before: d.notBefore, clear_number: t.number_today !== null });
       setOpen(false);
       onSaved("Task saved");
     } catch (err) { onError(msg(err)); }
@@ -107,6 +115,7 @@ function TaskRow({ t, first, last, groups, onSaved, onError }: { t: TaskDef; fir
             {t.number_today !== null && t.step === 0 && <span className="tk-tag">Fixed number</span>}
             {t.fitness && <span className="tk-tag sick">🤒 Sick-day excused</span>}
             {t.next_day && <span className="tk-tag night">🌙 Counts next day</span>}
+            {t.not_before && <span className="tk-tag">🕛 Not before {t.not_before}</span>}
           </span>
         </button>
         <button className="tk-edit" onClick={() => { setOpen((x) => !x); setSure(false); setD(fromTask(t)); }}>{open ? "Close" : "Edit"}</button>
@@ -246,7 +255,7 @@ export default function Tasks() {
   async function add(e: FormEvent) {
     e.preventDefault();
     try {
-      await api.addTask({ label: labelOut(nt), group: nt.group, fitness: nt.fitness, next_day: nt.nextDay,
+      await api.addTask({ label: labelOut(nt), group: nt.group, fitness: nt.fitness, next_day: nt.nextDay, not_before: nt.notBefore || null,
         number_today: nt.hasNum ? Number(nt.num) : null, step: nt.hasNum ? Number(nt.step) : 0, every: Number(nt.every) || 1 });
       setNt({ ...EMPTY, group: nt.group });
       setAdding(false);
@@ -287,7 +296,7 @@ export default function Tasks() {
               <ul>
                 {inGroup.map((t) => {
                   const i = tasks.indexOf(t);
-                  return <TaskRow key={`${t.key}${t.label}${t.number_today}${t.step}${t.every}${t.group}${t.fitness}${t.next_day}`} t={t}
+                  return <TaskRow key={`${t.key}${t.label}${t.number_today}${t.step}${t.every}${t.group}${t.fitness}${t.next_day}${t.not_before}`} t={t}
                     first={i === 0} last={i === tasks.length - 1} groups={groups} onSaved={saved} onError={setError} />;
                 })}
               </ul>

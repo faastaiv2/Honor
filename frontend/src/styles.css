@@ -1391,3 +1391,11 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .tk-reset > button { min-height: 40px; border-radius: 999px; padding: 0 16px; font-weight: 700; color: var(--mute); }
 .tk-reset-ask { padding: 14px; border-radius: 16px; border: 2px solid color-mix(in srgb, var(--bad) 45%, var(--line)); background: color-mix(in srgb, var(--bad) 7%, var(--paper)); }
 .tk-reset-ask p { margin: 0 0 10px; }
+
+/* Not-before-a-time tasks and the oath warning */
+.task i.from { font-style: normal; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--soft2); color: var(--mute); white-space: nowrap; }
+.tk-time { cursor: default; }
+.tk-time-in { display: inline-flex; align-items: center; gap: 6px; }
+.tk-time-in input { min-height: 38px; width: 120px; }
+.oath-warn { width: 100%; display: grid; gap: 4px; padding: 12px 14px; border-radius: 14px; background: #fde4e0; border: 2px solid #c0392b; color: #7a1a10; text-align: start; animation: shake .5s; }
+.oath-warn b { font-size: 16px; }

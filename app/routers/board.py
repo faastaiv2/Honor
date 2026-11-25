@@ -12,7 +12,7 @@ from app.makeup import check_week, remaining, week_start
 from app.models import AchievementClaim, DailyClaim, DayLog, Member, Purchase
 from app.achievements import BY_KEY as ACHIEVEMENT_BY_KEY, Facts, evaluate as evaluate_achievements
 from app.progress import Progress, gems_earned
-from app.services import (achievement_gems, active_members, chests_opened, load_periods, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
+from app.services import (achievement_gems, active_members, clock_for, chests_opened, load_periods, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
 from app.tiers import (CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
                        FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
@@ -111,6 +111,11 @@ def _week_lates(db: Session, member_id: str, d: date) -> dict[date, dict]:
     return {day: dict(l.late or {}) for (_, day), l in logs.items()}
 
 
+def _ampm(hhmm: str) -> str:
+    h, m = (int(x) for x in hhmm.split(":"))
+    return f"{(h % 12) or 12}:{m:02d} {'AM' if h < 12 else 'PM'}"
+
+
 def _prev_ticks(db: Session, member_id: str, d: date) -> list:
     prev = db.scalar(select(DayLog).where(DayLog.member_id == member_id, DayLog.day == d - timedelta(days=1)))
     return list(prev.tasks) if prev else []
@@ -135,6 +140,8 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
     for t in specs:
         item = {"key": t.key, "label": t.label_on(d), "done": t.key in done, "fitness": t.fitness, "late": t.key in late,
                 "excused": skip.get(t.key)}
+        if t.not_before:
+            item["not_before"] = _ampm(t.not_before)
         if t.next_day:  # ticked tonight for tomorrow; today got last night's
             item |= {"next_day": True, "counted_today": t.key in counted}
         groups.setdefault(t.group, []).append(item)
@@ -200,6 +207,17 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
         if skip != old_skip and not v.is_admin and body.date < today:
             raise HTTPException(403, "A task can only be excused on the day. Ask a parent")
     tasks -= set(skip)  # an excused task is not ticked
+    if not v.is_admin and body.date == today:
+        # Some tasks can't be done before a time of day (Asr Sunnat from 12:00). Ticking one early breaks the oath.
+        now = clock_for(cfg)
+        early = [t for t in specs if t.not_before and t.key in tasks - before and now < t.not_before]
+        if early:
+            t = early[0]
+            m.oath_at = None
+            m.oath_note = f"You tried to tick “{t.label_on(today)}” before {_ampm(t.not_before)}."[:160]
+            m.early_ticks = (m.early_ticks or 0) + 1
+            db.commit()
+            raise HTTPException(409, f"too_early: {m.oath_note}")
     late = dict(log.late or {}) if log else {}
     excuse = body.excuse.strip()
 
@@ -231,6 +249,13 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
     if log is None:
         log = DayLog(member_id=m.id, day=body.date)
         db.add(log)
+    done_day = scoring.score_day(body.date, scoring.credited(tasks, _prev_ticks(db, m.id, body.date), specs,
+                                                             first_day=body.date == member_start(cfg, m)),
+                                 excuse, today, cfg.cut_misses, specs, skip).gain
+    if not done_day:
+        log.completed_at = None
+    elif log.completed_at is None:
+        log.completed_at = datetime.now(timezone.utc)  # when the whole day got done (a quiet tie-breaker)
     log.tasks = sorted(tasks)
     log.late = late
     log.task_excuses = skip
@@ -264,13 +289,19 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
             labels = {t.key: t.label_on(today) for t in specs}
             row["excused_today"] = [{"task": labels.get(k, k), "reason": r} for k, r in skip.items()]
         rows.append(row)
-    rows.sort(key=lambda r: (-(10**6 if r["legendary"] else 0) - r["level"], r["member"]["name"].lower()))
-    rank, prev = 0, None
+    # Same level? Quietly, whoever finished today's tasks earliest is higher; then more done today; then who
+    # finished earliest yesterday. Every member gets their own place.
+    never = datetime.max.replace(tzinfo=timezone.utc)
+
+    def done_at(mid: str, d: date) -> datetime:
+        log = logs.get((mid, d))
+        t = log.completed_at if log else None
+        return (t if t.tzinfo else t.replace(tzinfo=timezone.utc)) if t else never
+
+    rows.sort(key=lambda r: (-(10**6 if r["legendary"] else 0) - r["level"], done_at(r["member"]["id"], today),
+                             -r["today"]["done"], done_at(r["member"]["id"], yesterday), r["member"]["name"].lower()))
     for i, r in enumerate(rows):
-        key = (r["legendary"], r["level"])
-        if key != prev:
-            rank, prev = i + 1, key
-        r["rank"] = rank
+        r["rank"] = i + 1
     weekly = sorted(rows, key=lambda r: (-r["week_delta"], -r["level"], r["member"]["name"].lower()))
     return {"week": week_info(today, cfg.score_from), "rows": rows,
             "weekly": [{"member_id": r["member"]["id"], "week_delta": r["week_delta"]} for r in weekly]}
@@ -394,7 +425,7 @@ def _profile(db: Session, m: Member) -> dict:
             "daily": {"gems": daily_gems, "claimed_today": claimed_today,
                       "available": daily_gems > 0 and p.streak > 0 and not claimed_today},
             "week_days": _week_days(db, cfg, m, today),
-            "oath": m.oath_at is not None, "toured": bool(m.toured),
+            "oath": m.oath_at is not None, "oath_note": m.oath_note or "", "toured": bool(m.toured),
             "achievements_ready": sum(1 for a in _achievements(db, m, p) if a["unlocked"] and not a["claimed"])}
 
 
@@ -522,6 +553,7 @@ def swear_oath(body: OathIn, v: Viewer = Depends(current_viewer), db: Session = 
     m = db.get(Member, v.id)
     if m.oath_at is None:
         m.oath_at = datetime.now(timezone.utc)
+        m.oath_note = ""
         db.commit()
     return _profile(db, m)
 

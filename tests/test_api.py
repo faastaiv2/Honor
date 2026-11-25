@@ -611,3 +611,44 @@ def test_reset_tasks_to_the_original_sheet(client, family):
     assert lap["label"] == "{n} laps" and lap["number_today"] is not None
     assert next(t for t in out if t["key"] == "mulk")["next_day"]
     assert client.post("/api/admin/tasks/reset", headers=auth(client, family["A"])).status_code == 403
+
+
+def test_asr_before_noon_breaks_the_oath(client, family, db):
+    h = auth(client, family["A"])
+    a, b = at_today()
+    with a, b:
+        client.post("/api/board/oath", headers=h, json={"words": "I SWEAR"})
+        with patch("app.routers.board.clock_for", return_value="11:30"):
+            view = client.get(f"/api/board/day?member_id={family['A'].id}", headers=h).json()
+            asr = next(t for g in view["groups"] for t in g["tasks"] if t["key"] == "asr")
+            assert asr["not_before"] == "12:00 PM"
+            r = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id, "date": TODAY.isoformat(), "tasks": ["asr"]})
+            assert r.status_code == 409 and r.json()["detail"].startswith("too_early")
+        prof = client.get("/api/board/profile", headers=h).json()
+        assert prof["oath"] is False and "Asr" in prof["oath_note"]
+        with patch("app.routers.board.clock_for", return_value="12:05"):
+            assert client.put("/api/board/day", headers=h, json={"member_id": family["A"].id, "date": TODAY.isoformat(), "tasks": ["asr"]}).status_code == 200
+        assert client.post("/api/board/oath", headers=h, json={"words": "I SWEAR"}).json()["oath_note"] == ""
+        early = next(x for x in client.get("/api/admin/members", headers=auth(client, admin=True)).json() if x["name"] == "Alpha")
+        assert early["early_ticks"] == 1
+        # Parents can tick it any time.
+        with patch("app.routers.board.clock_for", return_value="09:00"):
+            assert client.put("/api/board/day", headers=auth(client, admin=True), json={"member_id": family["B"].id, "date": TODAY.isoformat(), "tasks": ["asr"]}).status_code == 200
+
+
+def test_same_level_earlier_finisher_ranks_higher(client, family, db):
+    ha = auth(client, admin=True)
+    a, b = at_today()
+    with a, b, patch("app.routers.admin.today_for", return_value=TODAY):
+        for code in ("A", "B", "S"):
+            mulk_last_night(db, family[code])
+        # Make Bravo and Sierra level with Alpha (base 10, 26 -> 5, 26).
+        client.patch(f"/api/admin/members/{family['B'].id}", headers=ha, json={"base_honor": 10})
+        client.patch(f"/api/admin/members/{family['S'].id}", headers=ha, json={"base_honor": 10})
+        rows = client.get("/api/board/leaderboard", headers=ha).json()["rows"]
+        assert sorted(r["rank"] for r in rows) == [1, 2, 3]  # nobody shares a place
+        put_day(client, auth(client, family["S"]), family["S"], TODAY, ALL)  # Sierra finishes first
+        put_day(client, auth(client, family["B"]), family["B"], TODAY, ALL)  # then Bravo
+        rows = client.get("/api/board/leaderboard", headers=ha).json()["rows"]
+    order = [r["member"]["name"] for r in rows]
+    assert order[:2] == ["Sierra", "Bravo"] and rows[0]["rank"] == 1 and rows[1]["rank"] == 2

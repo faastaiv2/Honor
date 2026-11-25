@@ -113,6 +113,7 @@ function MemberCard({ m, row, onDone, onChanged, onError }: { m: AdminMember; ro
           <span title="Change in Honor this week">📈 {row ? `${row.week_delta > 0 ? "+" : ""}${row.week_delta} this week` : "—"}</span>
           {row && row.pending > 0 && <span title="Earned today, arrives at midnight">🌙 +{row.pending} at midnight</span>}
           {!m.has_pin && <span className="warn">No PIN yet</span>}
+          {m.early_ticks > 0 && <span className="warn" title="Tried to tick a task before its time and had to swear the oath again">⚠️ Ticked early {m.early_ticks}×</span>}
         </div>
         {!!row?.excused_today?.length && (
           <ul className="ad-excused" aria-label="Excused today">

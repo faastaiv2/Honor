@@ -14,7 +14,7 @@ import { useChangeCounter } from "../lib/events";
 
 const RANKS = ["bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond", "obsidian", "legendary"];
 
-function Oath({ name, onSworn }: { name: string; onSworn: () => void }) {
+function Oath({ name, note, onSworn }: { name: string; note?: string; onSworn: () => void }) {
   const [words, setWords] = useState("");
   const [sealed, setSealed] = useState(false);
   const [error, setError] = useState("");
@@ -35,7 +35,9 @@ function Oath({ name, onSworn }: { name: string; onSworn: () => void }) {
       <div className="fr-sky" aria-hidden="true" />
       <div className="oath">
         <div className="oath-crest" aria-hidden="true"><RankIcon rank="legendary" className="ru-crest" /></div>
-        <p className="oath-kicker">Before you begin, {name}</p>
+        {note ? (
+          <div className="oath-warn" role="alert"><b>⚠️ {note}</b><span>Honor means you do it first, then tick it. Swear again to carry on.</span></div>
+        ) : <p className="oath-kicker">Before you begin, {name}</p>}
         <h1 id="oath-h">The Oath of Honor</h1>
         <p className="oath-lead">Honor only means something if it's true.</p>
         <ol className="oath-rules">
@@ -146,7 +148,7 @@ export default function FirstRun() {
   const changes = useChangeCounter();
   useEffect(() => { api.profile().then(setP).catch(() => undefined); }, [changes]);
   if (!p) return null;
-  if (!p.oath) return <Oath name={p.member.name} onSworn={() => setP({ ...p, oath: true })} />;
-  if (!p.toured) return <Tour onDone={() => { setP({ ...p, toured: true }); api.toured().catch(() => undefined); }} />;
+  if (!p.oath) return <Oath name={p.member.name} note={p.oath_note} onSworn={() => setP({ ...p, oath: true, oath_note: "" })} />;
+  if (!p.toured && !p.oath_note) return <Tour onDone={() => { setP({ ...p, toured: true }); api.toured().catch(() => undefined); }} />;
   return null;
 }

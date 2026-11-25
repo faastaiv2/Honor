@@ -96,6 +96,7 @@ class TaskSpec:
     every: int = 1
     start_day: date = PROGRAM_START
     next_day: bool = False  # done at night and counted for the next day (Surah Mulk)
+    not_before: str | None = None  # "12:00": members can't tick it earlier in the day
 
     def number_on(self, d: date) -> int | None:
         if self.number is None:
@@ -114,7 +115,7 @@ DEFAULT_SPECS: list[TaskSpec] = [
     TaskSpec("dalail", "Dalilul Khairat", "Ibadah"),
     TaskSpec("darood", "{n} × Darood Sharif", "Ibadah", number=251, step=1, every=1, start_day=date(2026, 11, 12)),
     TaskSpec("zikr", "5 minutes Zikr together", "Ibadah"),
-    TaskSpec("asr", "Asr ki 4 Sunnat", "Ibadah"),
+    TaskSpec("asr", "Asr ki 4 Sunnat", "Ibadah", not_before="12:00"),
     TaskSpec("mulk", "Surah Mulk", "Ibadah", next_day=True),
     TaskSpec("pages", "{n} pages", "Learning & home", number=2, step=1, every=32, start_day=date(2026, 11, 12)),
     TaskSpec("lang", "Language", "Learning & home"),
