@@ -11,6 +11,7 @@ import { useChangeCounter } from "./lib/events";
 import Admin from "./pages/Admin";
 import HistoryPage from "./pages/History";
 import Leaderboard from "./pages/Leaderboard";
+import Guard from "./lib/Guard";
 import ProfilePage from "./pages/Profile";
 import Benefits from "./pages/Benefits";
 import SignIn from "./pages/SignIn";
@@ -71,6 +72,7 @@ export default function App() {
       {!viewer.is_admin && <FirstRun />}
       <main className="band">
         <div className="wrap">
+          <Guard name="This page">
           <Routes>
             <Route path="/" element={viewer.is_admin
               ? <div className="main"><AdminHome info={info} /><Leaderboard info={info} /></div>
@@ -86,6 +88,7 @@ export default function App() {
             <Route path="/tasks" element={viewer.is_admin ? <Tasks /> : <Navigate to="/" />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
+          </Guard>
         </div>
       </main>
     </>

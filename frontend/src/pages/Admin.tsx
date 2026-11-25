@@ -7,6 +7,7 @@ import RankUp from "./RankUp";
 import { fmt } from "../lib/dates";
 import QuestFilm from "./QuestFilm";
 import { notifyChanged, useToast } from "../lib/events";
+import Guard from "../lib/Guard";
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
 
@@ -261,16 +262,16 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
             <p className="note">Tap − or + to give or take one Honor. Tap the level to type an exact one.</p>
           </div>
           <div className="ad-members">
-            {members?.map((m) => <MemberCard key={`${m.id}${m.name}${m.base_honor}${m.has_pin}`} m={m} row={rowOf(m.id)} onDone={done} onChanged={quiet} onError={setError} />)}
+            {members?.map((m) => <Guard key={`${m.id}${m.name}${m.base_honor}${m.has_pin}`} name={`Member ${m.name}`}><MemberCard m={m} row={rowOf(m.id)} onDone={done} onChanged={quiet} onError={setError} /></Guard>)}
             <AddMember onAdded={done} onError={setError} />
           </div>
         </section>
 
         <aside className="ad-side">
-          {settings && info && <StartDate settings={settings} today={info.today} onSave={async (d) => {
+          <Guard name="Start date">{settings && info && <StartDate settings={settings} today={info.today} onSave={async (d) => {
             try { setSettings(await api.saveSettings({ ...settings, score_from: d })); done(d === info.today ? "Honor starts from today" : "Start date saved"); }
             catch (err) { setError(msg(err)); }
-          }} />}
+          }} />}</Guard>
 
           <section className="card">
             <h2>Settings</h2>

@@ -1625,3 +1625,5 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
   nav.tabs a.active { background: var(--bg); color: var(--ink); box-shadow: 0 2px 8px #0003; }
   nav.tabs .who { order: -1; width: 100%; justify-content: flex-end; padding: 0; margin: -6px 0 2px; }
 }
+.guard { border: 2px solid #d04a3a; }
+.guard pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; background: var(--soft, #0000000d); padding: 10px; border-radius: 10px; max-height: 220px; overflow: auto; }
