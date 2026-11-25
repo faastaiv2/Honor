@@ -66,6 +66,7 @@ TIERS: list[Tier] = [
          "Can miss up to 15 tasks a week and make up on the weekend or any day", weekly_any=15),
 ]
 BY_KEY = {t.key: t for t in TIERS}
+LOW_FLOOR = -3  # the bottom: Low Honor is −I, −II and −III (shown on the Pillar of Shame)
 
 
 def tier_for(level: int, legendary: bool) -> Tier:
@@ -96,7 +97,7 @@ def roman(n: int) -> str:
 
 def tier_range(t: Tier) -> str:
     if t.key == "low":
-        return "−I and below"
+        return "−I to −III"
     if t.key == "member":
         return "0"
     if t.max is None:

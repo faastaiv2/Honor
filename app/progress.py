@@ -19,7 +19,7 @@ from datetime import date, timedelta
 
 from app import scoring
 from app.tiers import (CAP_WITHOUT_LEGENDARY, GEMS_FOR_FULL_DAY, GEMS_FOR_LEGENDARY, GEMS_NEW_RATES_FROM, GEMS_PER_LEVEL,
-                       GEMS_PER_TASK, GEMS_PER_TASK_BEFORE, RANK_GEMS, LEGENDARY_LEVEL, OBSIDIAN_FLOOR, tier_for)
+                       GEMS_PER_TASK, GEMS_PER_TASK_BEFORE, RANK_GEMS, LEGENDARY_LEVEL, LOW_FLOOR, OBSIDIAN_FLOOR, tier_for)
 
 
 _GEM_KEYS = set(scoring.REQUIRED) | {"bonus"}
@@ -64,7 +64,7 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
     p = Progress(level=base)
     starts = set(quest_starts)
     p.level += sum(v for d, v in adjustments.items() if d < score_from)
-    p.level = min(p.level, CAP_WITHOUT_LEGENDARY)
+    p.level = max(LOW_FLOOR, min(p.level, CAP_WITHOUT_LEGENDARY))
     quest_active = False
     misses = 0
     gem_keys = ({t.key for t in tasks} | {"bonus"}) if tasks is not None else _GEM_KEYS
@@ -104,7 +104,7 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
             p.pending, earned = s.delta, 0
         change = earned + adjustments.get(d, 0)
         before = p.level
-        p.level += change
+        p.level = max(LOW_FLOOR, p.level + change)  # nobody goes below −III
 
         finished = d < today
         perfect = s.gain == 1 and s.bonus == 1
@@ -148,7 +148,7 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
     p.ranks_reached = set(reached) | ({"legendary"} if p.legendary or p.legendary_since else set())
     late_adj = sum(v for d, v in adjustments.items() if d > today)  # clock differences: never lose a change
     if late_adj:
-        p.level += late_adj
+        p.level = max(LOW_FLOOR, p.level + late_adj)
         p.week_delta += late_adj if week_from else 0
         if not p.legendary:
             p.level = min(p.level, CAP_WITHOUT_LEGENDARY)

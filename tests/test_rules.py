@@ -150,3 +150,13 @@ def test_gems_only_for_the_full_day():
     half = FULL[:5]
     p = simulate(10, {thu: (FULL, ""), thu + timedelta(days=1): (half, "")}, {}, [], thu, thu + timedelta(days=2), 1)
     assert p.gems_tasks == 20  # nothing per task, 20 for the full day, nothing for the half day
+
+
+def test_level_never_goes_below_minus_three():
+    from app.tiers import LOW_FLOOR
+    p = simulate(0, {}, {MON: -10}, [], MON - timedelta(days=1), MON + timedelta(days=1), 5)
+    assert p.level == LOW_FLOOR == -3 and tier_for(p.level, False).key == "low"
+    assert simulate(-9, {}, {}, [], MON, MON, 5).level == -3
+    sick = {MON - timedelta(days=1) + timedelta(days=i): ([], "sick") for i in range(4)}
+    up = simulate(0, sick, {MON: -10, TUE: 2}, [], MON - timedelta(days=1), TUE + timedelta(days=1), 5)
+    assert up.level == -1  # climbing back starts from −III, not from −X

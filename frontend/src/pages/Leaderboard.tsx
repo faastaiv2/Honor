@@ -91,20 +91,32 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
         <div className="floors">
           {floors.map((f, i) => (
             <div key={f.tier.key} ref={(el) => { floorRefs.current[i] = el; }}
-              className={`floor${f.rows.length ? "" : " empty"}${i <= lit ? " passed" : ""}${i === lit ? " lit" : ""}`}
+              className={`floor${f.tier.key === "low" ? " shame" : ""}${f.rows.length ? "" : " empty"}${i <= lit ? " passed" : ""}${i === lit ? " lit" : ""}`}
               style={{ ["--tc" as string]: f.tier.color }}>
+              {f.tier.key === "low" ? (
+                <div className="floor-head shame-head">
+                  <svg className="shame-pillar" viewBox="0 0 40 64" aria-hidden="true">
+                    <rect x="6" y="2" width="28" height="7" rx="1.5" /><rect x="10" y="9" width="20" height="46" />
+                    <path d="M14 11 V53 M20 11 V53 M26 11 V53" className="flute" /><rect x="4" y="55" width="32" height="7" rx="1.5" />
+                    <path d="M8 24 q12 7 24 0 M8 34 q12 7 24 0" className="chain" />
+                  </svg>
+                  <div className="floor-name"><b>Pillar of Shame</b><small>Low Honor · {f.tier.range}</small></div>
+                </div>
+              ) : (
               <div className="floor-head">
                 <span className="floor-emblem" aria-hidden="true"><RankIcon rank={f.tier.key} size={40} /></span>
                 <div className="floor-name"><b>{f.tier.name}</b><small>{f.tier.range}</small></div>
                 <span className="floor-count">{f.rows.length ? `${f.rows.length} ${f.rows.length === 1 ? "member" : "members"}` : "No one yet"}</span>
               </div>
+              )}
+              {f.tier.key === "low" && f.rows.length > 0 && <p className="shame-note">Finish every task to climb back up to Member.</p>}
               {f.rows.length > 0 && (
                 <ol className="floor-rows">
                   {f.rows.map((r) => (
                     <li key={r.member.id} className={`p-row${r.is_me ? " me" : ""}${r.is_me && found ? " found" : ""}`}>
                       <span className="p-rank">#{r.rank}</span>
                       <Avatar avatar={r.member.avatar} color={r.tier.color} frame={r.member.frame} size={46} />
-                      <span className="p-name">{r.is_me ? "You" : r.member.name}{r.quest.active && <small><RankIcon rank="legendary" /> on the quest</small>}</span>
+                      <span className="p-name">{r.tier.key === "low" && <span className="p-chain" aria-hidden="true">⛓️</span>}{r.is_me ? "You" : r.member.name}{r.quest.active && <small><RankIcon rank="legendary" /> on the quest</small>}</span>
                       {r.is_me && found && <span className="you-bubble">That's you!</span>}
                       <TickingLevel row={r} run={counting} />
                     </li>
