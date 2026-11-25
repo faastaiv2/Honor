@@ -801,3 +801,19 @@ def test_pillar_of_shame_locks_picture_and_frame(client, family, db):
     row = next(r for r in client.get("/api/board/leaderboard", headers=ha).json()["rows"] if r["member"]["name"] == "Low")
     assert row["member"]["avatar"] == "👹"
     assert next(x for x in client.get("/api/auth/members").json() if x["name"] == "Low")["frame"] == "shame"
+
+
+def test_goblin_raid_steals_gems_once_on_falling(client, family, db):
+    from app.models import Member as M
+    ha = auth(client, admin=True)
+    m = client.post("/api/admin/members", headers=ha, json={"name": "Faller", "pin": "1234", "base_honor": 1}).json()
+    h = {"Authorization": "Bearer " + client.post("/api/auth/member", json={"member_id": m["id"], "pin": "1234"}).json()["token"]}
+    row = db.get(M, m["id"]); row.gems_stolen = -50; db.commit()  # give them 50 gems to lose
+    first = client.get("/api/board/profile", headers=h).json()
+    assert first["raid"] is None and first["gems"]["balance"] == 50
+    assert client.post("/api/admin/adjustments", headers=ha, json={"member_id": m["id"], "delta": -3, "note": "test"}).status_code == 201
+    fell = client.get("/api/board/profile", headers=h).json()
+    assert fell["tier"]["key"] == "low"
+    assert 5 <= fell["raid"]["stolen"] <= 10 and fell["gems"]["balance"] == 50 - fell["raid"]["stolen"]
+    again = client.post("/api/board/profile/raid-seen", headers=h).json()
+    assert again["raid"] is None and again["gems"]["balance"] == fell["gems"]["balance"]

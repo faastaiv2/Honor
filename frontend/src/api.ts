@@ -37,6 +37,7 @@ export interface BoardRow extends Status {
 }
 export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary" }
 export interface Profile extends Status {
+  raid?: { stolen: number } | null;
   member: { id: string; name: string; avatar: string; frame: string; theme: string; shamed?: boolean; own_avatar?: string; own_frame?: string };
   week_delta: number; streak: number;
   gems: { balance: number; earned: number; spent: number; claimed: number; today: number; from_tasks: number; from_levels: number };
@@ -83,7 +84,7 @@ export class ApiError extends Error {
 }
 
 export type RankSoundKey = `rankup-music-${"bronze" | "silver" | "gold" | "platinum" | "emerald" | "sapphire" | "ruby" | "diamond" | "obsidian" | "legendary"}`;
-export type SoundKey = RankSoundKey | "quest-music" | "quest-thunder" | "quest-crack" | "rankup-music" | "chest" | "gems" | "gems-crack" | "collect" | "achievement" | "event-win";
+export type SoundKey = RankSoundKey | "quest-music" | "quest-thunder" | "quest-crack" | "rankup-music" | "chest" | "gems" | "gems-crack" | "collect" | "achievement" | "event-win" | "goblins";
 export interface MusicInfo { has: boolean; start: number; end: number; offset_ms: number; volume: number; size: number; updated: string | null }
 
 export const token = {
@@ -166,6 +167,7 @@ export const api = {
     return URL.createObjectURL(await res.blob());
   },
   claimDaily: () => request<Profile>("/board/claim", send("POST", {})),
+  raidSeen: () => request<Profile>("/board/profile/raid-seen", send("POST", {})),
   celebrated: () => request<Profile>("/board/profile/celebrated", send("POST", {})),
   saveProfile: (body: { avatar?: string; frame?: string; theme?: string }) => request<Profile>("/board/profile", send("PUT", body)),
   buy: (kind: "frame" | "theme" | "avatar", key: string) => request<Profile>("/board/shop/buy", send("POST", { kind, key })),

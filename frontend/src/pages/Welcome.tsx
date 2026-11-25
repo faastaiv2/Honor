@@ -10,6 +10,7 @@ import Avatar from "../lib/Avatar";
 import { confetti } from "../lib/confetti";
 import { useChangeCounter } from "../lib/events";
 import RankUp from "./RankUp";
+import GoblinRaid from "../lib/GoblinRaid";
 
 /** A gem-shaped badge in the rank's colour with the level inside. */
 export function RankBadge({ color, label, size = 56 }: { color: string; label: string; size?: number }) {
@@ -95,6 +96,8 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
   const [claimMsg, setClaimMsg] = useState("");
   const [reward, setReward] = useState<{ amount: number; from: number; title: string; chest: boolean; jewel?: string; win?: string } | null>(null);
   const winShown = useRef<string | null>(null);
+  const raidShown = useRef(false);
+  const [raid, setRaid] = useState<number | null>(null);
   const [place, setPlace] = useState<{ rank: number; of: number; ahead: string | null; gap: number } | null>(null);
   async function claim() {
     try {
@@ -128,6 +131,8 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       try { localStorage.setItem(key, String(np.level)); } catch { /* private mode */ }
       prev.current = np;
       setP(np);
+      // Fell onto the Pillar of Shame: the goblins come.
+      if (np.raid && !raidShown.current) { raidShown.current = true; setRaid(np.raid.stolen); }
       // An art tournament prize not celebrated yet.
       if (np.event_win && winShown.current !== np.event_win.id) {
         winShown.current = np.event_win.id;
@@ -226,6 +231,8 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
 
       {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} jewel={reward.jewel} sound={reward.win ? "event-win" : undefined}
         onDone={() => { if (reward.win) api.winSeen(reward.win).catch(() => undefined); setReward(null); }} />}
+      {raid !== null && p && <GoblinRaid stolen={raid} from={p.gems.balance + raid}
+        onDone={() => { setRaid(null); api.raidSeen().then(setP).catch(() => undefined); }} />}
       {rankUp && <RankUp tier={rankUp.tier} name={p.member.name} profile={p} reward={rankUp.reward} onClose={() => { setRankUp(null); api.celebrated().then(setP).catch(() => undefined); }} />}
       {levelUp && (
         <div className="levelup" role="dialog" aria-modal="true" aria-label="Level up" onClick={() => setLevelUp(null)}>

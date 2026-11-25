@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type MusicInfo, type SoundKey, type Tier, type TodayInfo } from "../api";
 import GemReward from "../lib/GemReward";
+import GoblinRaid from "../lib/GoblinRaid";
 import RankIcon from "../lib/RankIcon";
 import { playMusic, playSound, resetSounds, stopMusic } from "../lib/sounds";
 import { useToast } from "../lib/events";
@@ -13,7 +14,7 @@ import RankUp from "./RankUp";
  */
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
-const isMusicKey = (k: SoundKey) => k === "quest-music" || k.startsWith("rankup-music");
+const isMusicKey = (k: SoundKey) => k === "quest-music" || k === "goblins" || k.startsWith("rankup-music");
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 /** "1:20", "80" or "1:20.5" → seconds (rounded); "" → 0. NaN if it can't be read. */
 const toSec = (t: string) => {
@@ -24,14 +25,14 @@ const toSec = (t: string) => {
 };
 
 /** When each sound normally plays: seconds into the film (films), or the moment it follows (everything else). */
-const TIMELINE: Partial<Record<SoundKey, number>> = { "quest-music": 0, "quest-thunder": 9.2, "quest-crack": 13, "rankup-music": 0 };
+const TIMELINE: Partial<Record<SoundKey, number>> = { goblins: 0, "quest-music": 0, "quest-thunder": 9.2, "quest-crack": 13, "rankup-music": 0 };
 const timelineOf = (k: SoundKey) => (k.startsWith("rankup-music") ? 0 : TIMELINE[k]);
 const MOMENT: Partial<Record<SoundKey, string>> = {
   chest: "the chest is tapped", gems: "the gems start falling", "gems-crack": "the floor cracks", collect: "Collect is tapped",
   achievement: "the reward appears", "event-win": "the prize chest appears",
 };
 
-type Preview = { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" };
+type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" };
 
 /** One sound slot: upload, test, start point, volume, remove. */
 function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
@@ -175,6 +176,10 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
           ))}
         </div>)}
 
+      {card("👺", "Goblin raid", "Falling onto the Pillar of Shame: goblins swarm the screen for 15 seconds and steal 5–10 gems.",
+        () => setPreview({ kind: "goblins" }),
+        slot("goblins", "Raid music", "Plays through the raid, fading in and out"))}
+
       {card("🧰", "Treasure chest", "The daily streak chest and rank rewards: tap the chest, it opens, gems pour out.",
         () => setPreview({ kind: "chest" }),
         <>{slot("chest", "Chest opens", "Plays when the chest is tapped open")}
@@ -190,6 +195,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
       {card("🎨", "Art tournament win", "A 1st, 2nd or 3rd place: a golden chest with the prize.", () => setPreview({ kind: "win" }),
         slot("event-win", "Win", "Plays when the prize chest appears"))}
 
+      {preview?.kind === "goblins" && <GoblinRaid stolen={7} from={120} preview onDone={() => setPreview(null)} />}
       {preview?.kind === "quest" && <QuestFilm name="Preview" preview onClose={() => setPreview(null)} />}
       {preview?.kind === "rank" && <RankUp tier={preview.tier} name="Preview" profile={null}
         reward={(info?.gems.per_rank[preview.tier.key] ?? 0) + (preview.tier.key === "legendary" ? 0 : info?.gems.per_level ?? 10)} onClose={() => setPreview(null)} />}

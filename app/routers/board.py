@@ -1,3 +1,4 @@
+import random
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -364,6 +365,19 @@ def _theme_of(m: Member) -> str:
     return m.theme if m.theme in THEME_KEYS else "bronze"
 
 
+def _goblin_raid(db: Session, m: Member, tier, p) -> None:
+    """Falling onto the Pillar of Shame: goblins raid and steal 5 to 10 gems (never more than the member has).
+    Once per fall; the raid is shown on the member's next visit (raid_owed)."""
+    if tier.key != "low" or m.seen_rank == "low" or m.seen_rank not in _RANK_ORDER:
+        return
+    cfg = get_settings_row(db)
+    balance = gems_earned(p) + gems_claimed(db, m.id) + achievement_gems(db, m.id)[0] - gems_spent(db, m.id)
+    take = max(0, min(balance, random.randint(5, 10)))
+    m.gems_stolen = (m.gems_stolen or 0) + take
+    m.raid_owed = take
+    db.commit()
+
+
 def _celebration(db: Session, m: Member, tier, p) -> dict | None:
     """The rank-up show still owed to this member, if any.
 
@@ -407,6 +421,7 @@ def _profile(db: Session, m: Member) -> dict:
     cfg = get_settings_row(db)
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
     tier = tier_of_progress(p)
+    _goblin_raid(db, m, tier, p)  # before the rank is noted, so the fall is seen
     celebrate = _celebration(db, m, tier, p)
     owned = owned_items(db, m.id)
     spent = gems_spent(db, m.id)
@@ -419,7 +434,8 @@ def _profile(db: Session, m: Member) -> dict:
     reward = 0 if p.legendary or nxt > CAP_WITHOUT_LEGENDARY else GEMS_PER_LEVEL + (
         RANK_GEMS[tier_for(nxt, False).key] if tier_for(nxt, False).min == nxt else 0)
     look = shown_look(m.avatar, m.frame, tier.key)
-    return {"member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
+    raid = {"stolen": m.raid_owed} if m.raid_owed is not None and m.raid_owed >= 0 else None
+    return {"raid": raid, "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
                        "shamed": tier.key == "low", "own_avatar": m.avatar, "own_frame": m.frame},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
             "gems": {"balance": gems_earned(p) + claimed + from_achievements - spent,
@@ -442,6 +458,17 @@ def get_profile(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     if v.kind != "member":
         raise HTTPException(400, "Profiles are for members")
     return _profile(db, db.get(Member, v.id))
+
+
+@router.post("/profile/raid-seen")
+def raid_seen(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """The member watched the goblin raid: don't show it again."""
+    if v.kind != "member":
+        raise HTTPException(400, "Profiles are for members")
+    m = db.get(Member, v.id)
+    m.raid_owed = -1
+    db.commit()
+    return _profile(db, m)
 
 
 @router.post("/profile/celebrated")

@@ -164,7 +164,9 @@ def gems_spent(db: Session, member_id: str) -> int:
     from app.models import EventEntry, Purchase
     shop = db.scalar(select(func.coalesce(func.sum(Purchase.price), 0)).where(Purchase.member_id == member_id)) or 0
     fees = db.scalar(select(func.coalesce(func.sum(EventEntry.fee_paid), 0)).where(EventEntry.member_id == member_id)) or 0
-    return int(shop) + int(fees)  # shop items and tournament entry fees
+    from app.models import Member
+    stolen = db.scalar(select(Member.gems_stolen).where(Member.id == member_id)) or 0
+    return int(shop) + int(fees) + int(stolen)  # shop items, tournament entry fees and goblin raids
 
 
 def gem_balance(db: Session, cfg: AppSettings, m: Member) -> int:

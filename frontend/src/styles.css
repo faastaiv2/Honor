@@ -1875,3 +1875,60 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .shop-act.locked-use { opacity: .7; font-weight: 800; }
 .floor.shame .floor-name small { color: #d8d4cc; }
 .shame-note { margin: 6px 0 0; font-size: 13px; font-style: italic; }
+
+/* ---- Goblin raid ---- */
+.gbr { position: fixed; inset: 0; z-index: 90; overflow: hidden; display: grid; place-items: center; animation: fade .3s both; }
+.gbr-sky { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, #3a1a0a 0%, #1a0804 55%, #000 95%); }
+.gbr-raid .gbr-sky { animation: gbr-pulse 1.1s ease-in-out infinite; }
+@keyframes gbr-pulse { 50% { background: radial-gradient(circle at 50% 45%, #5a1a0a 0%, #2a0806 55%, #080000 95%); } }
+.gbr-raid { animation: fade .3s both, gbr-shake .5s 0s 3 ease-in-out; }
+@keyframes gbr-shake { 25% { transform: translate(-6px, 3px); } 50% { transform: translate(5px, -4px); } 75% { transform: translate(-3px, 2px); } }
+.gbr-wallet { position: fixed; top: 16px; right: 16px; z-index: 5; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px;
+  background: linear-gradient(180deg, #fff, #e6f3ff); color: #1478c8; font-weight: 900; font-size: 18px; box-shadow: 0 0 0 2px #7fd0ff66, 0 4px 14px #0008; }
+.gbr-wallet.robbed { animation: gbr-robbed .35s ease-in-out infinite alternate; }
+@keyframes gbr-robbed { to { transform: rotate(-6deg) scale(1.08); box-shadow: 0 0 0 4px #ff5a4a, 0 4px 14px #0008; color: #c0141e; } }
+.gbr-title { position: absolute; top: 12%; left: 0; right: 0; margin: 0; text-align: center; z-index: 3; color: #8cff4a;
+  font: 900 clamp(40px, 11vw, 96px)/1 "Nunito Sans", sans-serif; letter-spacing: .04em; -webkit-text-stroke: 3px #1a3a08;
+  text-shadow: 0 6px 0 #1a3a08, 0 0 30px #6fbf3a; animation: gbr-slam .6s cubic-bezier(.2,1.6,.4,1) both, gbr-wobble 1.4s .6s ease-in-out infinite; }
+@keyframes gbr-slam { from { transform: scale(3) rotate(-8deg); opacity: 0; } }
+@keyframes gbr-wobble { 50% { transform: rotate(-3deg) scale(1.04); } }
+.gbr-laugh { position: absolute; z-index: 4; margin: 0; color: #ffe14a; font: 900 clamp(20px, 4vw, 34px) "Nunito Sans", sans-serif;
+  -webkit-text-stroke: 1.5px #3a2000; opacity: 0; animation: gbr-pop 1.6s ease-out both; }
+.gbr-laugh.l1 { left: 8%; top: 34%; animation-delay: 1.2s; } .gbr-laugh.l2 { right: 10%; top: 26%; animation-delay: 3.4s; }
+.gbr-laugh.l3 { left: 14%; bottom: 18%; animation-delay: 6s; } .gbr-laugh.l4 { right: 14%; bottom: 26%; animation-delay: 8.6s; }
+@keyframes gbr-pop { 0% { opacity: 0; transform: scale(.3) rotate(-12deg); } 20% { opacity: 1; transform: scale(1.2) rotate(6deg); } 70% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: translateY(-20px); } }
+.gbr-horde { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.gb { position: absolute; left: 0; translate: 0 -50%; opacity: 0; animation-name: gb-run; animation-timing-function: linear; animation-fill-mode: both; }
+.gb.flip { animation-name: gb-run-back; }
+.gb.flip .gb-svg { transform: scaleX(-1); }
+@keyframes gb-run { 0% { opacity: 1; transform: translateX(-30vw); } 100% { opacity: 1; transform: translateX(130vw); } }
+@keyframes gb-run-back { 0% { opacity: 1; transform: translateX(130vw); } 100% { opacity: 1; transform: translateX(-30vw); } }
+.gb.gb-jump { left: var(--x, 50%); animation-name: gb-jump; }
+.gb.gb-jump:nth-child(3n) { left: 20%; } .gb.gb-jump:nth-child(3n+1) { left: 70%; } .gb.gb-jump:nth-child(3n+2) { left: 45%; }
+@keyframes gb-jump { 0% { opacity: 1; transform: translateY(80vh); } 45% { transform: translateY(-10vh) rotate(-10deg); } 100% { opacity: 1; transform: translateY(90vh) rotate(20deg); } }
+.gb.gb-peek { left: auto; right: -6%; animation-name: gb-peek; }
+@keyframes gb-peek { 0%, 100% { opacity: 1; transform: translateX(80%); } 30%, 70% { transform: translateX(0) rotate(-12deg); } }
+.gb-hop { display: block; width: 100%; height: 100%; animation: gb-hop .32s ease-in-out infinite alternate; }
+@keyframes gb-hop { to { transform: translateY(-14%) rotate(4deg); } }
+.gb-svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 6px 6px #000a); }
+.gb-leg { transform-box: fill-box; transform-origin: 50% 0; animation: gb-leg .28s ease-in-out infinite alternate; }
+.gb-leg.r { animation-delay: -.14s; }
+@keyframes gb-leg { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+.gb-arm { transform-box: fill-box; transform-origin: 100% 30%; animation: gb-arm .3s ease-in-out infinite alternate; }
+@keyframes gb-arm { to { transform: rotate(30deg); } }
+.gbr-gem { position: fixed; top: 24px; right: 40px; width: 30px; z-index: 6; animation: gbr-gem 1.1s cubic-bezier(.3,.6,.4,1) forwards; }
+.gbr-gem .gem-art { width: 100%; height: auto; display: block; }
+@keyframes gbr-gem { 0% { transform: none; } 40% { transform: translate(calc(var(--tx) * .4), -30px) rotate(200deg) scale(1.3); } 100% { transform: translate(var(--tx), var(--ty)) rotate(540deg) scale(.6); opacity: 0; } }
+.gbr-count { position: fixed; top: 60px; right: 22px; z-index: 6; margin: 0; display: inline-flex; align-items: center; gap: 4px; color: #ff6a5a;
+  font: 900 34px "Nunito Sans", sans-serif; -webkit-text-stroke: 1.5px #3a0000; animation: gbr-pop-in .3s both; }
+@keyframes gbr-pop-in { from { transform: scale(.4); opacity: 0; } }
+.gbr-card { position: relative; z-index: 3; width: min(92vw, 460px); padding: 26px 22px; border-radius: 26px; text-align: center; color: #ffe8e4;
+  background: linear-gradient(180deg, #3a1012, #1a0608); border: 3px solid #c0141e; box-shadow: 0 0 60px #c0141e55, 0 20px 60px #000c; animation: ru-zoom .5s cubic-bezier(.2,.9,.3,1.3) both; }
+.gbr-ogre { font-size: 84px; line-height: 1; animation: gbr-wobble 1.6s ease-in-out infinite; filter: drop-shadow(0 0 20px #ff3a2a); }
+.gbr-card h2 { margin: 8px 0; font: clamp(24px, 5vw, 32px)/1.15 Marcellus, Georgia, serif; color: #fff; }
+.gbr-card p { margin: 6px 0; }
+.gbr-card b { color: #ffd24a; }
+.gbr-tip { font-weight: 800; color: #ffb4a8; }
+.gbr-ok { margin-top: 14px; min-height: 52px; padding: 0 26px; border: 0; border-radius: 16px; font-weight: 900; font-size: 18px; color: #2a1a00;
+  background: linear-gradient(180deg, #fff3b8, #f0c040 55%, #c99a1e); box-shadow: 0 5px 0 #8a6400; }
+@media (prefers-reduced-motion: reduce) { .gbr *, .gbr { animation: none !important; } }
