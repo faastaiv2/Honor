@@ -29,11 +29,12 @@ function LevelControl({ m, row, onChanged, onError }: { m: AdminMember; row?: Bo
     setBusy(true);
     try { await api.addAdjustment(m.id, delta, note); onChanged(); } catch (e) { onError(msg(e)); } finally { setBusy(false); }
   }
-  async function setExact(e: FormEvent) {
-    e.preventDefault();
+  async function setExact(e?: FormEvent) {
+    e?.preventDefault();
+    if (typing === null) return;
     const target = Number(typing);
     setTyping(null);
-    if (Number.isFinite(target)) await change(target - level, `Level set to ${target}`);
+    if (typing.trim() !== "" && Number.isFinite(target) && target !== level) await change(target - level, `Level set to ${target}`);
   }
 
   return (
@@ -44,9 +45,11 @@ function LevelControl({ m, row, onChanged, onError }: { m: AdminMember; row?: Bo
           {row?.label ?? level}
         </button>
       ) : (
-        <form onSubmit={setExact}>
-          <input className="level-input" type="number" autoFocus aria-label={`Exact level for ${m.name}`} value={typing}
-            onChange={(e) => setTyping(e.target.value)} onBlur={() => setTyping(null)} onKeyDown={(e) => e.key === "Escape" && setTyping(null)} />
+        <form onSubmit={setExact} className="level-form">
+          <input className="level-input" type="number" inputMode="numeric" enterKeyHint="done" autoFocus aria-label={`Exact level for ${m.name}`} value={typing}
+            onChange={(e) => setTyping(e.target.value)} onKeyDown={(e) => e.key === "Escape" && setTyping(null)}
+            onBlur={(e) => { if (!e.currentTarget.form?.contains(e.relatedTarget as Node)) setExact(); }} />
+          <button className="level-ok" aria-label="Save level">✓</button>
         </form>
       )}
       <button type="button" aria-label={`One more Honor for ${m.name}`} disabled={busy} onClick={() => change(1, "+1 by admin")}>+</button>

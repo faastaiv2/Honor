@@ -51,6 +51,15 @@ def logs_between(db: Session, start: date, end: date, member_id: str | None = No
     return {(r.member_id, r.day): r for r in db.scalars(q)}
 
 
+def member_start(cfg: AppSettings, m: Member) -> date:
+    """Scoring for a member starts on the board's start date, or the day they were added if later,
+    so nobody loses Honor for days before they joined."""
+    if not m.created_at:
+        return cfg.score_from
+    created = m.created_at if m.created_at.tzinfo else m.created_at.replace(tzinfo=ZoneInfo("UTC"))
+    return max(cfg.score_from, created.astimezone(zone(cfg)).date())
+
+
 def progress_for(db: Session, cfg: AppSettings, members: list[Member], today: date) -> dict[str, Progress]:
     logs = logs_between(db, cfg.score_from, today)
     tz = zone(cfg)
@@ -63,10 +72,10 @@ def progress_for(db: Session, cfg: AppSettings, members: list[Member], today: da
     week_from = week_start(today)
     out = {}
     for m in members:
+        start = member_start(cfg, m)
         mine = {d: (l.tasks, l.excuse) for (mid, d), l in logs.items() if mid == m.id}
         starts = [date.fromisoformat(s) for s in (m.quest_starts or [])]
-        out[m.id] = simulate(m.base_honor, mine, adj.get(m.id, {}), starts, cfg.score_from, today, cfg.cut_misses,
-                             week_from)
+        out[m.id] = simulate(m.base_honor, mine, adj.get(m.id, {}), starts, start, today, cfg.cut_misses, week_from)
     return out
 
 

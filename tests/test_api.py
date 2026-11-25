@@ -179,7 +179,7 @@ def test_makeup_depends_on_rank(client, family, db):
 
 def test_lowest_rank_cannot_make_up(client, family, db):
     from app.models import Member
-    m = Member(name="Zulu", code="Zu", base_honor=2, pin_hash=family["A"].pin_hash)
+    m = Member(name="Zulu", code="Zu", base_honor=2, pin_hash=family["A"].pin_hash, created_at=family["A"].created_at)
     db.add(m)
     db.commit()
     h = auth(client, m)
@@ -193,7 +193,7 @@ def test_lowest_rank_cannot_make_up(client, family, db):
 
 def test_legendary_quest_flow(client, family, db):
     from app.models import Member
-    m = Member(name="Delta", code="D", base_honor=48, pin_hash=family["A"].pin_hash)
+    m = Member(name="Delta", code="D", base_honor=48, pin_hash=family["A"].pin_hash, created_at=family["A"].created_at)
     db.add(m)
     db.commit()
     h = auth(client, m)
@@ -313,3 +313,20 @@ def test_week_number_counts_from_scoring_start():
     assert week_info(date(2026, 11, 28), start)["number"] == 1
     assert week_info(date(2026, 11, 29), start)["number"] == 2  # next Sunday
     assert week_info(date(2026, 12, 13), start)["number"] == 4
+
+
+def test_new_member_is_not_cut_for_days_before_joining(client, family, db):
+    from datetime import datetime, timezone
+
+    from app.models import Member
+    m = Member(name="Tom", code="T", base_honor=5, pin_hash=family["A"].pin_hash,
+               created_at=datetime(2026, 11, 24, 9, 0, tzinfo=timezone.utc))
+    db.add(m)
+    db.commit()
+    a, b = at_today()
+    with a, b:
+        rows = client.get("/api/board/leaderboard", headers=auth(client, admin=True)).json()["rows"]
+        hist = client.get("/api/board/history?days=4", headers=auth(client, admin=True)).json()
+    assert next(r for r in rows if r["member"]["name"] == "Tom")["level"] == 5  # 22 & 23 Nov not counted
+    tom = next(r for r in hist["rows"] if r["member"]["name"] == "Tom")["cells"]
+    assert [c["state"] for c in tom] == ["pre", "pre", "pre", "open"]

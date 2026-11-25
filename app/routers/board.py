@@ -11,8 +11,8 @@ from app.deps import Viewer, current_viewer
 from app.makeup import check_week, remaining, week_start
 from app.models import DayLog, Member
 from app.progress import Progress
-from app.services import (active_members, can_start_quest, get_settings_row, logs_between, progress_for,
-                          tier_of_progress, today_for, week_info)
+from app.services import (active_members, can_start_quest, get_settings_row, logs_between, member_start,
+                          progress_for, tier_of_progress, today_for, week_info)
 from app.tiers import TIERS, next_tier, roman, tier_dict
 
 router = APIRouter(prefix="/board", tags=["board"])
@@ -129,7 +129,7 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
         "excuse_editable": mode in ("admin", "open"),
         "makeup_left": left,
         "makeup_rule": tier.benefits,
-        "before_scoring": d < cfg.score_from,
+        "before_scoring": d < member_start(cfg, member),
         "status": _status(p),
     }
 
@@ -229,8 +229,9 @@ def history(days: int = Query(default=14, ge=1, le=62), v: Viewer = Depends(curr
     rows = []
     for m in members:
         cells = []
+        first = member_start(cfg, m)
         for d in dates:
-            if d < cfg.score_from:
+            if d < first:
                 cells.append({"state": "pre"})
                 continue
             log = logs.get((m.id, d))

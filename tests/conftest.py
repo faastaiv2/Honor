@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 
 os.environ.setdefault("BCRYPT_ROUNDS", "4")  # fast hashing in tests; must be set before the app is imported
 os.environ["RUN_MIGRATIONS"] = "false"  # tests build their own in-memory database
@@ -45,7 +46,8 @@ def family(db):
     """One parent and three members with PINs; scoring from 2026-11-22, board time zone UTC."""
     db.add(AppSettings(id=1))
     db.add(Admin(email="parent@example.com", name="Parent", password_hash=hash_secret("parent-password-1")))
-    ms = [Member(name=n, code=c, base_honor=b, sort_order=i, pin_hash=hash_secret("1234"))
+    joined = datetime(2026, 11, 1, tzinfo=timezone.utc)  # long before the test days
+    ms = [Member(name=n, code=c, base_honor=b, sort_order=i, pin_hash=hash_secret("1234"), created_at=joined)
           for i, (n, c, b) in enumerate([("Alpha", "A", 10), ("Bravo", "B", 5), ("Sierra", "S", 26)])]
     db.add_all(ms)
     db.commit()
