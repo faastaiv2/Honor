@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -386,6 +386,7 @@ def _profile(db: Session, m: Member) -> dict:
             "daily": {"gems": daily_gems, "claimed_today": claimed_today,
                       "available": daily_gems > 0 and p.streak > 0 and not claimed_today},
             "week_days": _week_days(db, cfg, m, today),
+            "oath": m.oath_at is not None, "toured": bool(m.toured),
             "achievements_ready": sum(1 for a in _achievements(db, m, p) if a["unlocked"] and not a["claimed"])}
 
 
@@ -497,6 +498,34 @@ def claim_achievement(key: str, v: Viewer = Depends(current_viewer), db: Session
     db.add(AchievementClaim(member_id=m.id, key=key, gems=a.gems))
     db.commit()
     return achievements(None, v, db)
+
+
+class OathIn(BaseModel):
+    words: str = Field(max_length=40)
+
+
+@router.post("/oath")
+def swear_oath(body: OathIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """The Oath of Honor: the member types I SWEAR to mark tasks only after doing them, honestly."""
+    if v.kind != "member":
+        raise HTTPException(400, "The oath is for members")
+    if " ".join(body.words.upper().split()) != "I SWEAR":
+        raise HTTPException(400, "Type I SWEAR to take the oath")
+    m = db.get(Member, v.id)
+    if m.oath_at is None:
+        m.oath_at = datetime.now(timezone.utc)
+        db.commit()
+    return _profile(db, m)
+
+
+@router.post("/toured")
+def finish_tour(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    if v.kind != "member":
+        raise HTTPException(400, "The tour is for members")
+    m = db.get(Member, v.id)
+    m.toured = True
+    db.commit()
+    return _profile(db, m)
 
 
 @router.post("/claim")

@@ -558,3 +558,15 @@ def test_achievements_unlock_from_history_and_pay_once(client, family, db):
         assert client.post("/api/board/achievements/days100/claim", headers=h).status_code == 400
         # Parents can look at a member's achievements.
         assert client.get(f"/api/board/achievements?member_id={family['A'].id}", headers=ha).json()["member"]["name"] == "Alpha"
+
+
+def test_oath_needs_i_swear_and_the_tour_is_remembered(client, family):
+    h = auth(client, family["A"])
+    a, b = at_today()
+    with a, b:
+        prof = client.get("/api/board/profile", headers=h).json()
+        assert prof["oath"] is False and prof["toured"] is False
+        assert client.post("/api/board/oath", headers=h, json={"words": "i promise"}).status_code == 400
+        assert client.post("/api/board/oath", headers=h, json={"words": "  i   swear "}).json()["oath"] is True
+        assert client.post("/api/board/toured", headers=h).json()["toured"] is True
+        assert client.post("/api/board/oath", headers=auth(client, admin=True), json={"words": "I SWEAR"}).status_code == 400

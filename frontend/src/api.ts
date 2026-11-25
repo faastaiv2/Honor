@@ -42,7 +42,7 @@ export interface Profile extends Status {
   frames: ShopItem[]; themes: ShopItem[]; avatars: ShopItem[];
   celebrate: { tier: string; reward: number } | null; // a rank-up show not watched yet
   daily: { gems: number; claimed_today: boolean; available: boolean }; // the daily streak chest
-  achievements_ready: number;
+  achievements_ready: number; oath: boolean; toured: boolean;
   week_days: { date: string; state: "done" | "open" | "missed" | "rest" | "excused" | "future" | "pre"; today: boolean }[];
 }
 export interface Board { week: Week; rows: BoardRow[]; weekly: { member_id: string; week_delta: number }[] }
@@ -111,6 +111,8 @@ export const api = {
   profile: () => request<Profile>("/board/profile"),
   achievements: () => request<Achievements>("/board/achievements"),
   claimAchievement: (key: string) => request<Achievements>(`/board/achievements/${encodeURIComponent(key)}/claim`, send("POST", {})),
+  oath: (words: string) => request<Profile>("/board/oath", send("POST", { words })),
+  toured: () => request<Profile>("/board/toured", send("POST", {})),
   claimDaily: () => request<Profile>("/board/claim", send("POST", {})),
   celebrated: () => request<Profile>("/board/profile/celebrated", send("POST", {})),
   saveProfile: (body: { avatar?: string; frame?: string; theme?: string }) => request<Profile>("/board/profile", send("PUT", body)),

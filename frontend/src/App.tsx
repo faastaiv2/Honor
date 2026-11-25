@@ -1,3 +1,4 @@
+import FirstRun from "./pages/FirstRun";
 import Achievements from "./pages/Achievements";
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
@@ -64,6 +65,7 @@ export default function App() {
           </nav>
         </div>
       </header>
+      {!viewer.is_admin && <FirstRun />}
       <main className="band">
         <div className="wrap">
           <Routes>
