@@ -93,7 +93,8 @@ def today_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db
     i = scoring.day_index(t)
     count, dhikr = scoring.bonus_parts(i)
     return {
-        "today": t.isoformat(), "day_number": i + 1, "weekend": scoring.is_weekend(t), "week": week_info(t, cfg.score_from),
+        "today": t.isoformat(), "day_number": max(1, (t - cfg.score_from).days + 1), "weekend": scoring.is_weekend(t),
+        "week": week_info(t, cfg.score_from),
         "bonus": {"count": count, "dhikr": dhikr},
         "rules": {"cut_misses": cfg.cut_misses, "score_from": cfg.score_from.isoformat(), "timezone": cfg.timezone},
         "tiers": [tier_dict(x) for x in TIERS],

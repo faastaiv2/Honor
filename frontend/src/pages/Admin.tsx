@@ -4,6 +4,7 @@ import { api, ApiError, type AdminMember, type BoardRow, type Settings } from ".
 import Avatar from "../lib/Avatar";
 import type { Tier, TodayInfo } from "../api";
 import RankUp from "./RankUp";
+import { fmt } from "../lib/dates";
 import QuestFilm from "./QuestFilm";
 import { notifyChanged, useToast } from "../lib/events";
 
@@ -177,6 +178,43 @@ function AddMember({ onAdded, onError }: { onAdded: (s: string) => void; onError
   );
 }
 
+/** When Honor starts counting: a date, and a button to start again from today. */
+function StartDate({ settings, today, onSave }: { settings: Settings; today: string; onSave: (d: string) => void }) {
+  const [pick, setPick] = useState(settings.score_from);
+  const [sure, setSure] = useState(false);
+  const nice = (iso: string) => fmt(iso, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const days = Math.round((Date.parse(today) - Date.parse(settings.score_from)) / 86400000) + 1;
+  return (
+    <section className="card sd">
+      <h2>Start date</h2>
+      <p className="sd-now">Honor started counting on <b>{nice(settings.score_from)}</b>{days > 0 ? ` · day ${days}` : " · not started yet"}.</p>
+      {!sure ? (
+        <>
+          <button className="sd-today" onClick={() => setSure(true)} disabled={settings.score_from === today}>▶ Start from today</button>
+          <div className="sd-pick">
+            <input type="date" aria-label="Start date" value={pick} max={today} onChange={(e) => setPick(e.target.value)} />
+            <button disabled={!pick || pick === settings.score_from} onClick={() => onSave(pick)}>Set this date</button>
+          </div>
+          <p className="field-hint">Days before the start date don't count for Honor, cuts or streaks. Week 1 is the week it starts.</p>
+        </>
+      ) : (
+        <div className="sd-ask" role="alertdialog" aria-label="Start from today">
+          <p><b>Start Honor again from today, {nice(today)}?</b></p>
+          <ul>
+            <li>Week 1 and Day 1 start today.</li>
+            <li>Days before today stop counting: each member goes back to their starting level plus the +/− you've given.</li>
+            <li>Ticks, gems already collected, purchases and achievements stay.</li>
+          </ul>
+          <div className="ad-actions">
+            <button className="primary" onClick={() => { setSure(false); onSave(today); }}>Yes, start from today</button>
+            <button onClick={() => setSure(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function Admin({ info }: { info?: TodayInfo | null }) {
   const [preview, setPreview] = useState<Tier | null>(null);
   const [questPreview, setQuestPreview] = useState(false);
@@ -229,6 +267,11 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
         </section>
 
         <aside className="ad-side">
+          {settings && info && <StartDate settings={settings} today={info.today} onSave={async (d) => {
+            try { setSettings(await api.saveSettings({ ...settings, score_from: d })); done(d === info.today ? "Honor starts from today" : "Start date saved"); }
+            catch (err) { setError(msg(err)); }
+          }} />}
+
           <section className="card">
             <h2>Settings</h2>
             {settings ? (
@@ -237,9 +280,6 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
                   <select value={settings.timezone} onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}>
                     {zones.map((z) => <option key={z} value={z}>{z.replace("_", " ")}</option>)}
                   </select>
-                </Field>
-                <Field label="Scoring started on" hint="Days before this are not counted">
-                  <input type="date" value={settings.score_from} onChange={(e) => setSettings({ ...settings, score_from: e.target.value })} />
                 </Field>
                 <button className="primary">Save settings</button>
               </form>
