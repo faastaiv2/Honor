@@ -51,7 +51,7 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
   );
 }
 
-export default function Today({ info }: { info: TodayInfo | null }) {
+export default function Today(_: { info: TodayInfo | null }) {
   const { viewer } = useAuth();
   const [members, setMembers] = useState<SignInMember[]>([]);
   const [memberId, setMemberId] = useState<string | null>(viewer?.is_admin ? null : viewer?.id ?? null);
@@ -59,7 +59,6 @@ export default function Today({ info }: { info: TodayInfo | null }) {
   const [view, setView] = useState<DayView | null>(null);
   const [excuse, setExcuse] = useState("");
   const [error, setError] = useState("");
-  const [picking, setPicking] = useState(false);
   const [toast, setToast] = useToast();
   const saving = useRef<Promise<unknown>>(Promise.resolve());
 
@@ -124,15 +123,7 @@ export default function Today({ info }: { info: TodayInfo | null }) {
     <section className={`card${view.editable ? "" : " locked"}`} aria-labelledby="tasks-h">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h2 id="tasks-h" style={{ marginBottom: 0 }}>Daily tasks{viewer?.is_admin ? "" : ` · ${view.member.name}`}</h2>
-        {isMe && info && <button className="chip" onClick={() => setPicking((x) => !x)} aria-expanded={picking}>Avatar</button>}
       </div>
-      {picking && info && (
-        <div className="chips avatars" role="group" aria-label="Choose your avatar">
-          {info.avatars.map((a) => (
-            <button key={a} className="chip" onClick={async () => { try { await api.setAvatar(a); setPicking(false); notifyChanged(); setToast("Avatar saved"); } catch (e) { setError(e instanceof ApiError ? e.message : "Could not save"); } }}>{a}</button>
-          ))}
-        </div>
-      )}
       {viewer?.is_admin && (
         <div className="chips" role="group" aria-label="Member" style={{ marginTop: 12 }}>
           {members.map((m) => (

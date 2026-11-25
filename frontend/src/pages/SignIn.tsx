@@ -114,7 +114,7 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
                 {members?.map((m) => (
                   <button key={m.id} className="who-tile" disabled={!m.has_pin} title={m.has_pin ? undefined : "Ask a parent to set your PIN"}
                     onClick={() => { setPick(m); setPin(""); setError(""); }}>
-                    <Avatar avatar={m.avatar} color="#0b4a3a" size={54} />
+                    <Avatar avatar={m.avatar} color="#0b4a3a" frame={m.frame} size={54} />
                     <span>{m.name}</span>
                   </button>
                 ))}
@@ -122,7 +122,7 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
             </>
           ) : (
             <div className="pin-step">
-              <Avatar avatar={pick.avatar} color="#0b4a3a" size={64} />
+              <Avatar avatar={pick.avatar} color="#0b4a3a" frame={pick.frame} size={64} />
               <h2>As-salāmu ʿalaykum, {pick.name}</h2>
               <p className="note">Type your PIN</p>
               <div className={`pin-dots${error ? " shake" : ""}`} aria-label={`${pin.length} digits entered`}>

@@ -7,7 +7,7 @@ import { useChangeCounter } from "../lib/events";
 function Row({ r, score }: { r: BoardRow; score: string }) {
   return (
     <li className={`lb-row${r.is_me ? " me" : ""}`}>
-      <Avatar avatar={r.member.avatar} color={r.tier.color} />
+      <Avatar avatar={r.member.avatar} color={r.tier.color} frame={r.member.frame} />
       <span className="lb-name">{r.is_me ? "Me" : r.member.name}</span>
       <span className="lb-medal" title={r.tier.name}>{r.tier.emoji}</span>
       <span className="lb-score">{score}</span>

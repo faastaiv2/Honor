@@ -330,3 +330,19 @@ def test_new_member_is_not_cut_for_days_before_joining(client, family, db):
     assert next(r for r in rows if r["member"]["name"] == "Tom")["level"] == 5  # 22 & 23 Nov not counted
     tom = next(r for r in hist["rows"] if r["member"]["name"] == "Tom")["cells"]
     assert [c["state"] for c in tom] == ["pre", "pre", "pre", "open"]
+
+
+def test_profile_frames_unlock_by_rank(client, family):
+    h = auth(client, family["A"])  # Alpha: base 10 -> Great Honor after the cuts; gold unlocked, ruby not
+    a, b = at_today()
+    with a, b:
+        prof = client.get("/api/board/profile", headers=h).json()
+        assert prof["member"]["name"] == "Alpha" and prof["tier"]["key"] in ("great", "good")
+        frames = {f["key"]: f["unlocked"] for f in prof["frames"]}
+        assert frames["emerald"] and frames["silver"] and not frames["ruby"] and not frames["crown"]
+        assert client.put("/api/board/profile", headers=h, json={"frame": "silver", "avatar": "🦅"}).status_code == 200
+        assert client.put("/api/board/profile", headers=h, json={"frame": "ruby"}).status_code == 403
+        assert client.put("/api/board/profile", headers=h, json={"frame": "neon"}).status_code == 400
+        row = next(r for r in client.get("/api/board/leaderboard", headers=h).json()["rows"] if r["is_me"])
+    assert row["member"]["frame"] == "silver" and row["member"]["avatar"] == "🦅"
+    assert client.get("/api/board/profile", headers=auth(client, admin=True)).status_code == 400

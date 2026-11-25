@@ -13,7 +13,7 @@ from app.models import DayLog, Member
 from app.progress import Progress
 from app.services import (active_members, can_start_quest, get_settings_row, logs_between, member_start,
                           progress_for, tier_of_progress, today_for, week_info)
-from app.tiers import TIERS, next_tier, roman, tier_dict
+from app.tiers import FRAME_KEYS, TIERS, frame_unlocked, frames_for, next_tier, roman, tier_dict
 
 router = APIRouter(prefix="/board", tags=["board"])
 
@@ -29,6 +29,11 @@ class DayUpdate(BaseModel):
 
 class AvatarIn(BaseModel):
     avatar: str = Field(max_length=16)
+
+
+class ProfileIn(BaseModel):
+    avatar: str | None = Field(default=None, max_length=16)
+    frame: str | None = Field(default=None, max_length=16)
 
 
 class QuestIn(BaseModel):
@@ -201,7 +206,7 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
         p = prog[m.id]
         log = logs.get((m.id, today))
         s = scoring.score_day(today, log.tasks if log else None, log.excuse if log else None, today, cfg.cut_misses)
-        rows.append({"member": {"id": m.id, "name": m.name, "code": m.code, "avatar": m.avatar},
+        rows.append({"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame},
                      **_status(p), "today": _score_out(s), "week_delta": p.week_delta,
                      "is_me": v.kind == "member" and v.id == m.id})
     rows.sort(key=lambda r: (-(10**6 if r["legendary"] else 0) - r["level"], r["member"]["name"].lower()))
@@ -254,6 +259,44 @@ def set_avatar(body: AvatarIn, v: Viewer = Depends(current_viewer), db: Session 
     m.avatar = body.avatar
     db.commit()
     return {"avatar": m.avatar}
+
+
+def _profile(db: Session, m: Member) -> dict:
+    cfg = get_settings_row(db)
+    p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
+    tier = tier_of_progress(p)
+    return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame}, **_status(p),
+            "week_delta": p.week_delta, "frames": frames_for(tier), "avatars": AVATARS}
+
+
+@router.get("/profile")
+def get_profile(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    if v.kind != "member":
+        raise HTTPException(400, "Profiles are for members")
+    return _profile(db, db.get(Member, v.id))
+
+
+@router.put("/profile")
+def save_profile(body: ProfileIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """A member picks their own picture and frame. Frames unlock as they climb the ranks."""
+    if v.kind != "member":
+        raise HTTPException(400, "Profiles are for members")
+    m = db.get(Member, v.id)
+    if body.avatar is not None:
+        if body.avatar and body.avatar not in AVATARS:
+            raise HTTPException(400, "Choose one of the pictures shown")
+        m.avatar = body.avatar
+    if body.frame is not None:
+        if body.frame and body.frame not in FRAME_KEYS:
+            raise HTTPException(400, "Choose one of the frames shown")
+        if body.frame:
+            cfg = get_settings_row(db)
+            tier = tier_of_progress(progress_for(db, cfg, [m], today_for(cfg))[m.id])
+            if not frame_unlocked(body.frame, tier):
+                raise HTTPException(403, "That frame unlocks at a higher rank. Keep climbing!")
+        m.frame = body.frame
+    db.commit()
+    return _profile(db, m)
 
 
 @router.post("/quest")

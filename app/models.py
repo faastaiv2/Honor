@@ -35,6 +35,7 @@ class Member(Base):
     pin_hash: Mapped[str | None] = mapped_column(String(100), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     avatar: Mapped[str] = mapped_column(String(16), default="")  # an emoji the member picks
+    frame: Mapped[str] = mapped_column(String(16), default="")  # picture frame on the leaderboard
     quest_starts: Mapped[list] = mapped_column(JSON, default=list)  # days a Legendary quest was started
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

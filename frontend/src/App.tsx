@@ -7,6 +7,7 @@ import { useChangeCounter } from "./lib/events";
 import Admin from "./pages/Admin";
 import HistoryPage from "./pages/History";
 import Leaderboard from "./pages/Leaderboard";
+import ProfilePage from "./pages/Profile";
 import Rules from "./pages/Rules";
 import SignIn from "./pages/SignIn";
 import Today from "./pages/Today";
@@ -46,7 +47,7 @@ export default function App() {
           <nav className="tabs scroll" aria-label="Sections">
             <NavLink to="/" end>Today</NavLink>
             <NavLink to="/leaderboard">Leaderboard</NavLink>
-            <NavLink to="/history">History</NavLink>
+            {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Profile</NavLink>}
             <NavLink to="/rules">Rules</NavLink>
             {viewer.is_admin && <NavLink to="/admin">Admin</NavLink>}
             <span className="who"><span>{viewer.name}</span><button onClick={signOut}>Sign out</button></span>
@@ -58,7 +59,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<div className="main"><Today info={info} /><Leaderboard info={info} /></div>} />
             <Route path="/leaderboard" element={<Leaderboard info={info} />} />
-            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/history" element={viewer.is_admin ? <HistoryPage /> : <Navigate to="/profile" />} />
+            <Route path="/profile" element={viewer.is_admin ? <Navigate to="/admin" /> : <ProfilePage info={info} />} />
             <Route path="/rules" element={<Rules info={info} />} />
             <Route path="/admin" element={viewer.is_admin ? <Admin /> : <Navigate to="/" />} />
             <Route path="*" element={<Navigate to="/" />} />

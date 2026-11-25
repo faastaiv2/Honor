@@ -103,3 +103,32 @@ def tier_range(t: Tier) -> str:
 def tier_dict(t: Tier) -> dict:
     return {"key": t.key, "min": t.min if t.key != "low" else None, "max": t.max, "emoji": t.emoji, "name": t.name,
             "color": t.color, "range": tier_range(t), "games": t.games, "benefits": t.benefits}
+
+
+# Picture frames members can choose for the leaderboard. Each unlocks at a rank.
+FRAMES: list[tuple[str, str, str]] = [  # (key, name, tier that unlocks it)
+    ("plain", "Classic white", "low"),
+    ("emerald", "Emerald", "low"),
+    ("bronze", "Bronze", "honor"),
+    ("silver", "Silver", "good"),
+    ("gold", "Gold", "great"),
+    ("star", "Starlight", "high"),
+    ("sun", "Sunburst", "higher"),
+    ("ribbon", "Teal ribbon", "highest"),
+    ("sapphire", "Sapphire", "ultimate"),
+    ("ruby", "Ruby", "supreme"),
+    ("diamond", "Diamond", "diamond"),
+    ("crown", "Royal crown", "legendary"),
+]
+FRAME_KEYS = {f[0] for f in FRAMES}
+TIER_ORDER = [t.key for t in TIERS]
+
+
+def frame_unlocked(frame_key: str, current: Tier) -> bool:
+    need = next(f[2] for f in FRAMES if f[0] == frame_key)
+    return TIER_ORDER.index(current.key) >= TIER_ORDER.index(need)
+
+
+def frames_for(current: Tier) -> list[dict]:
+    return [{"key": k, "name": n, "unlocked": frame_unlocked(k, current), "tier": tier_dict(BY_KEY[need])}
+            for k, n, need in FRAMES]
