@@ -138,8 +138,25 @@ function EventEditor({ data, ev, onSaved, onCancel, onError }: {
       </div>
       <div className="ad-two">
         <label className="field"><span className="field-label">Name</span><input required maxLength={80} value={f.title} onChange={(e) => set("title", e.target.value)} /></label>
-        <label className="field"><span className="field-label">Day</span><input type="date" required min={ev ? undefined : data.today} value={f.day} onChange={(e) => set("day", e.target.value)} />
-          <span className="field-hint">{new Date(`${f.day}T12:00:00`).getDay() === 6 ? "A Saturday ✓" : "Tip: Saturdays are tournament days"}</span></label>
+      </div>
+      <div className="field">
+        <span className="field-label">Day · {fmt(f.day, { weekday: "long", day: "numeric", month: "long" })}</span>
+        <div className="ev-days" role="radiogroup" aria-label="Day of the event">
+          {Array.from({ length: 21 }, (_, i) => {
+            const d = new Date(`${data.today}T12:00:00`); d.setDate(d.getDate() + i);
+            const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            const sat = d.getDay() === 6;
+            return (
+              <button type="button" key={iso} role="radio" aria-checked={f.day === iso} className={`ev-day${f.day === iso ? " on" : ""}${sat ? " sat" : ""}`} onClick={() => set("day", iso)}>
+                <small>{i === 0 ? "Today" : d.toLocaleDateString(undefined, { weekday: "short" })}</small>
+                <b>{d.getDate()}</b>
+                <small>{d.toLocaleDateString(undefined, { month: "short" })}</small>
+              </button>
+            );
+          })}
+        </div>
+        <label className="ev-other-day">Other date: <input type="date" min={ev ? undefined : data.today} value={f.day} onChange={(e) => e.target.value && set("day", e.target.value)} /></label>
+        <span className="field-hint">{new Date(`${f.day}T12:00:00`).getDay() === 6 ? "A Saturday ✓" : "Tip: Saturdays (gold) are tournament days"}</span>
       </div>
       <div className="ad-two">
         <label className="field"><span className="field-label">Opens at</span><input type="time" required value={f.opens} onChange={(e) => set("opens", e.target.value)} /></label>
