@@ -11,6 +11,13 @@ import { RankBadge } from "./Welcome";
 
 type Kind = "frame" | "theme" | "avatar";
 const TABS: { kind: Kind; label: string }[] = [{ kind: "frame", label: "Frames" }, { kind: "theme", label: "Themes" }, { kind: "avatar", label: "Pictures" }];
+const RARITY = [
+  { key: "common", name: "Common", icon: "⚪" },
+  { key: "rare", name: "Rare", icon: "🔷" },
+  { key: "epic", name: "Epic", icon: "🟣" },
+  { key: "legendary", name: "Legendary", icon: "🌟" },
+];
+const FREE = { key: "free", name: "Free", icon: "🎁" };
 
 
 export default function ProfilePage({ info }: { info: TodayInfo | null }) {
@@ -44,10 +51,10 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const t = p.tier;
   const nextMin = info?.tiers.find((x) => x.name === p.next?.name)?.min ?? null;
   const pct = p.legendary || !p.next || nextMin === null || t.min === null ? 100 : Math.max(6, Math.min(100, ((p.level - t.min) / (nextMin - t.min)) * 100));
-  // Pictures: the three knights lead the list (the shop's top prizes), then everything else.
-  const isKnight = (k: string) => k.startsWith("knight");
+  // Pictures: free ones first, then the shop by rarity (common, rare, epic, legendary), cheapest first in each.
+  const rank = (it: ShopItem) => (it.rarity ? RARITY.findIndex((r) => r.key === it.rarity) + 1 : 0);
   const items = tab === "frame" ? p.frames : tab === "theme" ? p.themes
-    : [...p.avatars.filter((a) => isKnight(a.key)).sort((a, b) => b.price - a.price), ...p.avatars.filter((a) => !isKnight(a.key))];
+    : [...p.avatars].sort((a, b) => rank(a) - rank(b) || a.price - b.price);
   const current = tab === "frame" ? p.member.frame || "plain" : tab === "theme" ? p.member.theme || "bronze" : p.member.avatar;
 
   return (
@@ -82,20 +89,28 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
           {TABS.map((x) => <button key={x.kind} role="tab" aria-selected={tab === x.kind} className={tab === x.kind ? "on" : ""} onClick={() => setTab(x.kind)}>{x.label}</button>)}
         </div>
         <div className={`shop-grid ${tab}`}>
-          {tab === "avatar" && <p className="shop-section">⚔️ Knights · the shop's top prizes</p>}
           {items.map((it, idx) => {
-            const firstOther = tab === "avatar" && !isKnight(it.key) && (idx === 0 || isKnight(items[idx - 1].key));
+            const head = tab === "avatar" && (idx === 0 || rank(items[idx - 1]) !== rank(it)) ? (RARITY[rank(it) - 1] ?? FREE) : null;
+            const inGroup = head ? items.filter((x) => rank(x) === rank(it)) : [];
+            const firstOther = tab === "avatar" && idx === 0 && !it.rarity;
             const inUse = current === it.key;
             const locked = !it.available;
             const forSale = locked && it.price > 0;
             return (<Fragment key={it.key}>
-              {firstOther && <p className="shop-section">More pictures</p>}
+              {head && (
+                <div className={`shop-rarity r-${head.key}`}>
+                  <span className="shop-rarity-gem" aria-hidden="true">{head.icon}</span>
+                  <b>{head.name}</b>
+                  <small>{head.key === "free" ? "Yours to use" : `${inGroup.filter((x) => x.available).length}/${inGroup.length} owned`}</small>
+                </div>
+              )}
               {firstOther && (
                 <button className={`shop-item${!p.member.avatar ? " on" : ""}`} onClick={() => use("avatar", "", "Plain picture")}>
                   <span className="shop-face">👤</span><span className="shop-name">Plain</span><span className="shop-act">{!p.member.avatar ? "In use" : "Use"}</span>
                 </button>
               )}
-              <div className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}${it.price >= 1500 ? " legendary" : it.price >= 1000 ? " epic" : ""}`}>
+              <div className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}${it.rarity ? ` r-${it.rarity}` : ""}`}>
+                {it.rarity && <span className={`shop-tag r-${it.rarity}`}>{it.rarity}</span>}
                 <button type="button" className="shop-face" aria-label={forSale ? `Preview ${it.name}` : it.name} disabled={!forSale}
                   onClick={() => forSale && (tab === "theme" ? setTrying(trying?.key === it.key ? null : it) : setPeek({ kind: tab, item: it }))}>
                   {tab === "frame" ? <Avatar avatar={p.member.avatar} color={t.color} frame={it.key} size={54} />

@@ -1652,3 +1652,27 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 @media (max-width: 480px) { .bx-ach { flex-wrap: wrap; } .bx-ach-gems { margin-inline-start: auto; } }
 .ru-rw-card.ach small { display: block; font-size: 12px; opacity: .8; }
 .bx-ach.got .bx-ach-gems { background: linear-gradient(180deg, #6cc56c, #2f8f3f); }
+
+/* Pictures by rarity */
+.shop-rarity { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; padding: 8px 14px; border-radius: 14px; font-size: 15px;
+  background: var(--soft, #0000000a); border-inline-start: 5px solid var(--rc, #9aa4ae); }
+.shop-rarity:first-child { margin-top: 0; }
+.shop-rarity b { font: 20px/1 Marcellus, Georgia, serif; color: var(--rc, inherit); }
+.shop-rarity small { margin-inline-start: auto; font-weight: 800; color: var(--mute); }
+.shop-rarity-gem { font-size: 18px; }
+.r-free { --rc: #7a8a96; }
+.r-common { --rc: #7d8a96; }
+.r-rare { --rc: #2f7bd8; }
+.r-epic { --rc: #8a4ae0; }
+.r-legendary { --rc: #d99a10; }
+.shop-rarity.r-rare { background: linear-gradient(90deg, #2f7bd81f, transparent); }
+.shop-rarity.r-epic { background: linear-gradient(90deg, #8a4ae026, transparent); }
+.shop-rarity.r-legendary { background: linear-gradient(90deg, #ffd24a40, #6a3fb014, transparent); box-shadow: 0 0 0 1px #e0aa2055; }
+.shop-item.r-common, .shop-item.r-rare, .shop-item.r-epic, .shop-item.r-legendary { position: relative; border-color: color-mix(in srgb, var(--rc) 55%, var(--line)); }
+.shop-item.r-rare { background: linear-gradient(160deg, color-mix(in srgb, #2f7bd8 12%, var(--paper)), var(--paper)); }
+.shop-item.r-epic { background: linear-gradient(160deg, color-mix(in srgb, #8a4ae0 18%, var(--paper)), color-mix(in srgb, #2a3a9a 10%, var(--paper))); }
+.shop-item.r-legendary { background: linear-gradient(160deg, color-mix(in srgb, #ffd24a 24%, var(--paper)), color-mix(in srgb, #6a3fb0 16%, var(--paper)));
+  box-shadow: 0 0 0 2px #ffd24a66, 0 6px 18px #d99a1033; }
+.shop-tag { position: absolute; top: -9px; left: 50%; translate: -50% 0; padding: 1px 9px; border-radius: 999px; font-size: 10px; font-weight: 900;
+  letter-spacing: .06em; text-transform: uppercase; color: #fff; background: var(--rc); white-space: nowrap; z-index: 1; }
+.shop-tag.r-legendary { background: linear-gradient(90deg, #f0b820, #c97a00); color: #3a2400; }

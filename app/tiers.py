@@ -172,16 +172,28 @@ FREE_PICTURES: list[tuple[str, str]] = [
     ("lion", "Lion"), ("tiger", "Tiger"), ("eagle", "Eagle"), ("wolf", "Wolf"), ("fox", "Fox"), ("owl", "Owl"),
     ("bear", "Bear"), ("cat", "Cat"), ("turtle", "Turtle"), ("dolphin", "Dolphin"),
 ]
-SHOP_PICTURES: list[tuple[str, str, int]] = [
-    ("panda", "Panda", 200), ("penguin", "Penguin", 200), ("koala", "Koala", 240), ("unicorn", "Unicorn", 300),
-    ("dino", "Dino", 300), ("astronaut", "Astronaut", 400), ("robot", "Robot", 400), ("ninja", "Ninja", 440),
-    ("phoenix", "Phoenix", 600), ("dragon", "Dragon", 700), ("kinglion", "Lion King", 800),
-    ("cosmiccat", "Cosmic cat", 900),
-    ("knight", "Knight", 500), ("knightepic", "Epic Knight", 1000), ("knightlegend", "Legendary Knight", 1500),
+# Shop pictures by rarity: common, rare, epic, legendary. (key, name, gems, rarity)
+RARITIES = ["common", "rare", "epic", "legendary"]
+SHOP_PICTURES: list[tuple[str, str, int, str]] = [
+    # Common
+    ("squire", "Squire", 100, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
+    ("koala", "Koala", 240, "common"),
+    # Rare
+    ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("unicorn", "Unicorn", 300, "rare"),
+    ("dino", "Dino", 300, "rare"), ("astronaut", "Astronaut", 400, "rare"), ("robot", "Robot", 400, "rare"),
+    ("ninja", "Ninja", 440, "rare"),
+    # Epic
+    ("knight", "Knight", 500, "epic"), ("spartan", "Spartan", 500, "epic"), ("frostknight", "Frost Knight", 500, "epic"),
+    ("phoenix", "Phoenix", 600, "epic"), ("dragon", "Dragon", 700, "epic"), ("kinglion", "Lion King", 800, "epic"),
+    ("cosmiccat", "Cosmic cat", 900, "epic"),
+    # Legendary
+    ("dragonknight", "Dragon Knight", 1000, "legendary"), ("knightepic", "Epic Knight", 1000, "legendary"),
+    ("knightlegend", "Legendary Knight", 1500, "legendary"),
 ]
 FREE_AVATARS = [k for k, _ in FREE_PICTURES]
-SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c in SHOP_PICTURES]
-_PICTURE_NAMES = {k: n for k, n in FREE_PICTURES} | {k: n for k, n, _ in SHOP_PICTURES}
+SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c, _ in SHOP_PICTURES]
+_PICTURE_NAMES = {k: n for k, n in FREE_PICTURES} | {k: n for k, n, _, _ in SHOP_PICTURES}
+_PICTURE_RARITY = {k: r for k, _, _, r in SHOP_PICTURES}
 
 TIER_ORDER = [t.key for t in TIERS]
 FRAME_KEYS = {f[0] for f in FRAMES}
@@ -218,7 +230,7 @@ def catalogue(kind: str, current: Tier, owned: set[str]) -> list[dict]:
     if kind == "avatar":
         free = [{"key": a, "name": _PICTURE_NAMES[a], "available": True, "price": 0, "tier": None} for a in FREE_AVATARS]
         return free + [{"key": a, "name": _PICTURE_NAMES[a], "available": shop_key("avatar", a) in owned, "price": c,
-                        "tier": None}
+                        "tier": None, "rarity": _PICTURE_RARITY[a]}
                        for a, c in SHOP_AVATARS]
     table = FRAMES if kind == "frame" else THEMES
     return [{"key": k, "name": n, "available": item_available(kind, k, current, owned), "price": c,

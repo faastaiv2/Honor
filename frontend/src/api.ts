@@ -35,7 +35,7 @@ export interface BoardRow extends Status {
   rank: number; member: { id: string; name: string; avatar: string; frame: string };
   today: Score; week_delta: number; is_me: boolean; excused_today?: { task: string; reason: string }[];
 }
-export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null }
+export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary" }
 export interface Profile extends Status {
   member: { id: string; name: string; avatar: string; frame: string; theme: string };
   week_delta: number; streak: number;
