@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from app.progress import Progress
+from app.tiers import RANK_GEMS
 
 REWARD = {"bronze": 15, "silver": 40, "gold": 100, "legend": 250}
 
@@ -64,9 +65,14 @@ ACHIEVEMENTS: list[Achievement] = [
     Achievement("fit10", "Warming Up", "Do every fitness task on 10 days", "Fitness", "dumbbell", "bronze", 10, lambda f: f.p.fitness_days),
     Achievement("fit50", "Iron Body", "Do every fitness task on 50 days", "Fitness", "dumbbell", "gold", 50, lambda f: f.p.fitness_days),
     # Ranks
+    # Each rank's gems come from its achievement (see rank_reward).
+    Achievement("bronze", "Bronze Born", "Reach the Bronze rank", "Ranks", "crest:bronze", "bronze", 1, _rank("bronze")),
     Achievement("silver", "Shining Silver", "Reach the Silver rank", "Ranks", "crest:silver", "bronze", 1, _rank("silver")),
     Achievement("gold", "Gold Standard", "Reach the Gold rank", "Ranks", "crest:gold", "bronze", 1, _rank("gold")),
+    Achievement("platinum", "Platinum Shine", "Reach the Platinum rank", "Ranks", "crest:platinum", "silver", 1, _rank("platinum")),
     Achievement("emerald", "Evergreen", "Reach the Emerald rank", "Ranks", "crest:emerald", "silver", 1, _rank("emerald")),
+    Achievement("sapphire", "Deep Blue", "Reach the Sapphire rank", "Ranks", "crest:sapphire", "silver", 1, _rank("sapphire")),
+    Achievement("ruby", "Heart of Ruby", "Reach the Ruby rank", "Ranks", "crest:ruby", "gold", 1, _rank("ruby")),
     Achievement("diamond", "Unbreakable", "Reach the Diamond rank", "Ranks", "crest:diamond", "gold", 1, _rank("diamond")),
     Achievement("obsidian", "Into the Dark", "Reach the Obsidian rank", "Ranks", "crest:obsidian", "gold", 1, _rank("obsidian")),
     Achievement("quest", "To Be a Legend", "Give up Obsidian and start the Legendary quest", "Ranks", "crest:legendary", "legend", 1,
@@ -85,11 +91,19 @@ ACHIEVEMENTS: list[Achievement] = [
 BY_KEY = {a.key: a for a in ACHIEVEMENTS}
 
 
+def reward_for(a: Achievement, f: Facts) -> int:
+    """A rank achievement pays that rank's gems (Bronze 25 … Legendary 1000), unless the rank's gems
+    were already paid automatically under the old rules, or it was the member's starting rank."""
+    if a.group == "Ranks" and a.key in RANK_GEMS:
+        return a.gems if a.key in f.p.ranks_paid else RANK_GEMS[a.key]
+    return a.gems
+
+
 def evaluate(f: Facts, claimed: set[str]) -> list[dict]:
     out = []
     for a in ACHIEVEMENTS:
         have = a.measure(f)
         out.append({"key": a.key, "name": a.name, "text": a.text, "group": a.group, "icon": a.icon, "tier": a.tier,
-                    "gems": a.gems, "goal": a.goal, "progress": min(have, a.goal), "unlocked": have >= a.goal,
+                    "gems": reward_for(a, f), "goal": a.goal, "progress": min(have, a.goal), "unlocked": have >= a.goal,
                     "claimed": a.key in claimed})
     return out

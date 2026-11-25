@@ -19,7 +19,7 @@ from datetime import date, timedelta
 
 from app import scoring
 from app.tiers import (CAP_WITHOUT_LEGENDARY, GEMS_FOR_FULL_DAY, GEMS_FOR_LEGENDARY, GEMS_NEW_RATES_FROM, GEMS_PER_LEVEL,
-                       GEMS_PER_TASK, GEMS_PER_TASK_BEFORE, RANK_GEMS, LEGENDARY_LEVEL, OBSIDIAN_FLOOR, tier_for)
+                       GEMS_PER_TASK, GEMS_PER_TASK_BEFORE, RANK_GEMS, RANK_GEMS_VIA_ACHIEVEMENT_FROM, LEGENDARY_LEVEL, OBSIDIAN_FLOOR, tier_for)
 
 
 _GEM_KEYS = set(scoring.REQUIRED) | {"bonus"}
@@ -55,6 +55,7 @@ class Progress:
     fitness_days: int = 0  # every fitness task done (not excused)
     ticks: dict = field(default_factory=dict)  # task -> days it was ticked
     ranks_reached: set = field(default_factory=set)
+    ranks_paid: set = field(default_factory=set)  # ranks whose gems were paid automatically (the old way) or held at the start
 
 
 def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[date, int], quest_starts: list[date],
@@ -70,6 +71,7 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
     gem_keys = ({t.key for t in tasks} | {"bonus"}) if tasks is not None else _GEM_KEYS
     best = p.level
     reached = {t for t in _ranks_upto(best)}
+    p.ranks_paid = set(reached)
     for d in scoring.date_range(score_from, today):
         if d in starts and not p.legendary and not p.banned:  # checked when the quest was started
             p.level = 1
@@ -115,7 +117,9 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
                 quest_active, p.quest_broken_on, p.quest_start = False, d, None
         if quest_active and p.level >= LEGENDARY_LEVEL and perfect:
             p.legendary, p.legendary_since, quest_active, p.quest_start = True, d, False, None
-            p.gems_levels += GEMS_FOR_LEGENDARY
+            if d < RANK_GEMS_VIA_ACHIEVEMENT_FROM:
+                p.gems_levels += GEMS_FOR_LEGENDARY
+                p.ranks_paid.add("legendary")
 
         if p.legendary and finished and not s.weekend:
             misses = 0 if s.gain else misses + 1
@@ -131,7 +135,9 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
                 rank = tier_for(min(lvl, CAP_WITHOUT_LEGENDARY), False).key
                 if rank not in reached:
                     reached.add(rank)
-                    p.gems_levels += RANK_GEMS[rank]
+                    if d < RANK_GEMS_VIA_ACHIEVEMENT_FROM:
+                        p.gems_levels += RANK_GEMS[rank]
+                        p.ranks_paid.add(rank)
             best = p.level
         if finished:
             if s.gain:

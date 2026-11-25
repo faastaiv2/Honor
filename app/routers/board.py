@@ -414,8 +414,7 @@ def _profile(db: Session, m: Member) -> dict:
     daily_gems = DAILY_CLAIM.get(tier.key, 0)
     claimed_today = claimed_on(db, m.id, today)
     nxt = p.best_level + 1
-    reward = 0 if p.legendary or nxt > CAP_WITHOUT_LEGENDARY else GEMS_PER_LEVEL + (
-        RANK_GEMS[tier_for(nxt, False).key] if tier_for(nxt, False).min == nxt else 0)
+    reward = 0 if p.legendary or nxt > CAP_WITHOUT_LEGENDARY else GEMS_PER_LEVEL
     return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "theme": _theme_of(m)},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
             "gems": {"balance": gems_earned(p) + claimed + from_achievements - spent,
@@ -538,7 +537,7 @@ def claim_achievement(key: str, v: Viewer = Depends(current_viewer), db: Session
         raise HTTPException(400, "Already collected")
     if not item["unlocked"]:
         raise HTTPException(400, f"Not yet: {item['progress']}/{item['goal']}")
-    db.add(AchievementClaim(member_id=m.id, key=key, gems=a.gems))
+    db.add(AchievementClaim(member_id=m.id, key=key, gems=item["gems"]))
     db.commit()
     return achievements(None, v, db)
 

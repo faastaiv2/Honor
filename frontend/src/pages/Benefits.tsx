@@ -5,7 +5,9 @@ import Gem from "../lib/Gem";
 import Brazier from "../lib/Brazier";
 import Avatar from "../lib/Avatar";
 import ThemePreview from "../lib/ThemePreview";
-import { api, type Profile, type Tier, type TodayInfo } from "../api";
+import Medal from "../lib/Medal";
+import { Link } from "react-router-dom";
+import { api, type Achievement, type Profile, type Tier, type TodayInfo } from "../api";
 import { useAuth } from "../auth";
 
 /**
@@ -38,7 +40,8 @@ function Stat({ icon, big, label, note, tone = "" }: { icon: React.ReactNode; bi
   );
 }
 
-function RankDetail({ t, state, needed, avatar }: { t: Tier; state: "done" | "here" | "ahead" | ""; needed?: number; avatar: string }) {
+function RankDetail({ t, state, needed, avatar, mine }: { t: Tier; state: "done" | "here" | "ahead" | ""; needed?: number; avatar: string; mine?: Achievement }) {
+  const achGems = mine?.gems ?? t.gems ?? 0;
   const [games, gamesNote] = gameText(t);
   const [mu, muNote] = makeUpText(t);
   return (
@@ -53,8 +56,19 @@ function RankDetail({ t, state, needed, avatar }: { t: Tier; state: "done" | "he
         </div>
       </div>
 
+      {t.achievement && (
+        <Link to="/achievements" className={`bx-ach ${state}${mine?.claimed ? " got" : ""}`}>
+          <Medal icon={t.achievement.icon} tier={t.achievement.tier} locked={state === "ahead"} size={76} />
+          <div>
+            <small>Achievement</small>
+            <b>{t.achievement.name}</b>
+            <p>{mine?.claimed ? "Collected ✓" : mine?.unlocked ? "Ready! Tap to collect it in Achievements" : `Reach ${t.name} to unlock it`}</p>
+          </div>
+          <span className="bx-ach-gems">+{achGems} <Gem size={22} /></span>
+        </Link>
+      )}
+
       <div className="bx-stats">
-        <Stat tone="gem" icon={<Gem size={34} />} label="Arrival reward" big={<>+{t.gems ?? 0} <Gem /></>} note="Once, the first time you reach it" />
         <Stat tone="fire" icon={<Brazier size={38} />} label="Daily streak chest" big={<>+{t.daily ?? 0} <Gem /> <span className="bx-per">a day</span></>} note="While your streak is alive" />
         <Stat icon="🎮" label="Game / YouTube time" big={games} note={gamesNote} />
         <Stat icon="🔁" label="Make-ups" big={mu} note={muNote} />
@@ -87,7 +101,12 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
   const { viewer } = useAuth();
   const [p, setP] = useState<Profile | null>(null);
   const isMember = viewer?.kind === "member";
-  useEffect(() => { if (isMember) api.profile().then(setP).catch(() => undefined); }, [isMember]);
+  const [ach, setAch] = useState<Record<string, Achievement>>({});
+  useEffect(() => {
+    if (!isMember) return;
+    api.profile().then(setP).catch(() => undefined);
+    api.achievements().then((a) => setAch(Object.fromEntries(a.items.map((x) => [x.key, x])))).catch(() => undefined);
+  }, [isMember]);
 
   const tiers = (info?.tiers ?? []).filter((t) => t.key !== "low");
   const current = p?.tier;
@@ -162,7 +181,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
             </button>
           ))}
         </div>
-        <RankDetail t={shown} state={stateOf(shownIdx)} needed={shown.min ? shown.min - level : undefined} avatar={avatar} />
+        <RankDetail t={shown} state={stateOf(shownIdx)} needed={shown.min ? shown.min - level : undefined} avatar={avatar} mine={ach[shown.key]} />
       </section>
 
       <section className="card bx-table-card">
@@ -170,7 +189,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
         <div className="bx-table-wrap">
           <table className="bx-table">
             <thead>
-              <tr><th>Rank</th><th>Levels</th><th>Arrival</th><th>Daily chest</th><th>Game time</th></tr>
+              <tr><th>Rank</th><th>Levels</th><th>Achievement</th><th>Daily chest</th><th>Game time</th></tr>
             </thead>
             <tbody>
               {[...tiers].reverse().map((t) => {
@@ -179,7 +198,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
                   <tr key={t.key} className={`${stateOf(i)}${t.key === shown.key ? " on" : ""}`} style={{ ["--tc" as string]: t.color }} onClick={() => setPick(t.key)}>
                     <td><span className="bx-tr-rank"><RankIcon rank={t.key} size={28} /> <b>{t.name}</b>{stateOf(i) === "here" && <em>You</em>}</span></td>
                     <td>{romanRange(t)}</td>
-                    <td className="num">+{t.gems ?? 0} <Gem /></td>
+                    <td className="num">+{ach[t.key]?.gems ?? t.gems ?? 0} <Gem />{ach[t.key]?.claimed ? " ✓" : ""}</td>
                     <td className="num">+{t.daily ?? 0} <Gem /></td>
                     <td>{gameText(t)[0]}</td>
                   </tr>
@@ -195,7 +214,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
         <div className="bx-earn-grid">
           <div><span>✅</span><b>+{gems?.full_day ?? 20}</b><p>Finish every task in a day</p></div>
           <div><span>⬆️</span><b>+{gems?.per_level ?? 10}</b><p>Each new level, the first time</p></div>
-          <div><span><RankIcon rank="gold" size={30} /></span><b>+25 to +1000</b><p>Each new rank, the first time</p></div>
+          <div><span><RankIcon rank="gold" size={30} /></span><b>+25 to +1000</b><p>Each rank's achievement</p></div>
           <div><span><Brazier size={30} /></span><b>+3 to +25</b><p>Daily streak chest, every day</p></div>
           <div><span>🏅</span><b>Up to +500</b><p>Achievements</p></div>
           <div><span>🎨</span><b>Prizes</b><p>Win art tournaments in Events</p></div>

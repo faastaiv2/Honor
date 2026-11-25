@@ -112,13 +112,19 @@ GEMS_PER_LEVEL = 10        # the first time a member reaches each new level
 RANK_GEMS = {"low": 0, "bronze": 25, "silver": 50, "gold": 100, "platinum": 150, "emerald": 200, "sapphire": 300,
              "ruby": 400, "diamond": 500, "obsidian": 750, "legendary": 1000}
 GEMS_FOR_LEGENDARY = RANK_GEMS["legendary"]
+# From this day a new rank's gems come only from its achievement (collected in Achievements), not automatically.
+# Ranks reached before it were already paid automatically, so their achievements keep the small old reward.
+RANK_GEMS_VIA_ACHIEVEMENT_FROM = date(2026, 11, 26)
 # The daily streak chest: claim once a day while your streak is alive. Higher ranks get more.
 DAILY_CLAIM = {"low": 0, "bronze": 3, "silver": 4, "gold": 5, "platinum": 6, "emerald": 8, "sapphire": 10, "ruby": 12,
                "diamond": 15, "obsidian": 20, "legendary": 25}
 
 
 def tier_dict(t: Tier) -> dict:
-    return {"key": t.key, "min": t.min if t.key != "low" else None, "max": t.max, "emoji": t.emoji, "name": t.name,
+    from app.achievements import BY_KEY  # here, to avoid a circular import
+    ach = BY_KEY.get(t.key)
+    return {"achievement": {"key": ach.key, "name": ach.name, "tier": ach.tier, "icon": ach.icon} if ach else None,
+            "key": t.key, "min": t.min if t.key != "low" else None, "max": t.max, "emoji": t.emoji, "name": t.name,
             "color": t.color, "range": tier_range(t), "games": t.games, "benefits": t.benefits,
             "gems": RANK_GEMS.get(t.key, 0), "daily": DAILY_CLAIM.get(t.key, 0),
             "frame": next(({"key": k, "name": n} for k, n, r, _ in FRAMES if r == t.key), None),
