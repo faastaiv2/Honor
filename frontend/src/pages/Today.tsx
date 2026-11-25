@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { preloadQuestMusic } from "../lib/questMusic";
+import { unlockSfx } from "../lib/sfx";
 import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import Brazier from "../lib/Brazier";
@@ -72,7 +73,7 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
               <li><span>⚠️</span><span><b>One missed day</b> ends the quest.</span></li>
               <li><span>👑</span><span>Reach L and you become <b>Legendary</b>, the highest honor.</span></li>
             </ul>
-            <button className="qc-yes" onClick={() => { setSure(false); onQuest(); }}>Yes, give up my {st.tier.name} title and start</button>
+            <button className="qc-yes" onClick={() => { unlockSfx(); setSure(false); onQuest(); }}>Yes, give up my {st.tier.name} title and start</button>
             <button className="qc-no" onClick={() => setSure(false)}>Not now</button>
           </div>
         </div>

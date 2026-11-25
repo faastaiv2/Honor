@@ -7,6 +7,7 @@ import RankIcon from "../lib/RankIcon";
 import { notifyChanged } from "../lib/events";
 import { Particles } from "../lib/particles";
 import { playQuestMusic, preloadQuestMusic, stopQuestMusic } from "../lib/questMusic";
+import { boom, chime, crack, shatter, thunder, ting, unlockSfx, whoosh } from "../lib/sfx";
 
 /**
  * The film for the greatest choice in the app: giving up Obsidian to start the Legendary quest.
@@ -54,38 +55,43 @@ export default function QuestFilm({ name, onClose, preview = false }: { name: st
     const ts: number[] = [];
     const at = (ms: number, fn: () => void) => ts.push(window.setTimeout(fn, ms));
     const quake = (n: number) => { setShake(n); at(650, () => setShake(0)); };
+    unlockSfx();
 
     // Prologue (0s): darkness, slow stars, two lines.
     e.burst("star", 160, ["#ffffff", "#e3d8ff"]);
     at(1500, () => e.burst("star", 120, ["#ffffff", "#c8b8ff"]));
     // Act 1 (4.5s): the summit. Obsidian rises over the mountain.
-    at(4500, () => { setAct(1); e.burst("star", 200, ["#ffffff", "#e3d8ff"]); e.emit("ember", 14, 4500, PURPLE); });
-    at(5600, () => e.burst("ring", 36, PURPLE));
+    at(4500, () => { setAct(1); whoosh(2.4, true); e.burst("star", 200, ["#ffffff", "#e3d8ff"]); e.emit("ember", 14, 4500, PURPLE); });
+    at(5600, () => { e.burst("ring", 36, PURPLE); chime([196, 246.94, 293.66, 392], 0.14); });
     // Act 2 (9s): the choice. The storm gathers; lightning cracks the crest.
     at(9000, () => setAct(2));
-    [9200, 9900, 10500, 11000, 11500, 11900, 12300, 12600].forEach((t) => at(t, () => e.lightning()));
+    [9200, 9900, 10500, 11000, 11500, 11900, 12300, 12600].forEach((t, i) => at(t, () => {
+      e.lightning();
+      if (i % 3 === 0) thunder(0.6 + i * 0.05); else crack(0.7 + i * 0.08); // the crest cracks a little more each time
+    }));
     at(10200, () => quake(1));
     at(11800, () => quake(1));
     // Act 3 (13s): it shatters.
-    at(13000, () => { setAct(3); quake(2); e.burst("ring", 60, PURPLE); e.burst("sparkle", 320, PURPLE); e.burst("firework", 140, PURPLE, { x: e.cx, y: e.cy }); });
+    at(13000, () => { setAct(3); quake(2); shatter(); e.burst("ring", 60, PURPLE); e.burst("sparkle", 320, PURPLE); e.burst("firework", 140, PURPLE, { x: e.cx, y: e.cy }); });
     at(13300, () => e.burst("ring", 60, ["#ffffff", "#b69cff"]));
     // Act 4 (15.2s): the fall. Bronze I rises from the embers.
-    at(15200, () => { setAct(4); e.emit("ember", 34, 4000, BRONZE); e.burst("crystal", 60, PURPLE); });
+    at(15200, () => { setAct(4); boom(0.35); at(700, () => chime([261.63, 329.63, 392], 0.18)); e.emit("ember", 34, 4000, BRONZE); e.burst("crystal", 60, PURPLE); });
     at(16400, () => e.burst("ring", 30, BRONZE));
     // Act 5 (19.6s): the road. Fifty levels of light climb to the Legendary crest.
+    for (let i = 0; i < 11; i++) at(19600 + 300 + i * 320, () => ting(523.25 * Math.pow(2, i / 6))); // each level lights up
     at(19600, () => { setAct(5); e.emit("gold", 120, 4600, GOLDS); e.emit("streak", 3, 4600, ["#fff2b8"]); });
     // Act 6 (24.6s): the ascension. The crest descends in a storm of gold.
-    at(24600, () => { setAct(6); quake(1); e.burst("ring", 60, GOLDS); e.burst("sparkle", 260, GOLDS); e.emit("gold", 160, 3600, GOLDS); });
-    at(25400, () => e.burst("ring", 60, ["#ffffff", "#ffd24a"]));
+    at(24600, () => { setAct(6); quake(1); whoosh(2.2, false); e.burst("ring", 60, GOLDS); e.burst("sparkle", 260, GOLDS); e.emit("gold", 160, 3600, GOLDS); });
+    at(25400, () => { e.burst("ring", 60, ["#ffffff", "#ffd24a"]); boom(0.6); chime([392, 493.88, 587.33, 783.99], 0.1); });
     // Act 7 (28.6s): the oath. The title, gold fire and fireworks.
-    at(28600, () => { setAct(7); quake(2); e.burst("sparkle", 360, GOLDS); e.burst("ring", 60, GOLDS); e.emit("confetti", 140, 5600, GOLDS); });
-    for (let i = 0; i < 16; i++) at(28800 + i * 340, () => e.firework(i % 3 ? GOLDS : ["#ffffff", "#b69cff", "#ffd24a"]));
+    at(28600, () => { setAct(7); quake(2); boom(1); chime([523.25, 659.25, 783.99, 1046.5, 1318.5], 0.08); e.burst("sparkle", 360, GOLDS); e.burst("ring", 60, GOLDS); e.emit("confetti", 140, 5600, GOLDS); });
+    for (let i = 0; i < 16; i++) at(28800 + i * 340, () => { e.firework(i % 3 ? GOLDS : ["#ffffff", "#b69cff", "#ffd24a"]); if (i % 2 === 0) crack(0.3); });
     at(35000, () => setStage("medal"));
     return () => ts.forEach(clearTimeout);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (stage === "medal") engine.current?.burst("sparkle", 160, GOLDS);
+    if (stage === "medal") { engine.current?.burst("sparkle", 160, GOLDS); chime([783.99, 987.77, 1174.66, 1567.98], 0.07); }
   }, [stage]);
 
   async function claim() {

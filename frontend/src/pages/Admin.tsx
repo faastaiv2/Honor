@@ -9,6 +9,7 @@ import QuestFilm from "./QuestFilm";
 import { notifyChanged, useToast } from "../lib/events";
 import Guard from "../lib/Guard";
 import { playQuestMusic, resetQuestMusic, stopQuestMusic } from "../lib/questMusic";
+import { unlockSfx } from "../lib/sfx";
 import type { MusicInfo } from "../api";
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
@@ -351,7 +352,7 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
           <section className="card">
             <h2>Rank-up shows</h2>
             <p className="note">Watch what a member sees when they reach each rank.</p>
-            <button className="ad-show ad-quest" style={{ ["--tc" as string]: "#b8860b" }} onClick={() => setQuestPreview(true)}>
+            <button className="ad-show ad-quest" style={{ ["--tc" as string]: "#b8860b" }} onClick={() => { unlockSfx(); setQuestPreview(true); }}>
               <RankIcon rank="legendary" size={28} />The Legendary quest begins
             </button>
             <div className="ad-shows">
