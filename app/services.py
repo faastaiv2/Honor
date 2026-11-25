@@ -122,6 +122,20 @@ def gems_claimed(db: Session, member_id: str) -> int:
     return int(db.scalar(select(func.coalesce(func.sum(DailyClaim.gems), 0)).where(DailyClaim.member_id == member_id)) or 0)
 
 
+def achievement_gems(db: Session, member_id: str) -> tuple[int, set[str]]:
+    """Gems collected from achievements, and which ones."""
+    from app.models import AchievementClaim
+    rows = list(db.scalars(select(AchievementClaim).where(AchievementClaim.member_id == member_id)))
+    return sum(r.gems for r in rows), {r.key for r in rows}
+
+
+def chests_opened(db: Session, member_id: str) -> int:
+    from sqlalchemy import func
+
+    from app.models import DailyClaim
+    return int(db.scalar(select(func.count()).select_from(DailyClaim).where(DailyClaim.member_id == member_id)) or 0)
+
+
 def claimed_on(db: Session, member_id: str, day: date) -> bool:
     from app.models import DailyClaim
     return db.scalar(select(DailyClaim.id).where(DailyClaim.member_id == member_id, DailyClaim.day == day)) is not None

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import Brazier from "../lib/Brazier";
+import Medal from "../lib/Medal";
 import { Link } from "react-router-dom";
 import { api, type DayView, type Profile, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
@@ -174,6 +175,13 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
         </div>
       </div>
       {claimMsg && <p className="wc-claimed" role="status">{claimMsg}</p>}
+      {p.achievements_ready > 0 && (
+        <Link to="/achievements" className="wc-ach">
+          <Medal icon="star" tier="gold" size={34} />
+          <span><b>{p.achievements_ready} achievement{p.achievements_ready === 1 ? "" : "s"} ready!</b><small>Tap to collect your gems</small></span>
+          <span className="wc-ach-go">›</span>
+        </Link>
+      )}
 
       {p.pending > 0 && <p className="wc-pending">🌙 <b>+{p.pending} Honor</b> on its way — it arrives at midnight.</p>}
 

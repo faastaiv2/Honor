@@ -9,9 +9,10 @@ from app import scoring
 from app.db import get_db
 from app.deps import Viewer, current_viewer
 from app.makeup import check_week, remaining, week_start
-from app.models import DailyClaim, DayLog, Member, Purchase
+from app.models import AchievementClaim, DailyClaim, DayLog, Member, Purchase
+from app.achievements import BY_KEY as ACHIEVEMENT_BY_KEY, Facts, evaluate as evaluate_achievements
 from app.progress import Progress, gems_earned
-from app.services import (active_members, load_periods, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
+from app.services import (achievement_gems, active_members, chests_opened, load_periods, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
 from app.tiers import (CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
                        FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
@@ -365,6 +366,7 @@ def _profile(db: Session, m: Member) -> dict:
     owned = owned_items(db, m.id)
     spent = gems_spent(db, m.id)
     claimed = gems_claimed(db, m.id)
+    from_achievements, _ = achievement_gems(db, m.id)
     today = today_for(cfg)
     daily_gems = DAILY_CLAIM.get(tier.key, 0)
     claimed_today = claimed_on(db, m.id, today)
@@ -373,15 +375,17 @@ def _profile(db: Session, m: Member) -> dict:
         RANK_GEMS[tier_for(nxt, False).key] if tier_for(nxt, False).min == nxt else 0)
     return {"member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame, "theme": m.theme or "bronze"},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
-            "gems": {"balance": gems_earned(p) + claimed - spent, "earned": gems_earned(p) + claimed, "spent": spent,
-                     "claimed": claimed,
+            "gems": {"balance": gems_earned(p) + claimed + from_achievements - spent,
+                     "earned": gems_earned(p) + claimed + from_achievements, "spent": spent, "claimed": claimed,
+                     "achievements": from_achievements,
                      "today": p.today_tasks_gems, "from_tasks": p.gems_tasks, "from_levels": p.gems_levels},
             "next_level_reward": {"level": roman(nxt), "gems": reward} if reward else None,
             "frames": catalogue("frame", tier, owned), "themes": catalogue("theme", tier, owned),
             "avatars": catalogue("avatar", tier, owned), "celebrate": celebrate,
             "daily": {"gems": daily_gems, "claimed_today": claimed_today,
                       "available": daily_gems > 0 and p.streak > 0 and not claimed_today},
-            "week_days": _week_days(db, cfg, m, today)}
+            "week_days": _week_days(db, cfg, m, today),
+            "achievements_ready": sum(1 for a in _achievements(db, m, p) if a["unlocked"] and not a["claimed"])}
 
 
 @router.get("/profile")
@@ -442,13 +446,56 @@ def buy(body: BuyIn, v: Viewer = Depends(current_viewer), db: Session = Depends(
         raise HTTPException(400, "You already have it")
     cfg = get_settings_row(db)
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
-    balance = gems_earned(p) + gems_claimed(db, m.id) - gems_spent(db, m.id)
+    balance = gems_earned(p) + gems_claimed(db, m.id) + achievement_gems(db, m.id)[0] - gems_spent(db, m.id)
     if balance < price:
         raise HTTPException(400, f"You need {price - balance} more gems. Finish tasks to earn more!")
     db.add(Purchase(member_id=m.id, item=shop_key(body.kind, body.key), price=price))
     setattr(m, body.kind, body.key)  # put it on straight away
     db.commit()
     return _profile(db, m)
+
+
+def _achievements(db: Session, m: Member, p: Progress) -> list[dict]:
+    _, got = achievement_gems(db, m.id)
+    purchases = len(owned_items(db, m.id))
+    facts = Facts(p=p, gems_earned=gems_earned(p) + gems_claimed(db, m.id), purchases=purchases, chests=chests_opened(db, m.id),
+                  quests=len(m.quest_starts or []))
+    return evaluate_achievements(facts, got)
+
+
+@router.get("/achievements")
+def achievements(member_id: str | None = None, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """Every achievement with progress; members see their own, parents can look at anyone's."""
+    mid = member_id if v.is_admin and member_id else v.id
+    if v.kind != "member" and not member_id:
+        raise HTTPException(400, "Choose a member")
+    m = _member_or_404(db, mid)
+    cfg = get_settings_row(db)
+    p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
+    items = _achievements(db, m, p)
+    return {"member": {"id": m.id, "name": m.name}, "items": items,
+            "unlocked": sum(1 for a in items if a["unlocked"]), "total": len(items)}
+
+
+@router.post("/achievements/{key}/claim")
+def claim_achievement(key: str, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """Collect an unlocked achievement's gems (once)."""
+    if v.kind != "member":
+        raise HTTPException(400, "Achievements are for members")
+    a = ACHIEVEMENT_BY_KEY.get(key)
+    if not a:
+        raise HTTPException(404, "No such achievement")
+    m = db.get(Member, v.id)
+    cfg = get_settings_row(db)
+    p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
+    item = next(x for x in _achievements(db, m, p) if x["key"] == key)
+    if item["claimed"]:
+        raise HTTPException(400, "Already collected")
+    if not item["unlocked"]:
+        raise HTTPException(400, f"Not yet: {item['progress']}/{item['goal']}")
+    db.add(AchievementClaim(member_id=m.id, key=key, gems=a.gems))
+    db.commit()
+    return achievements(None, v, db)
 
 
 @router.post("/claim")

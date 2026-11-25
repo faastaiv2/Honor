@@ -47,6 +47,14 @@ class Progress:
     streak: int = 0  # days in a row with every task done (weekends and excused days don't break it)
     today_tasks_gems: int = 0
     history: dict = field(default_factory=dict)  # date -> change that day
+    # For achievements
+    best_streak: int = 0
+    perfect_days: int = 0  # every task done
+    bonus_days: int = 0  # the bonus dhikr done (it only counts after every task)
+    weekend_days: int = 0  # every task done on a Friday or Saturday
+    fitness_days: int = 0  # every fitness task done (not excused)
+    ticks: dict = field(default_factory=dict)  # task -> days it was ticked
+    ranks_reached: set = field(default_factory=set)
 
 
 def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[date, int], quest_starts: list[date],
@@ -80,6 +88,15 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
         else:  # a little for each task, the real prize for finishing the whole day
             ticked = n_ticked * GEMS_PER_TASK + (GEMS_FOR_FULL_DAY if s.gain else 0)
         p.gems_tasks += ticked
+        for k in set(ticks or []):
+            p.ticks[k] = p.ticks.get(k, 0) + 1
+        if s.gain:
+            p.perfect_days += 1
+            p.bonus_days += s.bonus
+            p.weekend_days += 1 if s.weekend else 0
+        fit = [t.key for t in (plan or []) if t.fitness]
+        if fit and not s.excused and all(k in counted for k in fit):
+            p.fitness_days += 1
         if d == today:
             p.today_tasks_gems = ticked
         earned = s.delta
@@ -123,10 +140,12 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
                 p.streak = 0
         elif s.gain:
             p.streak += 1  # today already complete
+        p.best_streak = max(p.best_streak, p.streak)
         p.history[d] = p.level - before
         if week_from and d >= week_from:
             p.week_delta += p.level - before
     p.best_level = max(best, p.level)
+    p.ranks_reached = set(reached) | ({"legendary"} if p.legendary or p.legendary_since else set())
     late_adj = sum(v for d, v in adjustments.items() if d > today)  # clock differences: never lose a change
     if late_adj:
         p.level += late_adj

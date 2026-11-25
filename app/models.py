@@ -102,6 +102,17 @@ class DailyClaim(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class AchievementClaim(Base):
+    """An achievement whose gem reward a member has collected."""
+    __tablename__ = "achievement_claims"
+    __table_args__ = (UniqueConstraint("member_id", "key", name="uq_member_achievement"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    key: Mapped[str] = mapped_column(String(24))
+    gems: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class Purchase(Base):
     """Something a member bought with gems (a frame, a theme or a picture)."""
     __tablename__ = "purchases"

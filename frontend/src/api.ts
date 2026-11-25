@@ -42,6 +42,7 @@ export interface Profile extends Status {
   frames: ShopItem[]; themes: ShopItem[]; avatars: ShopItem[];
   celebrate: { tier: string; reward: number } | null; // a rank-up show not watched yet
   daily: { gems: number; claimed_today: boolean; available: boolean }; // the daily streak chest
+  achievements_ready: number;
   week_days: { date: string; state: "done" | "open" | "missed" | "rest" | "excused" | "future" | "pre"; today: boolean }[];
 }
 export interface Board { week: Week; rows: BoardRow[]; weekly: { member_id: string; week_delta: number }[] }
@@ -52,6 +53,8 @@ export interface History {
 export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean; avatar: string }
 export interface Adjustment { id: string; member_id: string; delta: number; note: string; created_at: string; created_by: string }
 export interface TaskDef { key: string; label: string; group: string; fitness: boolean; next_day: boolean; number_today: number | null; step: number; every: number; shown_today: string; shown_tomorrow: string }
+export interface Achievement { key: string; name: string; text: string; group: string; icon: string; tier: string; gems: number; goal: number; progress: number; unlocked: boolean; claimed: boolean }
+export interface Achievements { member: { id: string; name: string }; items: Achievement[]; unlocked: number; total: number }
 export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number> }
 export interface Period extends PeriodIn { id: string }
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
@@ -106,6 +109,8 @@ export const api = {
   leaderboard: () => request<Board>("/board/leaderboard"),
   setAvatar: (avatar: string) => request<{ avatar: string }>("/board/avatar", send("PUT", { avatar })),
   profile: () => request<Profile>("/board/profile"),
+  achievements: () => request<Achievements>("/board/achievements"),
+  claimAchievement: (key: string) => request<Achievements>(`/board/achievements/${encodeURIComponent(key)}/claim`, send("POST", {})),
   claimDaily: () => request<Profile>("/board/claim", send("POST", {})),
   celebrated: () => request<Profile>("/board/profile/celebrated", send("POST", {})),
   saveProfile: (body: { avatar?: string; frame?: string; theme?: string }) => request<Profile>("/board/profile", send("PUT", body)),

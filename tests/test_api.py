@@ -220,6 +220,8 @@ def test_legendary_quest_flow(client, family, db):
         q = client.post("/api/board/quest", headers=h, json={"member_id": m.id}).json()
         assert q["level"] == 1 and q["quest"]["active"] and q["tier"]["key"] == "bronze"
         assert client.post("/api/board/quest", headers=h, json={"member_id": m.id}).status_code == 400
+        quest = next(x for x in client.get("/api/board/achievements", headers=h).json()["items"] if x["key"] == "quest")
+        assert quest["unlocked"] and quest["gems"] == 100  # starting the quest is the achievement
 
 
 def test_avatar(client, family):
@@ -533,3 +535,26 @@ def test_member_excuses_one_task_with_a_reason(client, family, db):
         r = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id, "date": (TODAY - timedelta(days=1)).isoformat(),
                                                           "tasks": ["mulk"], "task_excuses": {"fajr": "late"}})
         assert r.status_code == 403
+
+
+def test_achievements_unlock_from_history_and_pay_once(client, family, db):
+    mulk_last_night(db, family["A"])
+    h, ha = auth(client, family["A"]), auth(client, admin=True)  # Alpha started at Gold
+    a, b = at_today()
+    with a, b:
+        data = client.get("/api/board/achievements", headers=h).json()
+        got = {x["key"]: x for x in data["items"]}
+        assert got["gold"]["unlocked"] and got["silver"]["unlocked"] and not got["spark"]["unlocked"]
+        assert data["total"] == len(data["items"]) >= 20
+        put_day(client, h, family["A"], TODAY, ALL)  # a perfect day
+        got = {x["key"]: x for x in client.get("/api/board/achievements", headers=h).json()["items"]}
+        assert got["spark"]["unlocked"] and got["days10"]["progress"] == 1
+        before = client.get("/api/board/profile", headers=h).json()
+        assert before["achievements_ready"] >= 3
+        client.post("/api/board/achievements/spark/claim", headers=h)
+        after = client.get("/api/board/profile", headers=h).json()
+        assert after["gems"]["balance"] == before["gems"]["balance"] + 15
+        assert client.post("/api/board/achievements/spark/claim", headers=h).status_code == 400
+        assert client.post("/api/board/achievements/days100/claim", headers=h).status_code == 400
+        # Parents can look at a member's achievements.
+        assert client.get(f"/api/board/achievements?member_id={family['A'].id}", headers=ha).json()["member"]["name"] == "Alpha"
