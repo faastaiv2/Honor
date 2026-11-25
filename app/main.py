@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import threading
 import time
@@ -21,9 +22,14 @@ settings = get_settings()
 
 # Settings problems (fixed only by changing Vercel's environment variables and redeploying).
 CONFIG_PROBLEMS: list[str] = []
-if settings.is_production and (settings.secret_key == DEFAULT_SECRET or len(settings.secret_key) < 32):
+_on_vercel = bool(os.environ.get("VERCEL"))
+if _on_vercel and not settings.is_production:
+    CONFIG_PROBLEMS.append("ENV is not set to production in this Vercel project's Environment Variables")
+if _on_vercel and settings.database_url.startswith("sqlite"):
+    CONFIG_PROBLEMS.append("DATABASE_URL is not set in this Vercel project (connect the Neon database under Storage)")
+if (settings.is_production or _on_vercel) and (settings.secret_key == DEFAULT_SECRET or len(settings.secret_key) < 32):
     CONFIG_PROBLEMS.append("SECRET_KEY is missing or shorter than 32 characters")
-if settings.is_production and settings.database_url.startswith("sqlite"):
+if settings.is_production and not _on_vercel and settings.database_url.startswith("sqlite"):
     CONFIG_PROBLEMS.append("DATABASE_URL is not set (connect the Neon database to this project)")
 
 # Database set-up is retried: a free Neon database sleeps when idle and can refuse the first
