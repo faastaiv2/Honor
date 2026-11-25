@@ -82,7 +82,7 @@ export class ApiError extends Error {
   }
 }
 
-export type SoundKey = "quest-music" | "quest-crack" | "rankup-music" | "chest" | "gems" | "collect" | "achievement" | "event-win";
+export type SoundKey = "quest-music" | "quest-thunder" | "quest-crack" | "rankup-music" | "chest" | "gems" | "collect" | "achievement" | "event-win";
 export interface MusicInfo { has: boolean; start: number; volume: number; size: number; updated: string | null }
 
 export const token = {

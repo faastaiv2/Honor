@@ -8,6 +8,7 @@ import { notifyChanged } from "../lib/events";
 import { Particles } from "../lib/particles";
 import { playQuestMusic, preloadQuestMusic, stopQuestMusic } from "../lib/questMusic";
 import { playCrack, preloadCrack } from "../lib/questMusic";
+import { playSound, preloadSound } from "../lib/sounds";
 
 /**
  * The film for the greatest choice in the app: giving up Obsidian to start the Legendary quest.
@@ -56,6 +57,7 @@ export default function QuestFilm({ name, onClose, preview = false }: { name: st
     const at = (ms: number, fn: () => void) => ts.push(window.setTimeout(fn, ms));
     const quake = (n: number) => { setShake(n); at(650, () => setShake(0)); };
     void preloadCrack();
+    void preloadSound("quest-thunder");
 
     // Prologue (0s): darkness, slow stars, two lines.
     e.burst("star", 160, ["#ffffff", "#e3d8ff"]);
@@ -66,6 +68,7 @@ export default function QuestFilm({ name, onClose, preview = false }: { name: st
     // Act 2 (9s): the choice. The storm gathers; lightning cracks the crest.
     at(9000, () => setAct(2));
     [9200, 9900, 10500, 11000, 11500, 11900, 12300, 12600].forEach((t) => at(t, () => e.lightning()));
+    [9200, 11500].forEach((t) => at(t, () => void playSound("quest-thunder"))); // the first strike and the biggest
     at(10200, () => quake(1));
     at(11800, () => quake(1));
     // Act 3 (13s): it shatters.

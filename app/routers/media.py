@@ -17,6 +17,7 @@ router = APIRouter(prefix="/media", tags=["media"])
 # Every sound slot on the Animations page (Admin). Music plays through a whole film; the others play once.
 KEYS = {
     "quest-music",   # Legendary quest film: music
+    "quest-thunder", # Legendary quest film: the lightning strikes
     "quest-crack",   # Legendary quest film: the crest shatters
     "rankup-music",  # rank-up film: music
     "chest",         # a treasure chest is tapped open

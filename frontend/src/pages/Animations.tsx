@@ -119,6 +119,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         "35 seconds: giving up Obsidian, the shatter, the road to L, then the To Be a Legend award.",
         () => setPreview({ kind: "quest" }),
         <>{slot("quest-music", "Music", "Plays through the whole film, fading in and out")}
+          {slot("quest-thunder", "Thunder", "Plays with the lightning: at 9 seconds and again at 11.5 seconds")}
           {slot("quest-crack", "Crest shatters", "Plays once, 13 seconds in, when Obsidian breaks")}</>)}
 
       {card(<RankIcon rank={rank} size={44} />, "Rank-up film",
