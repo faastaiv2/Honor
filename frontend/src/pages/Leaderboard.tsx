@@ -4,8 +4,6 @@ import Avatar from "../lib/Avatar";
 import { daysLeftLabel, groupByTier } from "../lib/board";
 import { useChangeCounter } from "../lib/events";
 
-type Tab = "top" | "week";
-
 function Row({ r, score }: { r: BoardRow; score: string }) {
   return (
     <li className={`lb-row${r.is_me ? " me" : ""}`}>
@@ -19,12 +17,10 @@ function Row({ r, score }: { r: BoardRow; score: string }) {
 
 export default function Leaderboard({ info }: { info: TodayInfo | null }) {
   const [board, setBoard] = useState<Board | null>(null);
-  const [tab, setTab] = useState<Tab>("top");
   const changes = useChangeCounter();
   useEffect(() => { api.leaderboard().then(setBoard).catch(() => undefined); }, [changes]);
 
   const sections = board && info ? groupByTier(board.rows, info.tiers) : [];
-  const byId = new Map(board?.rows.map((r) => [r.member.id, r]));
   const days = board?.week.days_left ?? 0;
 
   return (
@@ -37,7 +33,7 @@ export default function Leaderboard({ info }: { info: TodayInfo | null }) {
         </div>
       )}
 
-      {!board ? <p className="note">Loading…</p> : board.rows.length === 0 ? <p className="note">No members yet.</p> : tab === "top" ? (
+      {!board ? <p className="note">Loading…</p> : board.rows.length === 0 ? <p className="note">No members yet.</p> : (
         sections.map(({ tier: t, rows }) => (
           <div className="lb-sec" key={t.key} style={{ ["--tc" as string]: t.color }}>
             <div className="lb-bar">
@@ -47,25 +43,7 @@ export default function Leaderboard({ info }: { info: TodayInfo | null }) {
             <ol>{rows.map((r) => <Row key={r.member.id} r={r} score={r.label} />)}</ol>
           </div>
         ))
-      ) : (
-        <div className="lb-sec" style={{ ["--tc" as string]: "#0b4a3a" }}>
-          <div className="lb-bar">
-            <span>This Week</span>
-            <small>Honor<br />gained</small>
-          </div>
-          <ol>
-            {board.weekly.map((w) => {
-              const r = byId.get(w.member_id)!;
-              return <Row key={w.member_id} r={r} score={`${w.week_delta > 0 ? "+" : ""}${w.week_delta}`} />;
-            })}
-          </ol>
-        </div>
       )}
-
-      <div className="lb-tabs" role="tablist">
-        <button role="tab" aria-selected={tab === "top"} className={tab === "top" ? "on" : ""} onClick={() => setTab("top")}>Top Honor</button>
-        <button role="tab" aria-selected={tab === "week"} className={tab === "week" ? "on" : ""} onClick={() => setTab("week")}>This Week</button>
-      </div>
     </section>
   );
 }
