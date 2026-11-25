@@ -10,7 +10,9 @@ router = APIRouter()
 @router.get("/health")
 def health() -> dict:
     """Is the server set up? Never shows secret values."""
-    from app.main import STARTUP_PROBLEMS
+    from app.main import STARTUP_PROBLEMS, _state, ensure_ready
+
+    ensure_ready()  # retries a failed set-up (at most every few seconds)
 
     s = get_settings()
     out: dict = {"status": "ok", "env": s.env,
@@ -23,6 +25,7 @@ def health() -> dict:
         out["database"] = "ok"
     except Exception as e:  # report the kind of failure only, never the address
         out["database"] = f"cannot connect ({type(e).__name__})"
+    out["setup"] = "done" if _state["ready"] else "not done yet"
     if STARTUP_PROBLEMS:
         out["status"] = "needs setup"
         out["problems"] = STARTUP_PROBLEMS

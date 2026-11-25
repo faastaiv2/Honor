@@ -11,7 +11,8 @@ if settings.database_url.startswith("sqlite"):
     _connect_args: dict = {"check_same_thread": False}
 else:
     # Neon's pooled connections (PgBouncer) do not keep server-side prepared statements.
-    _connect_args = {"prepare_threshold": None}
+    # connect_timeout gives a sleeping Neon database time to wake up.
+    _connect_args = {"prepare_threshold": None, "connect_timeout": 15}
 engine = create_engine(settings.database_url, connect_args=_connect_args, pool_pre_ping=True, pool_size=2,
                        max_overflow=3, pool_recycle=300) if not settings.database_url.startswith("sqlite") else \
     create_engine(settings.database_url, connect_args=_connect_args, pool_pre_ping=True)

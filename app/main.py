@@ -1,9 +1,13 @@
 import logging
+import re
+import threading
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
@@ -15,13 +19,57 @@ from app.security import hash_secret
 
 settings = get_settings()
 
-# Problems found at start-up. They are shown (without secret values) at /api/health,
-# and the rest of the API refuses to work until they are fixed.
-STARTUP_PROBLEMS: list[str] = []
+# Settings problems (fixed only by changing Vercel's environment variables and redeploying).
+CONFIG_PROBLEMS: list[str] = []
 if settings.is_production and (settings.secret_key == DEFAULT_SECRET or len(settings.secret_key) < 32):
-    STARTUP_PROBLEMS.append("SECRET_KEY is missing or shorter than 32 characters")
+    CONFIG_PROBLEMS.append("SECRET_KEY is missing or shorter than 32 characters")
 if settings.is_production and settings.database_url.startswith("sqlite"):
-    STARTUP_PROBLEMS.append("DATABASE_URL is not set (connect the Neon database to this project)")
+    CONFIG_PROBLEMS.append("DATABASE_URL is not set (connect the Neon database to this project)")
+
+# Database set-up is retried: a free Neon database sleeps when idle and can refuse the first
+# connection while it wakes up, so one failure must not leave the server broken.
+STARTUP_PROBLEMS: list[str] = list(CONFIG_PROBLEMS)
+_ready = threading.Lock()
+_state = {"ready": False, "last_try": 0.0}
+RETRY_SECONDS = 5
+
+
+def _short(e: Exception) -> str:
+    msg = str(getattr(e, "orig", None) or e).strip().splitlines()[0] if str(e).strip() else ""
+    msg = re.sub(r'"[^"]*\.(neon\.tech|amazonaws\.com|vercel-storage\.com)[^"]*"', '"<database host>"', msg)
+    return f"{type(e).__name__}: {msg[:160]}" if msg else type(e).__name__
+
+
+def ensure_ready(force: bool = False) -> bool:
+    """Run migrations and create the first parent account once; retry after a failure."""
+    if _state["ready"]:
+        return True
+    if CONFIG_PROBLEMS:
+        return False
+    with _ready:
+        if _state["ready"]:
+            return True
+        if not force and time.monotonic() - _state["last_try"] < RETRY_SECONDS:
+            return False
+        _state["last_try"] = time.monotonic()
+        log = logging.getLogger("honor")
+        last: Exception | None = None
+        for attempt in range(3):
+            try:
+                if settings.run_migrations:
+                    run_migrations()
+                ensure_first_admin()
+                _state["ready"] = True
+                STARTUP_PROBLEMS.clear()
+                return True
+            except Exception as e:  # noqa: BLE001 — reported at /api/health and in the logs
+                last = e
+                log.warning("Database set-up attempt %s failed: %s", attempt + 1, _short(e))
+                time.sleep(1.5 * (attempt + 1))
+        log.error("Database set-up failed", exc_info=last)
+        STARTUP_PROBLEMS[:] = [f"Database setup failed ({_short(last)}). It is retried automatically; "
+                               "if this stays, check the Logs tab"]
+        return False
 
 
 def ensure_first_admin() -> None:
@@ -50,19 +98,7 @@ def run_migrations() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    log = logging.getLogger("honor")
-    if settings.run_migrations and not STARTUP_PROBLEMS:
-        try:
-            run_migrations()
-        except Exception as e:  # keep serving; the error shows in the logs and /api/health
-            log.exception("Database migration failed")
-            STARTUP_PROBLEMS.append(f"Database setup failed ({type(e).__name__}); see the Logs tab")
-    if not STARTUP_PROBLEMS:
-        try:
-            ensure_first_admin()
-        except Exception as e:
-            log.exception("Creating the first parent account failed")
-            STARTUP_PROBLEMS.append(f"Creating the first parent account failed ({type(e).__name__})")
+    ensure_ready(force=True)
     yield
 
 
@@ -84,9 +120,13 @@ app.add_middleware(
 )
 
 @app.middleware("http")
-async def refuse_when_misconfigured(request, call_next):
-    if STARTUP_PROBLEMS and request.url.path.startswith("/api/") and request.url.path != "/api/health":
-        return JSONResponse({"detail": "The server is not set up yet: " + "; ".join(STARTUP_PROBLEMS)}, status_code=503)
+async def refuse_when_not_ready(request, call_next):
+    path = request.url.path
+    if path.startswith("/api/") and path != "/api/health" and not _state["ready"]:
+        ok = await run_in_threadpool(ensure_ready)
+        if not ok:
+            return JSONResponse({"detail": "The server is not set up yet: " + "; ".join(STARTUP_PROBLEMS)},
+                                status_code=503)
     return await call_next(request)
 
 

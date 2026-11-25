@@ -240,8 +240,35 @@ def test_migrations_run_on_a_fresh_database(tmp_path, monkeypatch):
 
 def test_misconfigured_production_explains_itself(client, monkeypatch):
     from app import main
+    monkeypatch.setattr(main, "CONFIG_PROBLEMS", ["SECRET_KEY is missing or shorter than 32 characters"])
     monkeypatch.setattr(main, "STARTUP_PROBLEMS", ["SECRET_KEY is missing or shorter than 32 characters"])
+    monkeypatch.setitem(main._state, "ready", False)
     h = client.get("/api/health").json()
-    assert h["status"] == "needs setup" and "SECRET_KEY" in h["problems"][0]
+    assert h["status"] == "needs setup" and "SECRET_KEY" in h["problems"][0] and h["setup"] == "not done yet"
     r = client.get("/api/auth/members")
     assert r.status_code == 503 and "not set up" in r.json()["detail"]
+
+
+def test_sleeping_database_is_retried(client, monkeypatch):
+    """A free Neon database can refuse the first connections while it wakes up."""
+    from sqlalchemy.exc import OperationalError
+
+    from app import main
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] <= 3:
+            raise OperationalError("SELECT 1", {}, Exception('connection to server at "ep-x.neon.tech" failed: timeout'))
+
+    monkeypatch.setattr(main, "run_migrations", flaky)
+    monkeypatch.setattr(main.settings, "run_migrations", True)
+    monkeypatch.setattr(main.time, "sleep", lambda s: None)
+    monkeypatch.setitem(main._state, "ready", False)
+    monkeypatch.setitem(main._state, "last_try", 0.0)
+    assert main.ensure_ready(force=True) is False  # three quick attempts all fail
+    assert "neon.tech" not in main.STARTUP_PROBLEMS[0] and "OperationalError" in main.STARTUP_PROBLEMS[0]
+    assert client.get("/api/auth/members").status_code == 503  # retried too soon: still waiting
+    monkeypatch.setitem(main._state, "last_try", 0.0)
+    assert client.get("/api/auth/members").status_code == 200  # next try succeeds
+    assert main.STARTUP_PROBLEMS == [] and main._state["ready"]
