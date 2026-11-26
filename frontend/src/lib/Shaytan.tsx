@@ -84,6 +84,7 @@ export default function ShaytanScene({ name, offer, ladder, onAnswer, onDone, pr
   const steps = ladder && ladder.length ? ladder : [offer, 100, 500];
   const [stage, setStage] = useState<Stage>("clouds");
   const [round, setRound] = useState(0);
+  const [won, setWon] = useState(false); // the third "no": the happy ending
   useEffect(() => {
     void playSound("shaytan-arrive");
     const t = [window.setTimeout(() => setStage("rise"), 1500), window.setTimeout(() => setStage("offer"), 2900)];
@@ -104,20 +105,39 @@ export default function ShaytanScene({ name, offer, ladder, onAnswer, onDone, pr
       return;
     }
     setStage(accept ? "grow" : "flee");
+    setWon(!accept);
     if (!preview) await onAnswer?.(accept, round);
-    window.setTimeout(() => setStage("leave"), accept ? 3600 : 2600);
-    window.setTimeout(onDone, accept ? 5000 : 3800);
+    window.setTimeout(() => setStage("leave"), accept ? 3600 : 5200);
+    window.setTimeout(onDone, accept ? 5000 : 6200);
   }
   const amount = steps[Math.min(round, steps.length - 1)];
-  const fire = stage === "grow" || (stage === "leave" && true);
+  const fire = stage === "grow" || (stage === "leave" && !won);
   return createPortal(
-    <div className={`sh sh-${stage}`} role="dialog" aria-modal="true" aria-label="Shaytan appears">
+    <div className={`sh sh-${stage}${won ? " sh-won" : ""}`} role="dialog" aria-modal="true" aria-label="Shaytan appears">
       <div className="sh-flash" aria-hidden="true" />
-      <Clouds closing={stage === "leave"} />
+      {won && <div className="sh-dawn" aria-hidden="true">
+        <div className="sh-sun" />
+        {Array.from({ length: 14 }, (_, i) => <i key={i} className="sh-spark" style={{ ["--i" as string]: i, left: `${6 + i * 6.5}%`, top: `${10 + ((i * 37) % 55)}%` }} />)}
+      </div>}
+      <Clouds closing={stage === "leave" && !won} />
       <div className="sh-stage">
         {fire && <div className="sh-fire" aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
         <div className="sh-body" style={{ ["--sack" as string]: 1 + round * 0.35 }}><Devil /></div>
-        {stage === "flee" && <div className="sh-poof" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
+        {won && <div className="sh-vortex" aria-hidden="true" />}
+        {won && <div className="sh-poof" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
+        {won && (
+          <div className="sh-shield" aria-hidden="true">
+            <svg viewBox="0 0 120 130">
+              <defs>
+                <radialGradient id="sh-sg" cx="50%" cy="35%"><stop offset="0" stopColor="#fffbe0" /><stop offset=".55" stopColor="#ffd34a" /><stop offset="1" stopColor="#c88a00" /></radialGradient>
+              </defs>
+              <g className="sh-rays">{Array.from({ length: 16 }, (_, i) => <path key={i} d="M60 64 L57 -30 H63 Z" fill="#fff6c0" opacity=".55" transform={`rotate(${i * 22.5} 60 64)`} />)}</g>
+              <path d="M60 6 L108 24 V62 C108 94 86 116 60 126 C34 116 12 94 12 62 V24Z" fill="url(#sh-sg)" stroke="#fff" strokeWidth="3" />
+              <path d="M60 18 L96 32 V62 C96 86 80 104 60 112 C40 104 24 86 24 62 V32Z" fill="none" stroke="#fff6c0" strokeWidth="2" opacity=".8" />
+              <path d="M44 66 l12 12 22 -26" stroke="#fff" strokeWidth="9" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        )}
       </div>
       <div className="sh-talk">
         {stage === "offer" && <>
@@ -129,7 +149,11 @@ export default function ShaytanScene({ name, offer, ladder, onAnswer, onDone, pr
         </>}
         {stage === "sink" && <p className="sh-bubble grumble">Grrr… we'll see about that!</p>}
         {stage === "grow" && <p className="sh-bubble evil">HA HA HA! There are no gems, {name}. My promises are empty!</p>}
-        {stage === "flee" && <p className="sh-bubble good">Aʿūdhu billāhi min ash-shayṭān ir-rajīm. He's gone! Well done, {name} 🌟</p>}
+        {won && <div className="sh-win">
+          <p className="sh-ar" lang="ar" dir="rtl">أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ</p>
+          <p className="sh-win-title">You turned him down 3 times, {name}! 🌟</p>
+          <p className="sh-win-sub">Shaytan is gone. Your Honor stays strong.</p>
+        </div>}
       </div>
     </div>,
     document.body,

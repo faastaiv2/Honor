@@ -2490,3 +2490,46 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .sh-amount { font-size: 1.15em; }
 .sh-bubble.r2 .sh-amount { font-size: 1.5em; animation: sh-amount 1s ease-in-out infinite; display: inline-flex; }
 @keyframes sh-amount { 50% { transform: scale(1.12); } }
+
+/* Shaytan, the happy ending (three times "no") */
+.sh-won { transition: background-color 1s; }
+.sh-dawn { position: absolute; inset: 0; pointer-events: none; opacity: 0; animation: sh-dawn 1.6s .9s ease-out forwards;
+  background: radial-gradient(ellipse at 50% 30%, #fff8d8 0%, #ffe6a0 25%, #9ad4ff 60%, #5aa8e8 100%); }
+@keyframes sh-dawn { to { opacity: 1; } }
+.sh-sun { position: absolute; left: 50%; top: 22%; width: 160px; height: 160px; translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(circle, #fffef0 0 30%, #ffe48a 55%, #ffe48a00 72%); animation: sh-sun 3s ease-in-out infinite alternate; }
+@keyframes sh-sun { to { scale: 1.12; } }
+.sh-spark { position: absolute; width: 10px; height: 10px; rotate: 45deg;
+  background: #fff; box-shadow: 0 0 10px #fff, 0 0 18px #ffe48a; opacity: 0; animation: sh-spark 1.4s calc(1.4s + var(--i) * .12s) ease-in-out infinite; }
+@keyframes sh-spark { 0%, 100% { opacity: 0; scale: .3; } 50% { opacity: 1; scale: 1; } }
+.sh-won .sh-cloud { animation: sh-cloud-part 1.4s .6s cubic-bezier(.4,0,.2,1) forwards !important; }
+.sh-won .sh-cloud:nth-child(odd) { --out: 70vw; } .sh-won .sh-cloud:nth-child(even) { --out: -70vw; }
+@keyframes sh-cloud-part { to { transform: translateX(var(--out)) scale(1.2); opacity: 0; } }
+/* the shield of light rises in front, Shaytan recoils and is pulled down into a swirl */
+.sh-shield { position: absolute; left: 50%; bottom: -22%; width: min(120px, 30vw); translate: -50% 0; z-index: 3; animation: sh-shield 1s cubic-bezier(.2,1.5,.4,1) both; }
+.sh-shield svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 0 24px #ffe48a) drop-shadow(0 0 50px #fff6c0); }
+.sh-rays { transform-box: view-box; transform-origin: 60px 64px; animation: fx-spin 8s linear infinite; }
+@keyframes sh-shield { 0% { transform: translateY(60%) scale(.2); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.sh-won .sh-body { opacity: 1; transform: none; animation: sh-recoil 2.2s .35s cubic-bezier(.5,0,.6,1) forwards !important; transition: none; }
+@keyframes sh-recoil {
+  0% { transform: none; }
+  12% { transform: translateX(-12px) rotate(-6deg); } 20% { transform: translateX(12px) rotate(6deg); } 28% { transform: translateX(-10px) rotate(-4deg); }
+  40% { transform: translateY(-6%) scale(1.05, .95); filter: brightness(1.4); }
+  100% { transform: translateY(80%) rotate(200deg) scale(.05); opacity: 0; filter: brightness(2) blur(2px); } }
+.sh-won .sh-devil { filter: drop-shadow(0 0 20px #fff6c0); }
+.sh-vortex { position: absolute; left: 50%; bottom: 4%; width: 240px; height: 70px; translate: -50% 0; border-radius: 50%; z-index: 0; opacity: 0;
+  background: conic-gradient(from 0deg, #2a0a20, #7a2a5a, #2a0a20, #5a1a40, #2a0a20); filter: blur(3px);
+  animation: sh-vortex-in .6s .5s ease-out forwards, sh-vortex-spin .8s linear infinite, sh-vortex-out .6s 2.6s ease-in forwards; }
+@keyframes sh-vortex-in { to { opacity: .9; } }
+@keyframes sh-vortex-spin { to { rotate: 360deg; } }
+@keyframes sh-vortex-out { to { opacity: 0; scale: 0; } }
+.sh-won .sh-poof i { animation-delay: calc(2.1s + var(--i) * .04s); background: #fff6e0; }
+.sh-win { display: grid; justify-items: center; gap: 4px; padding: 14px 18px; border-radius: 22px; text-align: center; background: #ffffffee;
+  box-shadow: 0 10px 34px #0003, inset 0 0 0 2px #ffd34a; animation: ach-pop .6s 1.6s cubic-bezier(.2,1.4,.4,1) both; }
+.sh-ar { margin: 0; font: 26px/1.6 "Amiri", "Scheherazade New", "Noto Naskh Arabic", serif; color: #8a5a00; }
+.sh-win-title { margin: 0; font: 22px/1.25 Marcellus, Georgia, serif; color: #1a4a1a; }
+.sh-win-sub { margin: 0; font-weight: 700; color: #3a6a3a; }
+.sh-leave.sh-won .sh-stage, .sh-leave.sh-won .sh-talk { animation: none; }
+.sh-leave.sh-won { animation: sh-fade-out 1s ease-in forwards; }
+@keyframes sh-fade-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sh-won *, .sh-won { animation-duration: .01s !important; animation-delay: 0s !important; } }
