@@ -194,10 +194,10 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("tiger", "Tiger", 100, "common"), ("wolf", "Wolf", 100, "common"), ("fox", "Fox", 100, "common"),
     ("turtle", "Turtle", 100, "common"), ("dolphin", "Dolphin", 100, "common"),
     ("squire", "Squire", 0, "common"), ("flowergirl", "Flower Girl", 100, "common"), ("archer", "Archer", 100, "common"),
-    ("bunny", "Bunny", 0, "common"), ("hamster", "Hamster", 100, "common"), ("frog", "Frog", 120, "common"),
+    ("bunny", "Bunny", 0, "common"), ("hamster", "Hamster", 0, "common"), ("frog", "Frog", 0, "common"),
     ("duckling", "Duckling", 0, "common"), ("puppy", "Puppy", 0, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
-    ("koala", "Koala", 240, "common"), ("elephant", "Elephant", 100, "common"), ("monkey", "Monkey", 100, "common"),
-    ("hedgehog", "Hedgehog", 100, "common"), ("lamb", "Lamb", 100, "common"), ("raccoon", "Raccoon", 120, "common"),
+    ("koala", "Koala", 240, "common"), ("elephant", "Elephant", 0, "common"), ("monkey", "Monkey", 0, "common"),
+    ("hedgehog", "Hedgehog", 100, "common"), ("lamb", "Lamb", 0, "common"), ("raccoon", "Raccoon", 120, "common"),
     ("doctor", "Little Doctor", 150, "common"), ("builder", "Builder", 150, "common"),
     # Rare
     ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("shieldmaiden", "Shieldmaiden", 250, "rare"),
@@ -212,7 +212,7 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("warriorprincess", "Warrior Princess", 500, "epic"), ("crystalfox", "Crystal Fox", 600, "epic"),
     ("thundertiger", "Thunder Tiger", 650, "epic"), ("pharaohcat", "Pharaoh Cat", 750, "epic"),
     ("phoenix", "Phoenix", 600, "epic"), ("dragon", "Dragon", 700, "epic"), ("kinglion", "Lion King", 800, "epic"),
-    ("cosmiccat", "Cosmic cat", 900, "epic"),
+    ("cosmiccat", "Cosmic cat", 900, "epic"), ("unicornepic", "Epic Unicorn", 750, "epic"),
     # Legendary
     ("dragonknight", "Dragon Knight", 1000, "legendary"), ("crystalqueen", "Crystal Queen", 1000, "legendary"),
     ("astrolegend", "Legendary Astronaut", 1500, "legendary"),

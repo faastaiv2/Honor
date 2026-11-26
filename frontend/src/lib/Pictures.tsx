@@ -831,6 +831,42 @@ const PICS: Record<string, Pic> = {
     <circle cx="45" cy="67" r="1.4" fill="#c070a0" /><circle cx="55" cy="67" r="1.4" fill="#c070a0" />
     <Cheeks y={60} dx={17} color="#ff8ad0" />
   </> },
+  unicornepic: { bg: ["#fff0fb", "#9a6aff"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}h`} x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#ffb020" /><stop offset=".5" stopColor="#ffe46a" /><stop offset="1" stopColor="#fffbe0" /></linearGradient>
+      <linearGradient id={`${id}m`} x1="0" y1="0" x2="0" y2="1">
+        {["#ff5a8a", "#ffa24a", "#ffe04a", "#5ad08a", "#4ab0ff", "#a07aff"].map((c, i) => <stop key={c} offset={i / 5} stopColor={c} />)}
+      </linearGradient>
+      <radialGradient id={`${id}g`}><stop offset="0" stopColor="#fffbe0" stopOpacity=".95" /><stop offset="1" stopColor="#fffbe0" stopOpacity="0" /></radialGradient>
+    </defs>
+    {/* soft rainbow arc and sparkles behind */}
+    <path d="M6 70 A44 44 0 0 1 94 70" fill="none" stroke={`url(#${id}m)`} strokeWidth="6" opacity=".35" />
+    {[[14, 22, 3], [86, 18, 2.6], [10, 52, 2], [90, 46, 2.4], [78, 6, 1.8]].map(([x, y, r], i) => <path key={i} className="fx-twinkle" style={{ animationDelay: `${i * .4}s` }}
+      d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#fff" />)}
+    {/* feathered collar of light */}
+    <path d="M18 100 Q22 80 36 76 Q50 86 64 76 Q78 80 82 100Z" fill="#fff" />
+    <path d="M30 100 Q34 86 50 88 Q66 86 70 100Z" fill="#f4e8ff" />
+    <path d="M38 80 Q50 90 62 80" stroke="#ffd24a" strokeWidth="2.4" fill="none" />
+    <circle cx="50" cy="88" r="3" fill="#ff7ab8" stroke="#fff" strokeWidth="1" />
+    {/* flowing rainbow mane */}
+    <path className="pa-sway" style={{ transformOrigin: "40px 30px" }} d="M40 22 Q14 30 16 56 Q14 74 26 86 Q22 70 30 62 Q24 78 36 84 Q30 66 38 50 Q34 36 44 30Z" fill={`url(#${id}m)`} />
+    <path d="M30 26 L34 10 L42 24Z M70 26 L66 10 L58 24Z" fill="#fff" stroke="#efe0ff" strokeWidth="1" />
+    <path d="M33 22 L35 15 L39 22Z M67 22 L65 15 L61 22Z" fill="#ffc4e6" />
+    <ellipse cx="50" cy="52" rx="24" ry="27" fill="#fff" stroke="#efe0ff" strokeWidth="1.5" />
+    <path d="M38 22 Q50 14 64 22 Q60 32 50 34 Q42 30 38 22Z" fill={`url(#${id}m)`} opacity=".95" />
+    {/* glowing golden horn */}
+    <circle className="pa-pulse" cx="50" cy="12" r="12" fill={`url(#${id}g)`} />
+    <path d="M44.5 27 L50 -1 L55.5 27Z" fill={`url(#${id}h)`} stroke="#d08a00" strokeWidth="1" />
+    <path d="M46 21 l8 -3 M45.4 25 l9 -3 M47 16 l6 -2.4 M48 10 l4 -1.6" stroke="#d08a00" strokeWidth="1.1" />
+    {/* big starry eyes */}
+    <g>{[39, 61].map((x) => <g key={x}><ellipse cx={x} cy="50" rx="5.2" ry="6" fill="#4a2a8a" /><circle cx={x + 1.8} cy="47.6" r="2" fill="#fff" />
+      <path d={`M${x - 1.4} 53 l1 -1.4 1 1.4 1.4 .2 -1 1 .3 1.4 -1.3 -.7 -1.3 .7 .3 -1.4 -1 -1z`} fill="#ffd8ff" /></g>)}</g>
+    <path d="M33 44 q3 -4 8 -3 M67 44 q-3 -4 -8 -3" stroke="#4a2a8a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <ellipse cx="50" cy="68" rx="12" ry="8" fill="#ffe8f6" />
+    <circle cx="45" cy="67" r="1.4" fill="#c070a0" /><circle cx="55" cy="67" r="1.4" fill="#c070a0" />
+    <path d="M45 72 q5 4 10 0" stroke="#c070a0" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    <Cheeks y={60} dx={18} color="#ff8ad0" />
+  </> },
   dino: { bg: ["#e0f8d8", "#6ad06a"], draw: () => <>
     <Body fill="#3fae5a" />
     {[22, 34, 46].map((y, i) => <path key={y} d={`M${70 + i * 3} ${y} l10 4 -8 6z`} fill="#ffb020" />)}
