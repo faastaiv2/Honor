@@ -7,20 +7,20 @@ import { notifyChanged, useToast } from "../lib/events";
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
 const days = (n: number) => (n === 1 ? "day" : `${n} days`);
 
-interface Draft { notBefore: string; numLast?: boolean; label: string; group: string; hasNum: boolean; num: string; step: string; every: string; fitness: boolean; nextDay: boolean }
+interface Draft { links: string[]; notBefore: string; numLast?: boolean; label: string; group: string; hasNum: boolean; num: string; step: string; every: string; fitness: boolean; nextDay: boolean }
 
 const fromTask = (t: TaskDef): Draft => ({
   // The name box holds only the words; the number is set separately and goes before them
   // (or after, if the task was written that way, like "Read pages {n}").
   label: t.label.replace("{n}", "").replace(/\s+/g, " ").trim(), numLast: t.label.trim().endsWith("{n}") && !t.label.trim().startsWith("{n}"),
-  group: t.group, hasNum: t.number_today !== null, notBefore: t.not_before ?? "",
+  group: t.group, hasNum: t.number_today !== null, notBefore: t.not_before ?? "", links: t.links?.length === 7 ? [...t.links] : Array(7).fill(""),
   num: String(t.number_today ?? 10), step: String(t.step || 1), every: String(t.every), fitness: t.fitness, nextDay: t.next_day,
 });
 /** "#" in the name marks where the number goes ("# push-ups"); without one the number goes first. */
 const words = (d: Draft) => d.label.replace(/\{n\}|#/g, "").replace(/\s+/g, " ").trim();
 const labelOut = (d: Draft) => (d.hasNum ? (d.numLast ? `${words(d)} {n}` : `{n} ${words(d)}`) : words(d));
 const shownAs = (d: Draft) => (d.hasNum ? (d.numLast ? `${words(d)} ${Number(d.num) || 0}` : `${Number(d.num) || 0} ${words(d)}`) : words(d));
-const EMPTY: Draft = { notBefore: "", label: "", group: "Ibadah", hasNum: false, num: "10", step: "1", every: "1", fitness: false, nextDay: false };
+const EMPTY: Draft = { links: Array(7).fill(""), notBefore: "", label: "", group: "Ibadah", hasNum: false, num: "10", step: "1", every: "1", fitness: false, nextDay: false };
 
 /** A yes/no choice shown as a tappable card. */
 function Toggle({ on, set, icon, title, text }: { on: boolean; set: (v: boolean) => void; icon: string; title: string; text: string }) {
@@ -77,6 +77,19 @@ function Editor({ d, set, groups, onSubmit, submit, children }: { d: Draft; set:
           {d.notBefore && <button type="button" className="link" onClick={() => set({ ...d, notBefore: "" })}>Clear</button>}
         </span>
       </div>
+      <details className={`tk-toggle tk-links${d.links.some(Boolean) ? " on" : ""}`} open={d.links.some(Boolean)}>
+        <summary><span className="tk-toggle-ico">▶</span><span><b>Video to watch</b><small>A link for each day of the week (like a recitation to read along with). Members see a ▶ Watch button.</small></span></summary>
+        <div className="tk-links-grid">
+          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
+            <label key={day}><span>{day}</span><input type="url" inputMode="url" placeholder="https://…" value={d.links[i]}
+              onChange={(e) => { const links = [...d.links]; links[i] = e.target.value; set({ ...d, links }); }} /></label>
+          ))}
+        </div>
+        <div className="tk-links-acts">
+          <button type="button" className="link" disabled={!d.links[0]} onClick={() => set({ ...d, links: Array(7).fill(d.links[0]) })}>Use Monday's link every day</button>
+          {d.links.some(Boolean) && <button type="button" className="link" onClick={() => set({ ...d, links: Array(7).fill("") })}>Clear all</button>}
+        </div>
+      </details>
       <div className="tk-actions">
         <button className="primary">{submit}</button>
         {children}
@@ -94,8 +107,8 @@ function TaskRow({ t, first, last, groups, onSaved, onError }: { t: TaskDef; fir
     e.preventDefault();
     try {
       await api.editTask(t.key, d.hasNum
-        ? { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, not_before: d.notBefore, number_today: Number(d.num), step: Number(d.step), every: Number(d.every) }
-        : { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, not_before: d.notBefore, clear_number: t.number_today !== null });
+        ? { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, not_before: d.notBefore, links: d.links, number_today: Number(d.num), step: Number(d.step), every: Number(d.every) }
+        : { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, not_before: d.notBefore, links: d.links, clear_number: t.number_today !== null });
       setOpen(false);
       onSaved("Task saved");
     } catch (err) { onError(msg(err)); }
@@ -117,6 +130,7 @@ function TaskRow({ t, first, last, groups, onSaved, onError }: { t: TaskDef; fir
             {t.fitness && <span className="tk-tag sick">🤒 Sick-day excused</span>}
             {t.next_day && <span className="tk-tag night">🌙 Counts next day</span>}
             {t.not_before && <span className="tk-tag">🕛 Not before {t.not_before}</span>}
+            {t.links?.some(Boolean) && <span className="tk-tag">▶ Video {t.links.filter(Boolean).length === 7 ? "every day" : `${t.links.filter(Boolean).length} days`}</span>}
           </span>
         </button>
         <button className="tk-edit" onClick={() => { setOpen((x) => !x); setSure(false); setD(fromTask(t)); }}>{open ? "Close" : "Edit"}</button>
@@ -277,7 +291,7 @@ export default function Tasks() {
   async function add(e: FormEvent) {
     e.preventDefault();
     try {
-      await api.addTask({ label: labelOut(nt), group: nt.group, fitness: nt.fitness, next_day: nt.nextDay, not_before: nt.notBefore || null,
+      await api.addTask({ label: labelOut(nt), group: nt.group, fitness: nt.fitness, next_day: nt.nextDay, not_before: nt.notBefore || null, links: nt.links,
         number_today: nt.hasNum ? Number(nt.num) : null, step: nt.hasNum ? Number(nt.step) : 0, every: Number(nt.every) || 1 });
       setNt({ ...EMPTY, group: nt.group });
       setAdding(false);

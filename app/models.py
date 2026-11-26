@@ -182,6 +182,7 @@ class TaskDef(Base):
     start_day: Mapped[date] = mapped_column(Date)
     next_day: Mapped[bool] = mapped_column(Boolean, default=False)  # done at night, counts for the next day
     not_before: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "12:00": can't be ticked earlier
+    links: Mapped[list] = mapped_column(JSON, default=list)  # 7 video links, Monday … Sunday ("" = none)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
 

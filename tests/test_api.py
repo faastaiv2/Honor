@@ -859,3 +859,22 @@ def test_members_take_five_gems_from_the_pillar_of_shame_once_a_day(client, fami
     assert me["gems"]["balance"] == 2 and [t["name"] for t in me["taken_today"]] == ["Alpha", "Bravo"]
     assert client.post(f"/api/board/take/{family['A'].id}", headers=hb).status_code == 400  # not on the Pillar
     assert client.post(f"/api/board/take/{low['id']}", headers=hl).status_code == 400  # not yourself
+
+
+def test_dalilul_khairat_has_the_days_video_link(client, family):
+    from app.scoring import DALAIL_LINKS
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    a, b = at_today()
+    with a, b:
+        view = client.get(f"/api/board/day?member_id={family['A'].id}", headers=h).json()
+        dal = next(t for g in view["groups"] for t in g["tasks"] if t["key"] == "dalail")
+        assert dal["link"] == DALAIL_LINKS[TODAY.weekday()]
+        tasks = client.get("/api/admin/tasks", headers=ha).json()
+        assert next(t for t in tasks if t["key"] == "dalail")["links"][6].endswith("t=492s")
+        links = [""] * 7
+        links[TODAY.weekday()] = "https://example.com/v"
+        assert client.patch("/api/admin/tasks/dalail", headers=ha, json={"links": links}).status_code == 200
+        dal = next(t for g in client.get(f"/api/board/day?member_id={family['A'].id}", headers=h).json()["groups"]
+                   for t in g["tasks"] if t["key"] == "dalail")
+        assert dal["link"] == "https://example.com/v"
+        assert client.patch("/api/admin/tasks/dalail", headers=ha, json={"links": ["javascript:x"]}).status_code == 422

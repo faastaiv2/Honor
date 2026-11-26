@@ -84,6 +84,14 @@ REQUIRED = [t.key for t in TASKS]
 ALL_KEYS = {"gate", "bonus", *REQUIRED}
 
 
+DALAIL_LINKS = (  # Monday … Sunday: a video to read along with
+    "https://www.youtube.com/watch?v=O9lFtZyP-Nw", "https://www.youtube.com/watch?v=qxVks92t9aU",
+    "https://www.youtube.com/watch?v=8-ODssYYG54", "https://www.youtube.com/watch?v=2zj6Hc2QEKo",
+    "https://www.youtube.com/watch?v=2Yws50vvchQ", "https://www.youtube.com/watch?v=Bya8BPdFbNM",
+    "https://www.youtube.com/watch?v=BSlyyqH-4dA&t=492s",
+)
+
+
 @dataclass(frozen=True)
 class TaskSpec:
     """A task as the admin set it up. The number (if any) grows by `step` every `every` days from `start_day`."""
@@ -97,6 +105,10 @@ class TaskSpec:
     start_day: date = PROGRAM_START
     next_day: bool = False  # done at night and counted for the next day (Surah Mulk)
     not_before: str | None = None  # "12:00": members can't tick it earlier in the day
+    links: tuple = ()  # up to 7 video links, Monday … Sunday ("" = none that day)
+
+    def link_on(self, d: date) -> str | None:
+        return (self.links[d.weekday()] or None) if len(self.links) == 7 else None
 
     def number_on(self, d: date) -> int | None:
         if self.number is None:
@@ -112,7 +124,7 @@ class TaskSpec:
 DEFAULT_SPECS: list[TaskSpec] = [
     TaskSpec("fajr", "Fajr", "Ibadah"),
     TaskSpec("yaseen", "Yaseen Sharif", "Ibadah"),
-    TaskSpec("dalail", "Dalilul Khairat", "Ibadah"),
+    TaskSpec("dalail", "Dalilul Khairat", "Ibadah", links=DALAIL_LINKS),
     TaskSpec("darood", "{n} × Darood Sharif", "Ibadah", number=251, step=1, every=1, start_day=date(2026, 11, 12)),
     TaskSpec("zikr", "5 minutes Zikr together", "Ibadah"),
     TaskSpec("asr", "Asr ki 4 Sunnat", "Ibadah", not_before="12:00"),

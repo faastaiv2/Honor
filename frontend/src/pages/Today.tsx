@@ -218,6 +218,7 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
       <input type="checkbox" checked={t.done} disabled={!canTick(t, isBonus)} onChange={(e) => toggle(t.key, e.target.checked)} />
       <span>{label}</span>{t.late && <i className="late">made up</i>}
       {t.not_before && <i className="from" title={`Can be ticked from ${t.not_before}`}>🕛 from {t.not_before}</i>}
+      {t.link && <a className="watch" href={t.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>▶ Watch</a>}
       {t.next_day && <i className={`night${t.counted_today ? " ok" : ""}`} title="Read at night: it counts for the next day">
         🌙 for tomorrow · {t.counted_today ? "last night's counted ✓" : "not read last night"}</i>}
       {extra}

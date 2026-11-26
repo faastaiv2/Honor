@@ -145,6 +145,8 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
                 "excused": skip.get(t.key)}
         if t.not_before:
             item["not_before"] = _ampm(t.not_before)
+        if t.link_on(d):
+            item["link"] = t.link_on(d)
         if t.next_day:  # ticked tonight for tomorrow; today got last night's
             item |= {"next_day": True, "counted_today": t.key in counted}
         groups.setdefault(t.group, []).append(item)

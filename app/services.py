@@ -67,7 +67,7 @@ def load_tasks(db: Session) -> list[scoring.TaskSpec]:
     if not rows:
         return list(scoring.DEFAULT_SPECS)
     return [scoring.TaskSpec(r.key, r.label, r.group, r.fitness, r.number, r.step, r.every, r.start_day, r.next_day,
-                             r.not_before) for r in rows]
+                             r.not_before, tuple(r.links) if r.links and len(r.links) == 7 else ()) for r in rows]
 
 
 def load_periods(db: Session) -> list:
