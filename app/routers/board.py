@@ -506,7 +506,8 @@ def _profile(db: Session, m: Member) -> dict:
             "event_win": unseen_win(db, m.id),
             "godfather": {"is": bool(m.godfather), "seen": bool(m.godfather_seen)},
             "oath": m.oath_at is not None, "oath_note": m.oath_note or "", "toured": bool(m.toured),
-            "achievements_ready": sum(1 for a in achs if a["unlocked"] and not a["claimed"])}
+            "achievements_ready": sum(1 for a in achs if a["unlocked"] and not a["claimed"]),
+            "achievements_new": [{k: a[k] for k in ("key", "name", "icon", "tier", "gems")} for a in achs if a["unlocked"] and not a["claimed"]]}
 
 
 @router.get("/profile")

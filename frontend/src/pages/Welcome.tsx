@@ -12,6 +12,7 @@ import { notifyChanged, useChangeCounter } from "../lib/events";
 import RankUp from "./RankUp";
 import GoblinRaid from "../lib/GoblinRaid";
 import GodfatherReveal from "../lib/GodfatherReveal";
+import AchievementPop, { type NewAchievement } from "../lib/AchievementPop";
 
 /** A gem-shaped badge in the rank's colour with the level inside. */
 export function RankBadge({ color, label, size = 56 }: { color: string; label: string; size?: number }) {
@@ -100,6 +101,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
   const raidShown = useRef(false);
   const [raid, setRaid] = useState<number | null>(null);
   const [godfather, setGodfather] = useState(false);
+  const [newAch, setNewAch] = useState<NewAchievement[]>([]);
   const gfShown = useRef(false);
   const [place, setPlace] = useState<{ rank: number; of: number; ahead: string | null; gap: number } | null>(null);
   async function claim() {
@@ -138,6 +140,15 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       if (np.raid && !raidShown.current) { raidShown.current = true; setRaid(np.raid.stolen); }
       // Named a Godfather by the admin: their show, once.
       if (np.godfather?.is && !np.godfather.seen && !gfShown.current) { gfShown.current = true; setGodfather(true); }
+      // A newly earned achievement: a small pop-up with its sound, once per achievement on this device.
+      const achKey = `honor.achSeen.${memberId}`;
+      let seenAch: string[] = [];
+      try { seenAch = JSON.parse(localStorage.getItem(achKey) || "[]"); } catch { /* private mode */ }
+      const fresh = (np.achievements_new ?? []).filter((a) => !seenAch.includes(a.key) && !(a.key === "godfather" && np.godfather?.is && !np.godfather.seen));
+      if (fresh.length) {
+        setNewAch(fresh);
+        try { localStorage.setItem(achKey, JSON.stringify([...seenAch, ...fresh.map((a) => a.key)].slice(-200))); } catch { /* private mode */ }
+      }
       // An art tournament prize not celebrated yet.
       if (np.event_win && winShown.current !== np.event_win.id) {
         winShown.current = np.event_win.id;
@@ -239,6 +250,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
 
       {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} jewel={reward.jewel} sound={reward.win ? "event-win" : undefined}
         onDone={() => { if (reward.win) api.winSeen(reward.win).catch(() => undefined); setReward(null); }} />}
+      {newAch.length > 0 && !godfather && raid === null && !rankUp && !reward && <AchievementPop items={newAch} onDone={() => setNewAch([])} />}
       {godfather && p && <GodfatherReveal name={p.member.name} avatar={p.member.avatar}
         onCollect={async () => { await api.claimAchievement("godfather").catch(() => undefined); setP(await api.profile()); notifyChanged(); }}
         onDone={(wear) => {

@@ -2178,3 +2178,24 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 :root[data-skin=dark] .ad-gems { background: #1b2130; box-shadow: inset 0 0 0 1px #2e3a52; }
 :root[data-skin=dark] .ad-gems-head i { color: #8fb4ff; }
 :root[data-skin=dark] .ad-gems-head b { color: #fff; }
+
+/* "Achievement unlocked!" pop-up */
+.ach-pop { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 50%; z-index: 55; width: min(420px, calc(100vw - 24px));
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 10px; border-radius: 20px; background: var(--paper); color: var(--ink);
+  box-shadow: 0 14px 36px #0003, inset 0 0 0 2px #f0c040; translate: -50% 0; animation: ach-drop .55s cubic-bezier(.2,1.4,.4,1) both; }
+.ach-pop.out { animation: ach-up .4s ease-in both; }
+@keyframes ach-drop { from { translate: -50% -140%; } }
+@keyframes ach-up { to { translate: -50% -140%; opacity: 0; } }
+.ach-pop-medal { position: relative; flex: none; display: grid; place-items: center; animation: ach-medal .8s .25s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes ach-medal { from { scale: 0; rotate: -30deg; } }
+.ach-pop-shine { position: absolute; inset: -14px; border-radius: 50%; background: conic-gradient(from 0deg, #ffe58a00, #ffe58aaa, #ffe58a00 30%, #ffe58aaa 50%, #ffe58a00 65%, #ffe58aaa 85%, #ffe58a00);
+  animation: fx-spin 3s linear infinite; mask: radial-gradient(circle, #000 35%, transparent 70%); -webkit-mask: radial-gradient(circle, #000 35%, transparent 70%); }
+.ach-pop-medal svg { position: relative; }
+.ach-pop-text { display: grid; flex: 1; min-width: 0; line-height: 1.2; }
+.ach-pop-text small { font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: #b8862b; }
+.ach-pop-text b { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ach-pop-gems { font-weight: 900; display: inline-flex; align-items: center; gap: 4px; color: #1a5fb4; }
+.ach-pop-gems em { font-style: normal; color: var(--mute); font-weight: 700; font-size: 13px; }
+.ach-pop-go { flex: none; padding: 8px 14px; border-radius: 12px; font-weight: 900; text-decoration: none; color: #3a2400; background: linear-gradient(180deg, #ffe58a, #f0b820); box-shadow: 0 3px 0 #b07a00; }
+.ach-pop-x { flex: none; width: 30px; min-height: 30px; padding: 0; border: 0; background: transparent; color: var(--mute); font-size: 22px; }
+@media (prefers-reduced-motion: reduce) { .ach-pop, .ach-pop.out, .ach-pop-medal, .ach-pop-shine { animation: none; } }

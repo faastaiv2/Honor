@@ -178,8 +178,8 @@ export default function GemReward({ amount, title, from, chest = false, jewel, s
     return () => clearTimeout(t);
   }, [phase]);
   useEffect(() => {
-    if (sound) void playSound(sound);
-    else if (!chest || reduced) void playSound("gems");
+    if (sound) void playSound(sound);  // the moment's own sound (an achievement, a win)…
+    if (!chest || reduced) void playSound("gems");  // …and the gems raining down with it
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The rain: when the last gem lands, the floor cracks, the heap sinks a little and a few gems tumble off.

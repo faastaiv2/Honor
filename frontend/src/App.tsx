@@ -5,6 +5,7 @@ import { api, type TodayInfo } from "./api";
 import { useAuth } from "./auth";
 import { fmt } from "./lib/dates";
 import { useChangeCounter } from "./lib/events";
+import { warmSounds } from "./lib/sounds";
 import Leaderboard from "./pages/Leaderboard";
 import Guard from "./lib/Guard";
 import SignIn from "./pages/SignIn";
@@ -46,6 +47,11 @@ export default function App() {
     if (pathname === "/news") { setUnread(0); return; }
     api.news().then((n) => setUnread(n.unread)).catch(() => undefined);
   }, [viewer, changes, pathname]);
+
+  useEffect(() => {
+    // Download and decode the family's sounds in the background, so every animation's sound starts on time.
+    if (viewer) { const t = window.setTimeout(() => { void warmSounds(); }, 1500); return () => window.clearTimeout(t); }
+  }, [viewer]);
 
   useEffect(() => {
     if (!viewer) { setInfo(null); return; }
