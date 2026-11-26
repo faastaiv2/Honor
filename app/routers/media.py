@@ -27,6 +27,7 @@ KEYS = {
     "achievement",   # an achievement is collected
     "event-win",     # winning a place in an art tournament
     "goblins",       # the goblin raid when a member falls onto the Pillar of Shame
+    "godfather",     # a member is named a Godfather
 } | {f"rankup-music-{r}" for r in ("bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond",
                                    "obsidian", "legendary")}  # music for one rank's show (else the general rank-up music)
 MAX_BYTES = 4_300_000  # the host accepts uploads up to about 4.5 MB

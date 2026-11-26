@@ -9,10 +9,10 @@ from zoneinfo import available_timezones
 
 from app.db import get_db
 from app.deps import Viewer, require_admin
-from app.models import Adjustment, DayLog, Member, Period, TaskDef
+from app.models import Adjustment, DayLog, GemGrant, Member, Period, TaskDef
 from app.scoring import DEFAULT_SPECS, TaskSpec
 from app.security import hash_secret
-from app.services import get_settings_row, today_for
+from app.services import gem_balance, get_settings_row, today_for
 from app.tiers import tier_for
 from app.sheet_import import parse_sheet
 
@@ -125,8 +125,43 @@ def edit_member(member_id: str, body: MemberPatch, _: Viewer = Depends(require_a
             setattr(m, k, val.strip() if isinstance(val, str) else val)
     if not m.godfather and m.frame == "godfather":
         m.frame = ""  # no longer a Godfather: the frame comes off
+    if "godfather" in data and data["godfather"]:
+        m.godfather_seen = False  # show them the Godfather reveal next time they open the app
     db.commit()
     return _member_out(m)
+
+
+class GemsIn(BaseModel):
+    delta: int | None = Field(default=None, ge=-100000, le=100000)  # give (+) or take (−)
+    balance: int | None = Field(default=None, ge=0, le=1000000)  # or set the balance to exactly this
+    note: str = Field(default="", max_length=200)
+
+
+@router.get("/gems")
+def gem_balances(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    """Every member's gem balance."""
+    cfg = get_settings_row(db)
+    return {m.id: gem_balance(db, cfg, m) for m in db.scalars(select(Member))}
+
+
+@router.post("/members/{member_id}/gems")
+def change_gems(member_id: str, body: GemsIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    """Give or take gems, or set a member's balance. Taking never goes below 0."""
+    m = db.get(Member, member_id)
+    if not m:
+        raise HTTPException(404, "Member not found")
+    cfg = get_settings_row(db)
+    now = gem_balance(db, cfg, m)
+    if body.balance is not None:
+        delta = body.balance - now
+    elif body.delta is not None:
+        delta = max(body.delta, -now)
+    else:
+        raise HTTPException(422, "Say how many gems")
+    if delta:
+        db.add(GemGrant(member_id=m.id, delta=delta, note=body.note.strip(), created_by=v.name))
+        db.commit()
+    return {"balance": now + delta, "delta": delta}
 
 
 @router.delete("/members/{member_id}", status_code=204)

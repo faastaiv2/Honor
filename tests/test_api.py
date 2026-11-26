@@ -943,3 +943,32 @@ def test_only_godfathers_get_the_godfather_frame(client, family):
     assert client.put("/api/board/profile", headers=h, json={"frame": "godfather"}).status_code == 200
     client.patch(f"/api/admin/members/{family['A'].id}", headers=ha, json={"godfather": False})
     assert client.get("/api/board/profile", headers=h).json()["member"]["frame"] != "godfather"
+
+
+def test_admin_gives_takes_and_sets_gems(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    url = f"/api/admin/members/{family['A'].id}/gems"
+    assert client.post(url, headers=h, json={"delta": 50}).status_code == 403
+    start = client.get("/api/board/profile", headers=h).json()["gems"]["balance"]
+    assert client.post(url, headers=ha, json={"delta": 50, "note": "helped"}).json()["balance"] == start + 50
+    assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == start + 50
+    assert client.post(url, headers=ha, json={"balance": 7}).json() == {"balance": 7, "delta": 7 - start - 50}
+    assert client.post(url, headers=ha, json={"delta": -100}).json()["balance"] == 0  # never below 0
+    assert client.get("/api/admin/gems", headers=ha).json()[family["A"].id] == 0
+
+
+def test_godfather_achievement_is_only_for_godfathers(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    keys = [a["key"] for a in client.get("/api/board/achievements", headers=h).json()["items"]]
+    assert "godfather" not in keys
+    assert client.post("/api/board/achievements/godfather/claim", headers=h).status_code == 404
+    client.patch(f"/api/admin/members/{family['A'].id}", headers=ha, json={"godfather": True})
+    prof = client.get("/api/board/profile", headers=h).json()
+    assert prof["godfather"] == {"is": True, "seen": False}
+    before = prof["gems"]["balance"]
+    gf = next(a for a in client.get("/api/board/achievements", headers=h).json()["items"] if a["key"] == "godfather")
+    assert gf["unlocked"] and gf["gems"] == 313
+    client.post("/api/board/achievements/godfather/claim", headers=h)
+    assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before + 313
+    client.post("/api/board/profile/godfather-seen", headers=h)
+    assert client.get("/api/board/profile", headers=h).json()["godfather"]["seen"] is True

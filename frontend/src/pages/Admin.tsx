@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import RankIcon from "../lib/RankIcon";
 import { api, ApiError, type AdminMember, type BoardRow, type Settings } from "../api";
+import Gem from "../lib/Gem";
 import Avatar from "../lib/Avatar";
 import type { TodayInfo } from "../api";
 import { fmt } from "../lib/dates";
@@ -63,7 +64,46 @@ function LevelControl({ m, row, onChanged, onError }: { m: AdminMember; row?: Bo
   );
 }
 
-function MemberCard({ m, row, onDone, onChanged, onError }: { m: AdminMember; row?: BoardRow; onDone: (s: string) => void; onChanged: () => void; onError: (s: string) => void }) {
+/** The member's gem balance, with give / take / set. */
+function GemEditor({ m, gems, onDone, onError }: { m: AdminMember; gems?: number; onDone: (s: string) => void; onError: (s: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const n = Math.max(0, Math.floor(Number(amount) || 0));
+  const go = async (kind: "give" | "take" | "set") => {
+    if (busy || (kind !== "set" && !n) || amount === "") return;
+    setBusy(true);
+    try {
+      const r = await api.changeGems(m.id, kind === "set" ? { balance: n, note } : { delta: kind === "give" ? n : -n, note });
+      setAmount(""); setNote(""); setOpen(false);
+      onDone(r.delta === 0 ? `${m.name} already has ${r.balance} gems`
+        : `${r.delta > 0 ? "Gave" : "Took"} ${Math.abs(r.delta)} gems ${r.delta > 0 ? "to" : "from"} ${m.name} · now ${r.balance}`);
+    } catch (err) { onError(msg(err)); } finally { setBusy(false); }
+  };
+  return (
+    <div className={`ad-gems${open ? " open" : ""}`}>
+      <button type="button" className="ad-gems-head" onClick={() => setOpen((x) => !x)} aria-expanded={open}>
+        <Gem /> <b>{gems ?? "…"}</b> <span>gems</span><i>{open ? "Close" : "Give / take"}</i>
+      </button>
+      {open && (
+        <div className="ad-gems-body">
+          <input inputMode="numeric" placeholder="How many?" value={amount} aria-label="Gems"
+            onChange={(e) => setAmount(e.target.value.replace(/\D/g, "").slice(0, 6))} />
+          <input placeholder="Reason (optional)" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} aria-label="Reason" />
+          <div className="ad-gems-btns">
+            <button type="button" className="give" disabled={busy || !n} onClick={() => go("give")}>+ Give</button>
+            <button type="button" className="take" disabled={busy || !n} onClick={() => go("take")}>− Take</button>
+            <button type="button" disabled={busy || amount === ""} onClick={() => go("set")}>Set balance to {amount === "" ? "…" : n}</button>
+          </div>
+          <p className="field-hint">Taking never goes below 0.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MemberCard({ m, row, gems, onDone, onChanged, onError }: { m: AdminMember; row?: BoardRow; gems?: number; onDone: (s: string) => void; onChanged: () => void; onError: (s: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(m.name);
   const [base, setBase] = useState(String(m.base_honor));
@@ -103,6 +143,7 @@ function MemberCard({ m, row, onDone, onChanged, onError }: { m: AdminMember; ro
 
       {!editing && <>
         <LevelControl m={m} row={row} onChanged={onChanged} onError={onError} />
+        <GemEditor m={m} gems={gems} onDone={onDone} onError={onError} />
         <div className="ad-today">
           <div className="ad-today-top">
             <span>Today</span>
@@ -226,6 +267,7 @@ function StartDate({ settings, today, onSave }: { settings: Settings; today: str
 export default function Admin({ info }: { info?: TodayInfo | null }) {
   const [members, setMembers] = useState<AdminMember[] | null>(null);
   const [rows, setRows] = useState<BoardRow[]>([]);
+  const [gems, setGems] = useState<Record<string, number>>({});
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState("");
   const [toast, setToast] = useToast();
@@ -234,6 +276,7 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
   const reload = useCallback(() => {
     api.members().then(setMembers).catch((e) => setError(msg(e)));
     api.leaderboard().then((b) => setRows(b.rows)).catch(() => undefined);
+    api.adminGems().then(setGems).catch(() => undefined);
     api.settings().then(setSettings).catch(() => undefined);
   }, []);
   useEffect(reload, [reload]);
@@ -267,7 +310,7 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
             <p className="note">Tap − or + to give or take one Honor. Tap the level to type an exact one.</p>
           </div>
           <div className="ad-members">
-            {members?.map((m) => <Guard key={`${m.id}${m.name}${m.base_honor}${m.has_pin}${m.godfather}`} name={`Member ${m.name}`}><MemberCard m={m} row={rowOf(m.id)} onDone={done} onChanged={quiet} onError={setError} /></Guard>)}
+            {members?.map((m) => <Guard key={`${m.id}${m.name}${m.base_honor}${m.has_pin}${m.godfather}`} name={`Member ${m.name}`}><MemberCard m={m} row={rowOf(m.id)} gems={gems[m.id]} onDone={done} onChanged={quiet} onError={setError} /></Guard>)}
             <AddMember onAdded={done} onError={setError} />
           </div>
         </section>

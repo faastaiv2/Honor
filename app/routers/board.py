@@ -14,7 +14,7 @@ from app.models import GemTake, AchievementClaim, DailyClaim, DayLog, Member, Pu
 from app.achievements import BY_KEY as ACHIEVEMENT_BY_KEY, Facts, evaluate as evaluate_achievements
 from app.progress import Progress, gems_earned
 from app.routers.events import placings, unseen_win
-from app.services import (achievement_gems, active_members, clock_for, chests_opened, load_periods, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
+from app.services import (achievement_gems, active_members, clock_for, chests_opened, load_periods, can_start_quest, claimed_on, gems_claimed, gems_granted, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
 from app.tiers import (PICTURE_UNLOCKS, shown_look, CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
                        FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
@@ -400,7 +400,7 @@ def _goblin_raid(db: Session, m: Member, tier, p) -> None:
     if p.level >= (m.raid_depth or 0):
         return  # not deeper than the last raid
     lo, hi = RAID_GEMS.get(max(p.level, -3), (75, 99))
-    balance = gems_earned(p) + gems_claimed(db, m.id) + achievement_gems(db, m.id)[0] - gems_spent(db, m.id)
+    balance = gems_earned(p) + gems_claimed(db, m.id) + achievement_gems(db, m.id)[0] - gems_spent(db, m.id) + gems_granted(db, m.id)
     take = max(0, min(balance, random.randint(lo, hi)))
     m.gems_stolen = (m.gems_stolen or 0) + take
     owed = m.raid_owed if m.raid_owed is not None and m.raid_owed >= 0 else 0
@@ -473,7 +473,7 @@ def _profile(db: Session, m: Member) -> dict:
     return {"raid": raid, "taken_today": [{"name": n, "gems": g} for n, g in takers], "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
                        "shamed": tier.key == "low", "own_avatar": m.avatar, "own_frame": m.frame},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
-            "gems": {"balance": gems_earned(p) + claimed + from_achievements - spent,
+            "gems": {"balance": gems_earned(p) + claimed + from_achievements - spent + gems_granted(db, m.id),
                      "earned": gems_earned(p) + claimed + from_achievements, "spent": spent, "claimed": claimed,
                      "achievements": from_achievements,
                      "today": p.today_tasks_gems, "from_tasks": p.gems_tasks, "from_levels": p.gems_levels},
@@ -484,6 +484,7 @@ def _profile(db: Session, m: Member) -> dict:
                       "available": daily_gems > 0 and p.streak > 0 and not claimed_today},
             "week_days": _week_days(db, cfg, m, today),
             "event_win": unseen_win(db, m.id),
+            "godfather": {"is": bool(m.godfather), "seen": bool(m.godfather_seen)},
             "oath": m.oath_at is not None, "oath_note": m.oath_note or "", "toured": bool(m.toured),
             "achievements_ready": sum(1 for a in achs if a["unlocked"] and not a["claimed"])}
 
@@ -515,7 +516,7 @@ def take_gems(victim_id: str, v: Viewer = Depends(current_viewer), db: Session =
         raise HTTPException(400, f"{victim.name} isn't on the Pillar of Shame")
     if db.scalar(select(GemTake.id).where(GemTake.taker_id == v.id, GemTake.victim_id == victim.id, GemTake.day == today)):
         raise HTTPException(400, f"You already took gems from {victim.name} today. Try again tomorrow")
-    balance = gems_earned(p) + gems_claimed(db, victim.id) + achievement_gems(db, victim.id)[0] - gems_spent(db, victim.id)
+    balance = gems_earned(p) + gems_claimed(db, victim.id) + achievement_gems(db, victim.id)[0] - gems_spent(db, victim.id) + gems_granted(db, victim.id)
     take = max(0, min(TAKE_GEMS, balance))
     if take == 0:
         raise HTTPException(400, f"{victim.name} has no gems left to take")
@@ -620,7 +621,7 @@ def buy(body: BuyIn, v: Viewer = Depends(current_viewer), db: Session = Depends(
         raise HTTPException(400, "You already have it")
     cfg = get_settings_row(db)
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
-    balance = gems_earned(p) + gems_claimed(db, m.id) + achievement_gems(db, m.id)[0] - gems_spent(db, m.id)
+    balance = gems_earned(p) + gems_claimed(db, m.id) + achievement_gems(db, m.id)[0] - gems_spent(db, m.id) + gems_granted(db, m.id)
     if balance < price:
         raise HTTPException(400, f"You need {price - balance} more gems. Finish tasks to earn more!")
     db.add(Purchase(member_id=m.id, item=shop_key(body.kind, body.key), price=price))
@@ -633,7 +634,7 @@ def _achievements(db: Session, m: Member, p: Progress) -> list[dict]:
     _, got = achievement_gems(db, m.id)
     purchases = len(owned_items(db, m.id))
     facts = Facts(p=p, gems_earned=gems_earned(p) + gems_claimed(db, m.id), purchases=purchases, chests=chests_opened(db, m.id),
-                  quests=len(m.quest_starts or []), oath=1 if m.oath_at else 0, **dict(zip(("first", "second", "third"), placings(db, m.id).values())))
+                  quests=len(m.quest_starts or []), oath=1 if m.oath_at else 0, godfather=1 if m.godfather else 0, **dict(zip(("first", "second", "third"), placings(db, m.id).values())))
     return evaluate_achievements(facts, got)
 
 
@@ -662,7 +663,9 @@ def claim_achievement(key: str, v: Viewer = Depends(current_viewer), db: Session
     m = db.get(Member, v.id)
     cfg = get_settings_row(db)
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
-    item = next(x for x in _achievements(db, m, p) if x["key"] == key)
+    item = next((x for x in _achievements(db, m, p) if x["key"] == key), None)
+    if item is None:
+        raise HTTPException(404, "No such achievement")
     if item["claimed"]:
         raise HTTPException(400, "Already collected")
     if not item["unlocked"]:
@@ -689,6 +692,16 @@ def swear_oath(body: OathIn, v: Viewer = Depends(current_viewer), db: Session = 
         m.oath_note = ""
         db.commit()
     return _profile(db, m)
+
+
+@router.post("/profile/godfather-seen")
+def godfather_seen(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """The member has watched their "You are a Godfather" show."""
+    m = db.get(Member, v.id) if v.kind == "member" else None
+    if m:
+        m.godfather_seen = True
+        db.commit()
+    return {"ok": True}
 
 
 @router.post("/toured")

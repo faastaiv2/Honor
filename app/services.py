@@ -203,8 +203,16 @@ def gems_spent(db: Session, member_id: str) -> int:
     return int(shop) + int(fees) + int(stolen) + int(lost)  # shop, entry fees, goblin raids, gems taken by others
 
 
+def gems_granted(db: Session, member_id: str) -> int:
+    """Gems a parent gave (+) or took (−) by hand."""
+    from sqlalchemy import func
+
+    from app.models import GemGrant
+    return int(db.scalar(select(func.coalesce(func.sum(GemGrant.delta), 0)).where(GemGrant.member_id == member_id)) or 0)
+
+
 def gem_balance(db: Session, cfg: AppSettings, m: Member) -> int:
     """A member's gems right now: earned (tasks, levels, ranks) + chests and prizes + achievements - spent."""
     from app.progress import gems_earned
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
-    return gems_earned(p) + gems_claimed(db, m.id) + achievement_gems(db, m.id)[0] - gems_spent(db, m.id)
+    return gems_earned(p) + gems_claimed(db, m.id) + achievement_gems(db, m.id)[0] - gems_spent(db, m.id) + gems_granted(db, m.id)

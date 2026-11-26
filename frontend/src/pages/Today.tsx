@@ -217,10 +217,9 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
     <label key={t.key} className={`task ${cls}${t.done ? " done" : ""}${canTick(t, isBonus) ? "" : " off"}`}>
       <input type="checkbox" checked={t.done} disabled={!canTick(t, isBonus)} onChange={(e) => toggle(t.key, e.target.checked)} />
       <span className="task-name">{label}</span>
-      {(t.late || t.not_before || t.link || t.next_day || extra) && (
+      {(t.late || t.link || t.next_day || extra) && (
         <span className="task-tags">
           {t.late && <i className="late">made up</i>}
-          {t.not_before && <i className="from" title={`Can be ticked from ${t.not_before}`}>🕛 from {t.not_before}</i>}
           {t.link && <a className={`watch${t.watched ? " seen" : ""}`} href={t.link} target="_blank" rel="noopener noreferrer"
             title={t.watched ? "Watched ✓" : "Open the video first, then tick it"}
             onClick={(e) => { e.stopPropagation(); if (view && !t.watched) {

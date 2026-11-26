@@ -2090,3 +2090,78 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .floor.member .floor-count { background: #2e2a2610; }
 .floor.member .p-row.me { background: #fff; border-color: #c9962b; color: #2e2a26; }
 .floor.member .p-row.me .p-rank, .floor.member .p-row.me small { color: #6e665c; }
+
+/* White theme: the welcome card is white with black writing */
+:root[data-skin=white] .welcome-card { color: #1d1a17; background: #fff;
+  box-shadow: 0 10px 30px #0000000f, inset 0 0 0 1px #ebe5d8, inset 0 -5px 0 #f1ece2; }
+:root[data-skin=white] .welcome-card::before { background-image: url("/pattern-soft.svg"); opacity: .5; }
+:root[data-skin=white] .welcome-card .wc-salam { color: #b8862b; }
+:root[data-skin=white] .welcome-card .wc-hello h1 { color: #111; }
+:root[data-skin=white] .welcome-card .wc-title { background: #f4f0e8; color: #1d1a17; box-shadow: inset 0 0 0 1px #e6dfd0; }
+:root[data-skin=white] .welcome-card .ring-bg { stroke: #efe9dd; }
+:root[data-skin=white] .welcome-card .ring-num { fill: #111; }
+:root[data-skin=white] .welcome-card .ring-sub { fill: #6e665c; }
+:root[data-skin=white] .welcome-card .stat { background: #faf8f3; border-color: #ebe5d8; color: #1d1a17; }
+:root[data-skin=white] .welcome-card .fat-bar { background: #efe9dd; box-shadow: none; }
+:root[data-skin=white] .welcome-card .wc-week, :root[data-skin=white] .welcome-card .wc-chest,
+:root[data-skin=white] .welcome-card .wc-cheer { background: #faf8f3; box-shadow: inset 0 0 0 1px #ebe5d8; }
+:root[data-skin=white] .welcome-card .wk-dot { background: #f1ece2; box-shadow: inset 0 0 0 2px #e2dac9; color: #3a332c; }
+:root[data-skin=white] .welcome-card .wk-day.today .wk-dot { box-shadow: 0 0 0 3px #1d1a17, inset 0 0 0 2px #e2dac9; }
+:root[data-skin=white] .welcome-card .wk-day.today.done .wk-dot { box-shadow: 0 0 0 3px #1d1a17, 0 2px 8px #f0a02088; }
+:root[data-skin=white] .welcome-card .wk-day.missed .wk-dot { background: #ffe1e1; box-shadow: inset 0 0 0 2px #ff9a9a; }
+:root[data-skin=white] .welcome-card .wc-place.p4 { background: #f4f0e8; color: #1d1a17; box-shadow: inset 0 0 0 1px #e6dfd0; }
+:root[data-skin=white] .welcome-card .wc-taken { background: #ffe1e1; color: #a0101a; }
+:root[data-skin=white] .welcome-card .wc-crest b { color: #1d1a17; }
+.ach-tier.t-godfather { background: #111; color: #f4d36a; }
+
+/* Godfather reveal */
+.gfr { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, #2a2214 0%, #0a0806 55%, #000 100%); color: #f4e6b8; animation: gfr-in .5s ease-out both; }
+@keyframes gfr-in { from { opacity: 0; } }
+.gfr-dust i { position: absolute; top: -10px; width: 4px; height: 4px; border-radius: 50%; background: #f4d36a; box-shadow: 0 0 6px #f4d36a;
+  animation: gfr-dust linear infinite; opacity: 0; }
+@keyframes gfr-dust { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: .9; } 100% { transform: translateY(105vh) translateX(20px); opacity: 0; } }
+.gfr-stage { position: relative; display: grid; justify-items: center; text-align: center; gap: 8px; max-width: 420px; }
+.gfr-face { opacity: 0; transform: scale(.6) rotate(-30deg); transition: opacity .9s, transform 1.2s cubic-bezier(.2,.9,.3,1.2); filter: drop-shadow(0 0 30px #d4a01766); }
+.gfr.s1 .gfr-face, .gfr.s2 .gfr-face, .gfr.s3 .gfr-face { opacity: 1; transform: none; }
+.gfr .gfr-face .fx-svg { animation: gfr-ring 1.4s ease-out both, gf-glint 4s 1.4s ease-in-out infinite; }
+@keyframes gfr-ring { from { clip-path: circle(0% at 50% 50%); } to { clip-path: circle(75% at 50% 50%); } }
+.gfr-kicker, .gfr-title, .gfr-sub, .gfr-reward, .gfr-close { opacity: 0; transform: translateY(12px); transition: opacity .6s, transform .6s; }
+.gfr.s2 .gfr-kicker, .gfr.s2 .gfr-title, .gfr.s2 .gfr-sub, .gfr.s3 .gfr-kicker, .gfr.s3 .gfr-title, .gfr.s3 .gfr-sub { opacity: 1; transform: none; }
+.gfr.s3 .gfr-reward, .gfr.s3 .gfr-close { opacity: 1; transform: none; }
+.gfr-kicker { margin: 18px 0 0; font-size: 12px; font-weight: 800; letter-spacing: .3em; text-transform: uppercase; color: #c9962b; }
+.gfr-title { margin: 0; font: clamp(26px, 6vw, 36px)/1.15 Marcellus, Georgia, serif; color: #fff; }
+.gfr-title b { display: block; font-weight: 400; font-size: 1.35em; letter-spacing: .04em;
+  background: linear-gradient(90deg, #b8862b, #fff3c0, #d4a017, #fff3c0, #b8862b); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: gfr-shine 3s linear infinite; }
+@keyframes gfr-shine { to { background-position: -200% 0; } }
+.gfr-sub { margin: 0; color: #cbb98a; }
+.gfr-reward { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 12px 10px 10px; border-radius: 18px; background: #16120c; box-shadow: inset 0 0 0 1px #c9962b; text-align: left; }
+.gfr-medal { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #0a0a0a; color: #f4d36a; border: 2px solid #d4a017;
+  font: 700 22px "Didot", "Bodoni 72", Georgia, serif; box-shadow: 0 0 14px #d4a01766; }
+.gfr-reward > span:nth-child(2) { display: grid; flex: 1; } .gfr-reward small { color: #cbb98a; font-weight: 700; font-size: 12px; }
+.gfr-collect { min-height: 42px; border: 0; border-radius: 12px; padding: 0 14px; font-weight: 900; color: #2a1a00; background: linear-gradient(180deg, #fff3c0, #d4a017); display: inline-flex; gap: 6px; align-items: center; }
+.gfr-got { font-weight: 900; color: #f4d36a; display: inline-flex; gap: 4px; align-items: center; animation: nb-pop .4s ease-out; }
+.gfr-close { margin-top: 10px; background: transparent; color: #f4e6b8; border: 1px solid #c9962b88; border-radius: 999px; padding: 8px 20px; }
+@media (prefers-reduced-motion: reduce) { .gfr-dust, .gfr-title b, .gfr-face .fx-svg { animation: none; } }
+
+/* The Godfather frame shimmers: a gold glint runs round the Greek key */
+.fx-godfather .fx-svg { animation: gf-glint 4s ease-in-out infinite; }
+@keyframes gf-glint { 0%, 100% { filter: drop-shadow(0 0 0 #d4a01700); } 50% { filter: drop-shadow(0 0 5px #f4d36aaa); } }
+@media (prefers-reduced-motion: reduce) { .fx-godfather .fx-svg { animation: none; } }
+
+/* Admin: gem balance editor */
+.ad-gems { margin-top: 10px; border-radius: 14px; background: #f2f8ff; box-shadow: inset 0 0 0 1px #cfe2f6; }
+.ad-gems-head { width: 100%; display: flex; align-items: center; gap: 6px; background: transparent; border: 0; padding: 8px 12px; min-height: 44px; font: inherit; color: inherit; cursor: pointer; }
+.ad-gems-head b { font-size: 20px; }
+.ad-gems-head span { color: var(--mute); font-weight: 700; }
+.ad-gems-head i { margin-inline-start: auto; font-style: normal; font-weight: 800; font-size: 13px; color: #1a5fb4; }
+.ad-gems-body { display: grid; gap: 8px; padding: 0 12px 12px; }
+.ad-gems-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.ad-gems-btns button { flex: 1; min-height: 40px; font-weight: 800; }
+.ad-gems-btns .give { background: #1f9a55; color: #fff; border-color: #1f9a55; }
+.ad-gems-btns .take { background: #c8283a; color: #fff; border-color: #c8283a; }
+.ad-gems-btns button:disabled { opacity: .45; }
+.gfr-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; opacity: 0; transform: translateY(12px); transition: opacity .6s, transform .6s; }
+.gfr.s3 .gfr-btns { opacity: 1; transform: none; }
+.gfr-btns .gfr-close { opacity: 1; transform: none; }
+.gfr-close.wear { background: linear-gradient(180deg, #2a2214, #0a0806); border-color: #d4a017; color: #f4d36a; font-weight: 800; }

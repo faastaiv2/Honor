@@ -9,9 +9,10 @@ const METAL: Record<string, [string, string, string]> = {
   silver: ["#ffffff", "#aab6c2", "#5a6676"],
   gold: ["#fff2b8", "#e0aa20", "#7a5200"],
   legend: ["#fff6d0", "#c070ff", "#3a1060"],
+  godfather: ["#fff3c0", "#d4a017", "#1a1408"],
 };
 const RIBBON: Record<string, [string, string]> = {
-  bronze: ["#c0294a", "#8e1b3a"], silver: ["#1f5fbf", "#133a8a"], gold: ["#1e9e6a", "#0f6b47"], legend: ["#6a3fd0", "#3a1f80"],
+  bronze: ["#c0294a", "#8e1b3a"], silver: ["#1f5fbf", "#133a8a"], gold: ["#1e9e6a", "#0f6b47"], legend: ["#6a3fd0", "#3a1f80"], godfather: ["#1a1a1a", "#000000"],
 };
 
 const G = "#fff";
@@ -24,6 +25,7 @@ const GLYPHS: Record<string, ReactNode> = {
   dumbbell: <g fill={G}><rect x="31" y="47.5" width="18" height="5" rx="2" /><rect x="25" y="40" width="6" height="20" rx="2" /><rect x="49" y="40" width="6" height="20" rx="2" /><rect x="21" y="44" width="4" height="12" rx="1.5" /><rect x="55" y="44" width="4" height="12" rx="1.5" /></g>,
   shield: <path d="M40 34 L52 38.5 V47 C52 55 47 60 40 63 C33 60 28 55 28 47 V38.5 Z M40 40 V58" fill="none" stroke={G} strokeWidth="3.4" strokeLinejoin="round" />,
   bag: <g><path d="M29 44 H51 L53 62 H27 Z" fill={G} /><path d="M34 44 C34 36 46 36 46 44" fill="none" stroke={G} strokeWidth="3" /></g>,
+  godfather: <text x="40" y="58" textAnchor="middle" fontSize="22" fontWeight="700" fontFamily="'Didot', 'Bodoni 72', Georgia, serif" fill={G}>G</text>,
   chest: <g fill={G}><path d="M27 46 C27 37 53 37 53 46 Z" /><rect x="27" y="47.5" width="26" height="14" rx="2" /><rect x="37.5" y="45" width="5" height="7" rx="1" fill="#0004" /></g>,
 };
 

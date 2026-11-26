@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type MusicInfo, type SoundKey, type Tier, type TodayInfo } from "../api";
 import GemReward from "../lib/GemReward";
 import GoblinRaid from "../lib/GoblinRaid";
+import GodfatherReveal from "../lib/GodfatherReveal";
 import RankIcon from "../lib/RankIcon";
 import { playMusic, playSound, resetSounds, stopMusic } from "../lib/sounds";
 import { useToast } from "../lib/events";
@@ -32,7 +33,7 @@ const MOMENT: Partial<Record<SoundKey, string>> = {
   achievement: "the reward appears", "event-win": "the prize chest appears",
 };
 
-type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" };
+type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" } | { kind: "godfather" };
 
 /** One sound slot: upload, test, start point, volume, remove. */
 function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
@@ -180,6 +181,10 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         () => setPreview({ kind: "goblins" }),
         slot("goblins", "Raid music", "Plays through the raid, fading in and out"))}
 
+      {card("🎩", "Godfather", "When you make a member a Godfather: their picture gets the Godfather frame in gold, with the 313-gem achievement.",
+        () => setPreview({ kind: "godfather" }),
+        slot("godfather", "Godfather", "Plays as the screen goes dark and the gold ring draws itself"))}
+
       {card("🧰", "Treasure chest", "The daily streak chest and rank rewards: tap the chest, it opens, gems pour out.",
         () => setPreview({ kind: "chest" }),
         <>{slot("chest", "Chest opens", "Plays when the chest is tapped open")}
@@ -195,6 +200,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
       {card("🎨", "Art tournament win", "A 1st, 2nd or 3rd place: a golden chest with the prize.", () => setPreview({ kind: "win" }),
         slot("event-win", "Win", "Plays when the prize chest appears"))}
 
+      {preview?.kind === "godfather" && <GodfatherReveal name="Preview" preview onDone={() => setPreview(null)} />}
       {preview?.kind === "goblins" && <GoblinRaid stolen={7} from={120} preview onDone={() => setPreview(null)} />}
       {preview?.kind === "quest" && <QuestFilm name="Preview" preview onClose={() => setPreview(null)} />}
       {preview?.kind === "rank" && <RankUp tier={preview.tier} name="Preview" profile={null}

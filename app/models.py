@@ -46,7 +46,8 @@ class Member(Base):
     early_ticks: Mapped[int] = mapped_column(Integer, default=0)  # tries to tick a task before its time
     gems_stolen: Mapped[int] = mapped_column(Integer, default=0)  # taken by goblins on falls to the Pillar of Shame
     raid_owed: Mapped[int] = mapped_column(Integer, default=-1)  # gems taken in a raid not yet shown (-1 = none)
-    godfather: Mapped[bool] = mapped_column(Boolean, default=False)  # chosen by the admin; only they get the Godfather frame
+    godfather: Mapped[bool] = mapped_column(Boolean, default=False)
+    godfather_seen: Mapped[bool] = mapped_column(Boolean, default=False)  # has seen the "You are a Godfather" show  # chosen by the admin; only they get the Godfather frame
     news_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # last read announcements
     raid_depth: Mapped[int] = mapped_column(Integer, default=0)  # the deepest level raided on this fall (0 = not on the Pillar)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -68,6 +69,17 @@ class DayLog(Base):
     watched: Mapped[list] = mapped_column(JSON, default=list)  # tasks whose video (▶ Watch) was opened that day
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
     updated_by: Mapped[str] = mapped_column(String(120), default="")
+
+
+class GemGrant(Base):
+    """Gems a parent gave (+) or took (−) by hand, with a reason."""
+    __tablename__ = "gem_grants"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    delta: Mapped[int] = mapped_column(Integer)
+    note: Mapped[str] = mapped_column(String(200), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    created_by: Mapped[str] = mapped_column(String(120), default="")
 
 
 class Adjustment(Base):
