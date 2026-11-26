@@ -57,7 +57,7 @@ def check_week(tier: Tier, week_lates: dict[date, dict]) -> str | None:
         if not late:
             continue
         if not tier.next_day and not tier.mid_days:
-            return f"{tier.emoji} {tier.name} cannot make up tasks after the day. Climb to 🥈 Good Honor to unlock it"
+            return f"{tier.emoji} {tier.name} cannot make up tasks after the day. Climb to 🥈 Silver to unlock it"
         mid, err = _mid_used(tier, d, late)
         if err:
             return err

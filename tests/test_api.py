@@ -195,7 +195,7 @@ def test_lowest_rank_cannot_make_up(client, family, db):
         view = client.get(f"/api/board/day?member_id={m.id}&date=2026-11-23", headers=h).json()
         assert view["mode"] == "locked" and view["makeup_left"] == 0
         r = put_day(client, h, m, date(2026, 11, 23), ["fajr"])
-        assert r.status_code == 403 and "Good Honor" in r.json()["detail"]
+        assert r.status_code == 403 and "Silver" in r.json()["detail"]
 
 
 def test_legendary_quest_flow(client, family, db):
@@ -972,3 +972,32 @@ def test_godfather_achievement_is_only_for_godfathers(client, family):
     assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before + 313
     client.post("/api/board/profile/godfather-seen", headers=h)
     assert client.get("/api/board/profile", headers=h).json()["godfather"]["seen"] is True
+
+
+def test_before_the_program_starts_tasks_are_a_preview(client, family, db):
+    from app.models import AppSettings
+    cfg = db.get(AppSettings, 1)
+    cfg.score_from = TODAY + timedelta(days=3)
+    db.commit()
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    a, b = at_today()
+    with a, b:
+        view = client.get(f"/api/board/day?member_id={family['A'].id}", headers=h).json()
+        assert view["mode"] == "preview" and not view["editable"]
+        assert view["bonus"]["dhikr"] == "يا الله"  # counts from the start: Ya Allah first
+        r = put_day(client, h, family["A"], TODAY, ["gate", "fajr"])
+        assert r.status_code == 403 and "preview" in r.json()["detail"]
+        assert put_day(client, ha, family["A"], TODAY, ["gate", "fajr"]).status_code == 200  # a parent still can
+
+
+def test_bonus_starts_from_ya_allah_on_the_start_day(client, family):
+    h = auth(client, family["A"])
+    for offset, name in ((0, "يا الله"), (1, "يا رحمن"), (2, "يا رحيم")):
+        a, b = at_today(date(2026, 11, 22) + timedelta(days=offset))
+        with a, b:
+            assert client.get("/api/board/today", headers=h).json()["bonus"]["dhikr"] == name
+
+
+def test_legend_achievement_gives_1000():
+    from app.achievements import BY_KEY
+    assert BY_KEY["legendary"].gems == 1000

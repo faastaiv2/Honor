@@ -28,7 +28,7 @@ export interface DayView {
   pledge: TaskItem | null; groups: { name: string; tasks: TaskItem[] }[];
   bonus: { key: string; count: string; dhikr: string; done: boolean };
   excuse: string; task_excuses: Record<string, string>; gems_today: number | null; periods: { name: string; end: string }[];
-  score: Score; mode: "open" | "makeup" | "admin" | "locked"; editable: boolean; excuse_editable: boolean;
+  score: Score; mode: "open" | "makeup" | "admin" | "locked" | "preview"; starts?: string; editable: boolean; excuse_editable: boolean;
   makeup_left: number; makeup_rule: string; before_scoring: boolean; status: Status;
 }
 export interface BoardRow extends Status {

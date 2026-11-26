@@ -92,7 +92,7 @@ def _member_or_404(db: Session, member_id: str) -> Member:
 def today_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
     cfg = get_settings_row(db)
     t = today_for(cfg)
-    i = scoring.day_index(t)
+    i = scoring.day_index(t, cfg.score_from)
     count, dhikr = scoring.bonus_parts(i)
     return {
         "today": t.isoformat(), "day_number": max(1, (t - cfg.score_from).days + 1), "weekend": scoring.is_weekend(t),
@@ -135,7 +135,7 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
     periods = [x for x in scoring.for_member(load_periods(db), member.id) if x.start <= d <= x.end]
     late = dict(log.late or {}) if log else {}
     excuse = log.excuse if log else ""
-    i = scoring.day_index(d)
+    i = scoring.day_index(d, cfg.score_from)
     groups: dict[str, list] = {}
     specs = scoring.day_plan(load_tasks(db), periods, d)
     first = member_start(cfg, member)
@@ -157,6 +157,8 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
     left = remaining(tier, d, today, _week_lates(db, member.id, d)) if d < today else 0
     if v.is_admin:
         mode = "admin" if d <= today else "locked"
+    elif d < cfg.score_from:
+        mode = "preview"  # the admin hasn't started the program yet: look, don't tick
     elif not own or d > today:
         mode = "locked"
     elif d == today:
@@ -176,11 +178,12 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
         "periods": [{"name": x.name, "end": x.end.isoformat()} for x in periods],
         "score": _score_out(s),
         "mode": mode,
-        "editable": mode != "locked",
+        "editable": mode not in ("locked", "preview"),
         "excuse_editable": mode in ("admin", "open"),
         "makeup_left": left,
         "makeup_rule": tier.benefits,
         "before_scoring": d < first,
+        "starts": cfg.score_from.isoformat(),
         "status": _status(p),
     }
 
@@ -201,6 +204,8 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
         raise HTTPException(403, "You can only mark your own tasks")
     if body.date > today:
         raise HTTPException(403, "That day has not started yet")
+    if not v.is_admin and body.date < cfg.score_from:
+        raise HTTPException(403, f"The program starts on {cfg.score_from:%A %-d %B}. Until then the tasks are a preview")
     specs = scoring.day_plan(load_tasks(db), scoring.for_member(load_periods(db), m.id), body.date)
     tasks = {k for k in body.tasks if k in {"gate", "bonus"} | {t.key for t in specs}}
     log = db.scalar(select(DayLog).where(DayLog.member_id == m.id, DayLog.day == body.date))

@@ -25,8 +25,9 @@ NAMES = [
 ]
 
 
-def day_index(d: date) -> int:
-    return (d - PROGRAM_START).days
+def day_index(d: date, start: date | None = None) -> int:
+    """Days since the program started (the admin's start date): day 0 is Ya Allah."""
+    return (d - (start or PROGRAM_START)).days
 
 
 def is_weekend(d: date) -> bool:

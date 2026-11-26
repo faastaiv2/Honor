@@ -258,9 +258,9 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
         <div className="big">{s.done}/{s.of}</div>
         <div style={{ flex: 1 }}>
           <p>
-            {s.delta > 0 ? "+" : ""}{s.delta} Honor {isToday ? (s.delta > 0 ? "· arrives at midnight 🌙" : "so far · tick until 11:59 PM") : "this day"}
+            {s.delta > 0 ? "+" : ""}{s.delta} Honor {view.mode === "preview" ? "· preview" : isToday ? (s.delta > 0 ? "· arrives at midnight 🌙" : "so far · tick until 11:59 PM") : "this day"}
             {s.excused ? " · excused" : ""}{view.weekend ? " · weekend, optional" : s.cut ? " · Honor cut 👺" : ""}
-            {view.before_scoring ? " · before scoring started" : ""}
+            {view.before_scoring && view.mode !== "preview" ? " · before scoring started" : ""}
           </p>
           <div className="meter"><i style={{ width: `${s.of ? (s.done / s.of) * 100 : 0}%` }} /></div>
         </div>
@@ -276,6 +276,9 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
           <span className="goal-chip">🔓 Bonus · +1 Honor</span>
           <span className="goal-chip"><Brazier lit={s.gain > 0} /> Streak &amp; chest</span>
         </div>
+      )}
+      {view.mode === "preview" && (
+        <p className="banner preview">👀 <b>Preview.</b> The program starts on {fmt(view.starts ?? view.date, { weekday: "long", day: "numeric", month: "long" })}. You can look at your tasks, but ticking opens on that day.</p>
       )}
       {makeup && (
         <p className="banner">🔁 <b>Make-up:</b> {view.makeup_left > 0 ? `you can still tick ${view.makeup_left} missed task${view.makeup_left === 1 ? "" : "s"} for this day.` : "no make-ups left for this day."} The bonus cannot be made up.</p>

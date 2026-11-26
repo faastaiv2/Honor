@@ -54,7 +54,7 @@ export default function NewsPage({ admin }: { admin: boolean }) {
     <section className="news">
       <div className="card news-head">
         <h2>📣 Announcements</h2>
-        <p className="note">{admin ? "Post news for the whole family. Members see a badge on this tab until they read it." : "News from your parents."}</p>
+        {admin && <p className="note">Post news for the whole family. Members see a badge on this tab until they read it.</p>}
         {admin && !open && <button className="primary" onClick={() => { setForm(blank); setEditing(null); setOpen(true); }}>+ New announcement</button>}
         {admin && open && (
           <form className="news-form" onSubmit={(e) => { e.preventDefault(); save(); }}>

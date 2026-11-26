@@ -79,7 +79,7 @@ ACHIEVEMENTS: list[Achievement] = [
     Achievement("obsidian", "Into the Dark", "Reach the Obsidian rank", "Ranks", "crest:obsidian", "gold", 1, _rank("obsidian")),
     Achievement("quest", "To Be a Legend", "Give up Obsidian and start the Legendary quest", "Ranks", "crest:legendary", "legend", 1,
                 lambda f: f.quests, reward=500),
-    Achievement("legendary", "Legend", "Earn Legendary Honor", "Ranks", "crest:legendary", "legend", 1, _rank("legendary")),
+    Achievement("legendary", "Legend", "Earn Legendary Honor", "Ranks", "crest:legendary", "legend", 1, _rank("legendary"), reward=1000),
     # Events
     Achievement("art1", "Champion Artist", "Win 1st place in an art tournament", "Events", "star", "gold", 1, lambda f: f.first),
     Achievement("art2", "Silver Brush", "Come 2nd in an art tournament", "Events", "star", "silver", 1, lambda f: f.second),

@@ -2165,3 +2165,4 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .gfr.s3 .gfr-btns { opacity: 1; transform: none; }
 .gfr-btns .gfr-close { opacity: 1; transform: none; }
 .gfr-close.wear { background: linear-gradient(180deg, #2a2214, #0a0806); border-color: #d4a017; color: #f4d36a; font-weight: 800; }
+.banner.preview { background: #eef6ff; border-color: #bcd6f2; color: #1d3a5c; }
