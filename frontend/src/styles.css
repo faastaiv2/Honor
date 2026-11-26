@@ -2049,3 +2049,16 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .gf-toggle span { display: grid; gap: 2px; }
 .gf-toggle small { color: #cbb98a; font-size: 12px; }
 .shop-item.gf { position: relative; }
+
+/* Shop pictures in rarity badges (wood / icy silver / gold / crystal) */
+.rb { position: relative; display: inline-block; filter: drop-shadow(0 3px 0 #0002); }
+.rb svg { overflow: visible; display: block; }
+.rb-pic { width: 100%; height: 100%; }
+.rb-pic .pic { display: block; width: 100%; height: 100%; }
+.rb.locked .rb-pic { filter: grayscale(.55) brightness(.85); opacity: .75; }
+.shop-item.locked .shop-face:has(.rb), .shop-item .shop-face:has(.rb) { filter: none; opacity: 1; }
+.rb-legendary .rb-shards { animation: rb-float 3.2s ease-in-out infinite; }
+.rb-glint { transform-box: fill-box; transform-origin: center; animation: fx-twinkle 2.4s ease-in-out infinite; }
+@keyframes rb-float { 50% { translate: 0 -1.5px; } }
+.shop-grid.avatar { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+@media (prefers-reduced-motion: reduce) { .rb-legendary .rb-shards, .rb-glint { animation: none; } }

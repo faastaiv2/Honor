@@ -5,6 +5,7 @@ import Gem from "../lib/Gem";
 import { api, ApiError, type Profile, type ShopItem, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
 import Brazier from "../lib/Brazier";
+import RarityBadge from "../lib/RarityBadge";
 import ThemePreview from "../lib/ThemePreview";
 import { confetti } from "../lib/confetti";
 import { notifyChanged, useToast } from "../lib/events";
@@ -126,7 +127,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
                   onClick={() => forSale && (tab === "theme" ? setTrying(trying?.key === it.key ? null : it) : setPeek({ kind: tab, item: it }))}>
                   {tab === "frame" ? <Avatar avatar={p.member.avatar} color={t.color} frame={it.key} size={54} />
                     : tab === "theme" ? <ThemePreview k={it.key} />
-                    : <Avatar avatar={it.key} color={t.color} size={64} />}
+                    : <RarityBadge pic={it.key} rarity={it.rarity} locked={locked} size={84} />}
                   {forSale && <span className="shop-peek" aria-hidden="true">👁</span>}
                 </button>
                 <span className="shop-name">{it.name}</span>
