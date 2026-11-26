@@ -2295,3 +2295,30 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .wm-node.chest .wm-chest { width: 36px; height: 31px; }
 .wm-stop.ready .wm-pile { animation: wm-pile 1.4s ease-in-out infinite; }
 @keyframes wm-pile { 50% { transform: translateY(-2px) scale(1.06); } }
+
+/* Lavender dream */
+:root[data-skin=lavender] { --em: #5b3a8a; --gold: #d6b8ff; }
+:root[data-skin=lavender] .hero { background: linear-gradient(135deg, #6a42a0, #9a5ac0 55%, #c07ab8) , #5b3a8a; }
+:root[data-skin=lavender] .hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: url("/pattern-gold.svg") center / 90px 90px; opacity: .35; }
+/* Sunset glow */
+:root[data-skin=sunset] { --em: #b8402c; --gold: #ffc27a; }
+:root[data-skin=sunset] .hero { background: linear-gradient(160deg, #ffb35a 0%, #f2703e 35%, #c8405a 70%, #6a3a8a 100%); }
+:root[data-skin=sunset] .hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: url("/pattern-gold.svg") center / 90px 90px; opacity: .3; }
+/* Northern lights (won with Centurion): a dark sky with slowly moving aurora */
+:root[data-skin=northern] { --em: #0e5a5a; --gold: #7fffd4; color-scheme: dark;
+  --bg: #071318; --paper: #0e1f26; --ink: #e6f7f4; --mute: #8fb3ad; --line: #1d3a40; --soft: #12282f; --soft2: #1a3640; }
+:root[data-skin=northern] .hero { background: linear-gradient(120deg, #051820, #0a2a3a 40%, #14123a); }
+:root[data-skin=northern] .hero::before { content: ""; position: absolute; inset: -20% -10%; pointer-events: none; opacity: .75;
+  background: radial-gradient(ellipse 60% 40% at 20% 30%, #3affc8aa, transparent 60%), radial-gradient(ellipse 50% 35% at 60% 20%, #7a5affaa, transparent 60%),
+    radial-gradient(ellipse 45% 30% at 85% 45%, #3ad0ff99, transparent 60%);
+  filter: blur(18px); animation: aurora-drift 14s ease-in-out infinite alternate; }
+:root[data-skin=northern] .hero > * { position: relative; }
+:root[data-skin=northern] button.primary, :root[data-skin=northern] .chip.on { color: #04221c; background: #7fffd4; border-color: #7fffd4; }
+:root[data-skin=northern] nav.tabs a.active { background: #7fffd4; color: #04221c; }
+@keyframes aurora-drift { 0% { transform: translateX(-4%) skewX(-4deg); } 100% { transform: translateX(4%) skewX(4deg); } }
+@media (prefers-reduced-motion: reduce) { :root[data-skin=northern] .hero::before { animation: none; } }
+.hero { position: relative; overflow: hidden; }
+.hero > .wrap { position: relative; z-index: 1; }
+.ach-pic-face.theme .ru-theme { width: 40px; height: 30px; grid-template-rows: 12px 1fr; border-width: 1px; }
+.shop-tag.ach { background: #c98a00; }
+.shop-item { position: relative; }

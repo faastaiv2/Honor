@@ -16,7 +16,7 @@ from app.progress import Progress, gems_earned
 from app.routers.events import placings, unseen_win
 from app.services import (achievement_gems, active_members, clock_for, chests_opened, load_periods, can_start_quest, gems_claimed, gems_granted, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
-from app.tiers import (WEEKLY_MAP, PICTURE_UNLOCKS, shown_look, CAP_WITHOUT_LEGENDARY, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
+from app.tiers import (THEME_UNLOCKS, WEEKLY_MAP, PICTURE_UNLOCKS, shown_look, CAP_WITHOUT_LEGENDARY, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
                        FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
                        tier_for)
 
@@ -512,7 +512,7 @@ def _profile(db: Session, m: Member) -> dict:
                      "achievements": from_achievements,
                      "today": p.today_tasks_gems, "from_tasks": p.gems_tasks, "from_levels": p.gems_levels},
             "next_level_reward": {"level": roman(nxt), "gems": reward} if reward else None,
-            "frames": catalogue("frame", tier, owned, godfather=bool(m.godfather)), "themes": catalogue("theme", tier, owned),
+            "frames": catalogue("frame", tier, owned, godfather=bool(m.godfather)), "themes": catalogue("theme", tier, owned, earned),
             "avatars": catalogue("avatar", tier, owned, earned), "celebrate": celebrate,
             "daily": daily,
             "week_days": _week_days(db, cfg, m, today),
@@ -654,7 +654,7 @@ def buy(body: BuyIn, v: Viewer = Depends(current_viewer), db: Session = Depends(
     price = price_of(body.kind, body.key)
     if price is None:
         raise HTTPException(400, "That item is not sold in the shop")
-    if body.kind == "avatar" and body.key in PICTURE_UNLOCKS:
+    if (body.kind == "avatar" and body.key in PICTURE_UNLOCKS) or (body.kind == "theme" and body.key in THEME_UNLOCKS):
         raise HTTPException(400, "This picture can't be bought: earn its achievement to unlock it")
     if price == 0:
         raise HTTPException(400, "It's free: just tap Use")

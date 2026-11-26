@@ -96,6 +96,9 @@ BY_KEY = {a.key: a for a in ACHIEVEMENTS}
 def evaluate(f: Facts, claimed: set[str]) -> list[dict]:
     from app.tiers import PICTURE_UNLOCKS, _PICTURE_NAMES
     pictures = {ach: pic for pic, ach in PICTURE_UNLOCKS.items()}
+    from app.tiers import THEME_UNLOCKS, THEMES
+    themes = {ach: th for th, ach in THEME_UNLOCKS.items()}
+    theme_names = {t[0]: t[1] for t in THEMES}
     out = []
     for a in ACHIEVEMENTS:
         if a.only_godfather and not f.godfather and a.key not in claimed:
@@ -104,5 +107,6 @@ def evaluate(f: Facts, claimed: set[str]) -> list[dict]:
         out.append({"key": a.key, "name": a.name, "text": a.text, "group": a.group, "icon": a.icon, "tier": a.tier,
                     "gems": a.gems, "goal": a.goal, "progress": min(have, a.goal), "unlocked": have >= a.goal,
                     "claimed": a.key in claimed,
-                    **({"picture": {"key": pictures[a.key], "name": _PICTURE_NAMES[pictures[a.key]]}} if a.key in pictures else {})})
+                    **({"picture": {"key": pictures[a.key], "name": _PICTURE_NAMES[pictures[a.key]]}} if a.key in pictures else {}),
+                    **({"theme": {"key": themes[a.key], "name": theme_names[themes[a.key]]}} if a.key in themes else {})})
     return out

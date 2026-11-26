@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type Achievement, type Achievements as AchievementsData } from "../api";
 import Gem from "../lib/Gem";
 import Medal from "../lib/Medal";
+import ThemePreview from "../lib/ThemePreview";
 import GemReward from "../lib/GemReward";
 import { notifyChanged, useToast } from "../lib/events";
 
@@ -17,6 +18,7 @@ function Card({ a, onClaim }: { a: Achievement; onClaim: (a: Achievement) => voi
       <div className="ach-body">
         <div className="ach-top"><b>{a.name}</b><span className={`ach-tier t-${a.tier}`}>{TIER_NAME[a.tier]}</span></div>
         <p>{a.text}</p>
+        {a.theme && <p className="ach-pic"><span className="ach-pic-face theme"><ThemePreview k={a.theme.key} /></span> Unlocks the <b>{a.theme.name}</b> theme</p>}
         {a.picture && <p className="ach-pic"><span className="ach-pic-face"><Avatar avatar={a.picture.key} color="#8a5a2b" size={26} /></span> Unlocks the <b>{a.picture.name}</b> picture</p>}
         {!a.unlocked && a.goal > 1 && (
           <div className="ach-prog"><div className="ach-bar"><i style={{ width: `${pct}%` }} /></div><small>{a.progress}/{a.goal}</small></div>

@@ -186,7 +186,12 @@ THEMES: list[tuple[str, str, str | None, int]] = [
     ("ocean", "Ocean", None, 500),
     ("desert", "Desert dusk", None, 600),
     ("midnight", "Midnight", None, 700),
+    ("lavender", "Lavender dream", None, 600),
+    ("sunset", "Sunset glow", None, 650),
+    ("northern", "Northern lights", None, 0),  # won with the Centurion achievement (THEME_UNLOCKS)
 ]
+# Themes won by an achievement instead of gems: theme -> achievement key.
+THEME_UNLOCKS = {"northern": "days100"}
 # Drawn pictures (frontend/src/lib/Pictures.tsx): (key, name), and (key, name, gems) for the shop.
 FREE_PICTURES: list[tuple[str, str]] = []  # every picture is in the shop now (Plain stays free)
 ANIMALS_NOW_COMMON = ["lion", "tiger", "eagle", "wolf", "fox", "owl", "bear", "cat", "turtle", "dolphin"]  # were free
@@ -197,14 +202,14 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("cat", "Cat", 0, "common"),  # free
     ("lion", "Lion", 0, "common"), ("eagle", "Eagle", 0, "common"), ("owl", "Owl", 0, "common"),
     ("bear", "Bear", 0, "common"),  # unlocked by achievements (PICTURE_UNLOCKS)
-    ("tiger", "Tiger", 100, "common"), ("wolf", "Wolf", 100, "common"), ("fox", "Fox", 100, "common"),
-    ("turtle", "Turtle", 100, "common"), ("dolphin", "Dolphin", 100, "common"),
+    ("tiger", "Tiger", 0, "common"), ("wolf", "Wolf", 0, "common"), ("fox", "Fox", 0, "common"),
+    ("turtle", "Turtle", 0, "common"), ("dolphin", "Dolphin", 0, "common"),
     ("squire", "Squire", 0, "common"), ("flowergirl", "Flower Girl", 100, "common"), ("archer", "Archer", 100, "common"),
     ("bunny", "Bunny", 0, "common"), ("hamster", "Hamster", 0, "common"), ("frog", "Frog", 0, "common"),
-    ("duckling", "Duckling", 0, "common"), ("puppy", "Puppy", 0, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
-    ("koala", "Koala", 240, "common"), ("elephant", "Elephant", 0, "common"), ("monkey", "Monkey", 0, "common"),
-    ("hedgehog", "Hedgehog", 100, "common"), ("lamb", "Lamb", 0, "common"), ("raccoon", "Raccoon", 120, "common"),
-    ("doctor", "Little Doctor", 150, "common"), ("builder", "Builder", 150, "common"),
+    ("duckling", "Duckling", 0, "common"), ("puppy", "Puppy", 0, "common"), ("panda", "Panda", 100, "common"), ("penguin", "Penguin", 100, "common"),
+    ("koala", "Koala", 100, "common"), ("elephant", "Elephant", 0, "common"), ("monkey", "Monkey", 0, "common"),
+    ("hedgehog", "Hedgehog", 100, "common"), ("lamb", "Lamb", 0, "common"), ("raccoon", "Raccoon", 100, "common"),
+    ("doctor", "Little Doctor", 100, "common"), ("builder", "Builder", 100, "common"),
     # Rare
     ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("shieldmaiden", "Shieldmaiden", 250, "rare"),
     ("fairy", "Fairy", 0, "rare"), ("swordsman", "Swordsman", 300, "rare"), ("chef", "Chef", 250, "rare"), ("pirate", "Pirate", 300, "rare"),
@@ -265,6 +270,8 @@ def item_available(kind: str, key: str, current: Tier, owned: set[str], earned: 
         if key in PICTURE_UNLOCKS:
             return PICTURE_UNLOCKS[key] in (earned or set())
         return price_of("avatar", key) == 0
+    if kind == "theme" and key in THEME_UNLOCKS:
+        return THEME_UNLOCKS[key] in (earned or set()) or shop_key(kind, key) in owned
     table = FRAMES if kind == "frame" else THEMES
     need = next(x[2] for x in table if x[0] == key)
     return rank_reached(need, current) or shop_key(kind, key) in owned
@@ -294,5 +301,13 @@ def catalogue(kind: str, current: Tier, owned: set[str], earned: set[str] | None
     table = FRAMES if kind == "frame" else THEMES
     special = [{"key": GODFATHER_FRAME, "name": "Godfather", "available": True, "price": 0, "tier": None, "special": "godfather"}] \
         if kind == "frame" and godfather else []
-    return special + [{"key": k, "name": n, "available": item_available(kind, k, current, owned), "price": c,
-             "tier": tier_dict(BY_KEY[need]) if need else None} for k, n, need, c in table]
+    from app.achievements import BY_KEY as ACH
+    out = []
+    for k, n, need, c in table:
+        item = {"key": k, "name": n, "available": item_available(kind, k, current, owned, earned), "price": c,
+                "tier": tier_dict(BY_KEY[need]) if need else None}
+        if kind == "theme" and k in THEME_UNLOCKS:
+            ach = ACH[THEME_UNLOCKS[k]]
+            item["unlock"] = {"key": ach.key, "name": ach.name, "text": ach.text}
+        out.append(item)
+    return special + out

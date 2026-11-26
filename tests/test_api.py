@@ -379,7 +379,7 @@ def test_shop_spends_gems(client, family, db):
         assert too_dear.status_code == 400 and "more gems" in too_dear.json()["detail"]
         assert client.post("/api/board/shop/buy", headers=h, json={"kind": "frame", "key": "gold"}).status_code == 400  # earned, not sold
         r = client.post("/api/board/shop/buy", headers=h, json={"kind": "avatar", "key": "panda"})
-        assert r.status_code == 200 and r.json()["gems"]["balance"] == earned - 200 and r.json()["member"]["avatar"] == "panda"
+        assert r.status_code == 200 and r.json()["gems"]["balance"] == earned - 100 and r.json()["member"]["avatar"] == "panda"
         assert client.post("/api/board/shop/buy", headers=h, json={"kind": "avatar", "key": "panda"}).status_code == 400
         # unticking tasks takes their gems back
         put_day(client, h, family["S"], TODAY, [])
@@ -1110,3 +1110,16 @@ def test_no_separate_gems_for_finishing_the_day_from_the_27th(client, family, db
     p = progress_for(db, cfg, [m], date(2026, 11, 27))[m.id]
     assert p.gems_tasks == 25  # 5 for Mulk on the 25th (old rate), 20 for the 26th; the 27th pays nothing extra: the map is the reward
     assert gems_earned(p) >= 20
+
+
+def test_northern_lights_theme_is_won_by_centurion(client, family):
+    h = auth(client, family["A"])
+    themes = {x["key"]: x for x in client.get("/api/board/profile", headers=h).json()["themes"]}
+    assert {"lavender", "sunset", "northern"} <= set(themes)
+    assert themes["lavender"]["price"] == 600 and themes["sunset"]["price"] == 650
+    n = themes["northern"]
+    assert not n["available"] and n["unlock"]["key"] == "days100"
+    assert client.post("/api/board/shop/buy", headers=h, json={"kind": "theme", "key": "northern"}).status_code == 400
+    assert client.put("/api/board/profile", headers=h, json={"theme": "northern"}).status_code == 403
+    cent = next(a for a in client.get("/api/board/achievements", headers=h).json()["items"] if a["key"] == "days100")
+    assert cent["theme"] == {"key": "northern", "name": "Northern lights"}
