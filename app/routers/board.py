@@ -478,7 +478,7 @@ def _profile(db: Session, m: Member) -> dict:
                      "achievements": from_achievements,
                      "today": p.today_tasks_gems, "from_tasks": p.gems_tasks, "from_levels": p.gems_levels},
             "next_level_reward": {"level": roman(nxt), "gems": reward} if reward else None,
-            "frames": catalogue("frame", tier, owned), "themes": catalogue("theme", tier, owned),
+            "frames": catalogue("frame", tier, owned, godfather=bool(m.godfather)), "themes": catalogue("theme", tier, owned),
             "avatars": catalogue("avatar", tier, owned, earned), "celebrate": celebrate,
             "daily": {"gems": daily_gems, "claimed_today": claimed_today,
                       "available": daily_gems > 0 and p.streak > 0 and not claimed_today},
@@ -596,7 +596,7 @@ def save_profile(body: ProfileIn, v: Viewer = Depends(current_viewer), db: Sessi
             raise HTTPException(400, "Choose one of the pictures shown")
         if keys is not None and value not in keys:
             raise HTTPException(400, f"Choose one of the {kind}s shown")
-        if not item_available(kind, value, tier, owned, earned):
+        if not item_available(kind, value, tier, owned, earned, godfather=bool(m.godfather)):
             raise HTTPException(403, "Unlock it first: climb to its rank or buy it in the shop")
         setattr(m, kind, value)
     db.commit()

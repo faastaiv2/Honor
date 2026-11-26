@@ -46,6 +46,7 @@ class Member(Base):
     early_ticks: Mapped[int] = mapped_column(Integer, default=0)  # tries to tick a task before its time
     gems_stolen: Mapped[int] = mapped_column(Integer, default=0)  # taken by goblins on falls to the Pillar of Shame
     raid_owed: Mapped[int] = mapped_column(Integer, default=-1)  # gems taken in a raid not yet shown (-1 = none)
+    godfather: Mapped[bool] = mapped_column(Boolean, default=False)  # chosen by the admin; only they get the Godfather frame
     news_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # last read announcements
     raid_depth: Mapped[int] = mapped_column(Integer, default=0)  # the deepest level raided on this fall (0 = not on the Pillar)
     active: Mapped[bool] = mapped_column(Boolean, default=True)

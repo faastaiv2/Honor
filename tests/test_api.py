@@ -928,3 +928,18 @@ def test_announcements(client, family):
     assert client.patch(f"/api/news/{pin['id']}", headers=ha, json={"pinned": False}).json()["pinned"] is False
     assert client.delete(f"/api/news/{pin['id']}", headers=ha).status_code == 204
     assert [i["title"] for i in client.get("/api/news", headers=ha).json()["items"]] == ["Trip on Sunday"]
+
+
+def test_only_godfathers_get_the_godfather_frame(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    frames = [f["key"] for f in client.get("/api/board/profile", headers=h).json()["frames"]]
+    assert "godfather" not in frames
+    assert client.put("/api/board/profile", headers=h, json={"frame": "godfather"}).status_code == 403
+    assert client.post("/api/board/shop/buy", headers=h, json={"kind": "frame", "key": "godfather"}).status_code == 400
+    assert client.patch(f"/api/admin/members/{family['A'].id}", headers=h, json={"godfather": True}).status_code == 403
+    assert client.patch(f"/api/admin/members/{family['A'].id}", headers=ha, json={"godfather": True}).json()["godfather"] is True
+    prof = client.get("/api/board/profile", headers=h).json()
+    assert prof["frames"][0]["key"] == "godfather" and prof["frames"][0]["available"]
+    assert client.put("/api/board/profile", headers=h, json={"frame": "godfather"}).status_code == 200
+    client.patch(f"/api/admin/members/{family['A'].id}", headers=ha, json={"godfather": False})
+    assert client.get("/api/board/profile", headers=h).json()["member"]["frame"] != "godfather"

@@ -119,7 +119,8 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
                   <span className="shop-face">👤</span><span className="shop-name">Plain</span><span className="shop-act">{!p.member.avatar ? "In use" : "Use"}</span>
                 </button>
               )}
-              <div className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}${it.rarity ? ` r-${it.rarity}` : ""}`}>
+              <div className={`shop-item${it.special ? " gf" : ""}${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}${it.rarity ? ` r-${it.rarity}` : ""}`}>
+                {it.special === "godfather" && <span className="shop-tag gf">Godfather only</span>}
                 {it.rarity && <span className={`shop-tag r-${it.rarity}${it.price === 0 && !it.unlock ? " free" : ""}${it.unlock ? " ach" : ""}`}>{it.unlock ? "achievement" : it.price === 0 ? "free" : it.rarity}</span>}
                 <button type="button" className="shop-face" aria-label={forSale ? `Preview ${it.name}` : it.name} disabled={!forSale}
                   onClick={() => forSale && (tab === "theme" ? setTrying(trying?.key === it.key ? null : it) : setPeek({ kind: tab, item: it }))}>

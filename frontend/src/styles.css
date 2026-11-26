@@ -2040,3 +2040,12 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .news-empty { text-align: center; }
 .news-empty span { font-size: 40px; }
 .task .watch.seen { background: linear-gradient(180deg, #3cbf6a, #1f8a47); box-shadow: 0 2px 0 #0f5a2b; }
+
+/* Godfather */
+.shop-tag.gf { background: linear-gradient(180deg, #2a2a2a, #000); color: #ffd24a; border: 1px solid #c9962b; }
+.gf-badge { background: #111; color: #ffd24a; border: 1px solid #c9962b; padding: 2px 8px; border-radius: 999px; font-weight: 800; }
+.gf-toggle { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: #111; color: #f4e6b8; border: 1px solid #c9962b; cursor: pointer; }
+.gf-toggle input { margin-top: 3px; accent-color: #c9962b; width: 18px; height: 18px; }
+.gf-toggle span { display: grid; gap: 2px; }
+.gf-toggle small { color: #cbb98a; font-size: 12px; }
+.shop-item.gf { position: relative; }

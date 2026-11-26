@@ -227,7 +227,8 @@ _PICTURE_RARITY = {k: r for k, _, _, r in SHOP_PICTURES}
 PICTURE_UNLOCKS = {"squire": "oath", "bear": "spark", "eagle": "shop1", "owl": "streak3", "lion": "bonus10"}  # easy, early achievements
 
 TIER_ORDER = [t.key for t in TIERS]
-FRAME_KEYS = {f[0] for f in FRAMES}
+GODFATHER_FRAME = "godfather"  # only for members the admin marks as Godfather; never sold
+FRAME_KEYS = {f[0] for f in FRAMES} | {GODFATHER_FRAME}
 THEME_KEYS = {t[0] for t in THEMES}
 
 
@@ -239,8 +240,11 @@ def shop_key(kind: str, key: str) -> str:
     return f"{kind}:{key}"
 
 
-def item_available(kind: str, key: str, current: Tier, owned: set[str], earned: set[str] | None = None) -> bool:
+def item_available(kind: str, key: str, current: Tier, owned: set[str], earned: set[str] | None = None,
+                   godfather: bool = False) -> bool:
     """Free with the member's rank, bought with gems, or (some pictures) earned with an achievement."""
+    if kind == "frame" and key == GODFATHER_FRAME:
+        return godfather
     if kind == "avatar":
         if shop_key("avatar", key) in owned or key in FREE_AVATARS:
             return True
@@ -261,7 +265,7 @@ def price_of(kind: str, key: str) -> int | None:
     return row[3] if row and row[2] is None else None
 
 
-def catalogue(kind: str, current: Tier, owned: set[str], earned: set[str] | None = None) -> list[dict]:
+def catalogue(kind: str, current: Tier, owned: set[str], earned: set[str] | None = None, godfather: bool = False) -> list[dict]:
     if kind == "avatar":
         from app.achievements import BY_KEY as ACH
         out = []
@@ -274,5 +278,7 @@ def catalogue(kind: str, current: Tier, owned: set[str], earned: set[str] | None
             out.append(item)
         return out
     table = FRAMES if kind == "frame" else THEMES
-    return [{"key": k, "name": n, "available": item_available(kind, k, current, owned), "price": c,
+    special = [{"key": GODFATHER_FRAME, "name": "Godfather", "available": True, "price": 0, "tier": None, "special": "godfather"}] \
+        if kind == "frame" and godfather else []
+    return special + [{"key": k, "name": n, "available": item_available(kind, k, current, owned), "price": c,
              "tier": tier_dict(BY_KEY[need]) if need else None} for k, n, need, c in table]

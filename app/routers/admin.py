@@ -36,6 +36,7 @@ class MemberPatch(BaseModel):
     sort_order: int | None = None
     active: bool | None = None
     avatar: str | None = Field(default=None, max_length=16)
+    godfather: bool | None = None
 
 
 class AdjustmentIn(BaseModel):
@@ -86,7 +87,8 @@ def _make_code(name: str, taken: set[str]) -> str:
 
 def _member_out(m: Member) -> dict:
     return {"id": m.id, "name": m.name, "code": m.code, "base_honor": m.base_honor, "has_pin": bool(m.pin_hash),
-            "sort_order": m.sort_order, "active": m.active, "avatar": m.avatar, "early_ticks": m.early_ticks or 0}
+            "sort_order": m.sort_order, "active": m.active, "avatar": m.avatar, "early_ticks": m.early_ticks or 0,
+            "godfather": bool(m.godfather)}
 
 
 @router.get("/members")
@@ -121,6 +123,8 @@ def edit_member(member_id: str, body: MemberPatch, _: Viewer = Depends(require_a
     for k, val in data.items():
         if val is not None:
             setattr(m, k, val.strip() if isinstance(val, str) else val)
+    if not m.godfather and m.frame == "godfather":
+        m.frame = ""  # no longer a Godfather: the frame comes off
     db.commit()
     return _member_out(m)
 

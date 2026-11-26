@@ -114,6 +114,7 @@ function MemberCard({ m, row, onDone, onChanged, onError }: { m: AdminMember; ro
           <span title="Change in Honor this week">📈 {row ? `${row.week_delta > 0 ? "+" : ""}${row.week_delta} this week` : "—"}</span>
           {row && row.pending > 0 && <span title="Earned today, arrives at midnight">🌙 +{row.pending} at midnight</span>}
           {!m.has_pin && <span className="warn" title="They choose their own 4-digit PIN when they first sign in">New · chooses own PIN</span>}
+          {m.godfather && <span className="gf-badge" title="Godfather: can wear the Godfather frame">🎩 Godfather</span>}
           {m.early_ticks > 0 && <span className="warn" title="Tried to tick a task before its time and had to swear the oath again">⚠️ Ticked early {m.early_ticks}×</span>}
         </div>
         {!!row?.excused_today?.length && (
@@ -134,6 +135,13 @@ function MemberCard({ m, row, onDone, onChanged, onError }: { m: AdminMember; ro
               <input type="number" value={base} onChange={(e) => setBase(e.target.value)} />
             </Field>
           </div>
+          <label className="gf-toggle">
+            <input type="checkbox" checked={m.godfather} onChange={async (e) => {
+              const on = e.target.checked;
+              try { await api.editMember(m.id, { godfather: on }); onDone(on ? `🎩 ${m.name} is a Godfather` : `${m.name} is no longer a Godfather`); } catch (err) { onError(msg(err)); }
+            }} />
+            <span><b>🎩 Godfather</b><small>Only Godfathers can wear the Godfather frame. Turning this off takes the frame off.</small></span>
+          </label>
           <p className="field-hint">To change today's level, close this and use − / +.</p>
           <div className="ad-actions">
             <button className="primary">Save changes</button>
@@ -259,7 +267,7 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
             <p className="note">Tap − or + to give or take one Honor. Tap the level to type an exact one.</p>
           </div>
           <div className="ad-members">
-            {members?.map((m) => <Guard key={`${m.id}${m.name}${m.base_honor}${m.has_pin}`} name={`Member ${m.name}`}><MemberCard m={m} row={rowOf(m.id)} onDone={done} onChanged={quiet} onError={setError} /></Guard>)}
+            {members?.map((m) => <Guard key={`${m.id}${m.name}${m.base_honor}${m.has_pin}${m.godfather}`} name={`Member ${m.name}`}><MemberCard m={m} row={rowOf(m.id)} onDone={done} onChanged={quiet} onError={setError} /></Guard>)}
             <AddMember onAdded={done} onError={setError} />
           </div>
         </section>

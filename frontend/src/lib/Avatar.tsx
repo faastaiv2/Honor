@@ -271,6 +271,29 @@ const ART: Record<string, Art> = {
       <Twinkles pts={[[-34, -34, 3.4], [34, 34, 3.4], [36, -36, 2.6]]} fill="#fff" />
     </>,
   },
+  godfather: {
+    ring: ["#0a0a0a", "#ffe9a0", "#1a1208", "#c9962b", "#000", "#fff6d0", "#0a0a0a"], glow: "#c8102e",
+    back: () => <>
+      <g className="fx-spin-slow"><Spikes n={24} len={7} fill="#c9962b" width={2.4} base={R + 3} /></g>
+      <g className="fx-spin"><circle r={R + 11} fill="none" stroke="#ffd24a" strokeWidth="1.2" strokeDasharray="8 3 1 3" opacity=".85" /></g>
+      <Laurel fill="#c9962b" from={110} to={215} n={6} />
+    </>,
+    front: () => <>
+      <Rivets n={12} fill="#ffe9a0" size={1.5} />
+      {/* rose at the bottom */}
+      <path d="M-11 49 q-6 -6 1 -9 q4 2 6 6z M11 49 q6 -6 -1 -9 q-4 2 -6 6z" fill="#1e6a2a" stroke="#0a3a12" strokeWidth=".5" />
+      <circle cy="47" r="7" fill="#c8102e" stroke="#6a0010" strokeWidth=".8" />
+      <path d="M-4 46 q4 -5 8 0 q-4 4 -8 0z M-2 49 q2 -3 4 0" fill="none" stroke="#6a0010" strokeWidth="1" />
+      {/* crest at the top */}
+      <path d="M-13 -50 L-10 -57 L-4 -53 L0 -59 L4 -53 L10 -57 L13 -50 Z" fill="#ffd24a" stroke="#6a4a00" strokeWidth=".9" strokeLinejoin="round" />
+      <circle cx="0" cy="-58.4" r="1.5" fill="#fff6d0" /><circle cx="-10" cy="-56.6" r="1.2" fill="#fff6d0" /><circle cx="10" cy="-56.6" r="1.2" fill="#fff6d0" />
+      <circle cy={-R} r="9.5" fill="#0a0a0a" stroke="#ffd24a" strokeWidth="2" />
+      <circle cy={-R} r="7" fill="none" stroke="#c9962b" strokeWidth=".7" strokeDasharray="1.4 1.4" />
+      <text y={-R + 4} textAnchor="middle" fontSize="11" fontWeight="900" fontFamily="Georgia, serif" fill="#ffd24a">G</text>
+      <Gem x={-R} y={0} s={3.6} fill="#c8102e" /><Gem x={R} y={0} s={3.6} fill="#c8102e" />
+      <Twinkles pts={[[-40, -40, 3.4], [40, -38, 2.8], [44, 32, 2.6], [-46, 28, 2.4]]} fill="#fff6d0" />
+    </>,
+  },
   orbit: {
     ring: ["#0a0a2a", "#ffb347", "#2a1a5a", "#7fb0ff", "#0a0a2a"], glow: "#ffb347",
     back: () => <>
