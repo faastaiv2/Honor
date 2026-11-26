@@ -2,7 +2,9 @@
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import select
+from functools import wraps
+
+from sqlalchemy import event, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -12,6 +14,28 @@ from app.models import Adjustment, AppSettings, DayLog, Member
 from app.progress import Progress, simulate
 from app.tiers import tier_for
 
+
+
+
+# ---- A small per-request memory -------------------------------------------------------------------------------
+# One request often needs the same totals several times (gems, the task list, special periods). They are read once
+# per database session and reused; the memory is wiped whenever anything is written, so it can never go stale.
+def _request_cache(fn):
+    @wraps(fn)
+    def inner(db: Session, *args):
+        memo = db.info.setdefault("_memo", {})
+        key = (fn.__name__, *args)
+        if key not in memo:
+            memo[key] = fn(db, *args)
+        return memo[key]
+    return inner
+
+
+@event.listens_for(Session, "after_flush")
+@event.listens_for(Session, "after_commit")
+@event.listens_for(Session, "after_rollback")
+def _forget(session, *_):
+    session.info.pop("_memo", None)
 
 
 def get_settings_row(db: Session) -> AppSettings:
@@ -60,6 +84,7 @@ def logs_between(db: Session, start: date, end: date, member_id: str | None = No
     return {(r.member_id, r.day): r for r in db.scalars(q)}
 
 
+@_request_cache
 def load_tasks(db: Session) -> list[scoring.TaskSpec]:
     """The daily tasks as the admin set them up (the sheet's tasks if none are stored)."""
     from app.models import TaskDef
@@ -70,6 +95,7 @@ def load_tasks(db: Session) -> list[scoring.TaskSpec]:
                              r.not_before, tuple(r.links) if r.links and len(r.links) == 7 else ()) for r in rows]
 
 
+@_request_cache
 def load_periods(db: Session) -> list:
     """Special periods (like Ramadan) when tasks are paused or smaller."""
     from app.models import Period
@@ -125,11 +151,13 @@ def can_start_quest(p: Progress) -> bool:
     return not p.legendary and not p.banned and p.quest_start is None and tier_of_progress(p).key == "obsidian"
 
 
+@_request_cache
 def owned_items(db: Session, member_id: str) -> set[str]:
     from app.models import Purchase
     return {r.item for r in db.scalars(select(Purchase).where(Purchase.member_id == member_id))}
 
 
+@_request_cache
 def gems_claimed(db: Session, member_id: str) -> int:
     from sqlalchemy import func
 
@@ -140,6 +168,7 @@ def gems_claimed(db: Session, member_id: str) -> int:
     return int(chests) + int(prizes) + int(taken)  # streak chests, tournament prizes, gems taken from the Pillar of Shame
 
 
+@_request_cache
 def achievement_gems(db: Session, member_id: str) -> tuple[int, set[str]]:
     """Gems collected from achievements, and which ones."""
     from app.models import AchievementClaim
@@ -147,6 +176,7 @@ def achievement_gems(db: Session, member_id: str) -> tuple[int, set[str]]:
     return sum(r.gems for r in rows), {r.key for r in rows}
 
 
+@_request_cache
 def chests_opened(db: Session, member_id: str) -> int:
     from sqlalchemy import func
 
@@ -159,6 +189,7 @@ def claimed_on(db: Session, member_id: str, day: date) -> bool:
     return db.scalar(select(DailyClaim.id).where(DailyClaim.member_id == member_id, DailyClaim.day == day)) is not None
 
 
+@_request_cache
 def gems_spent(db: Session, member_id: str) -> int:
     from sqlalchemy import func
 

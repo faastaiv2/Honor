@@ -99,7 +99,7 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
   useEffect(() => {
     if (!viewer?.is_admin || embedded) return;
     api.signInList().then((ms) => { setMembers(ms); setMemberId((cur) => cur ?? ms[0]?.id ?? null); }).catch(() => undefined);
-  }, [viewer]);
+  }, [viewer, embedded]);
 
   const load = useCallback(() => {
     if (!memberId) return;

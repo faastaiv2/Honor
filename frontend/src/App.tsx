@@ -1,24 +1,26 @@
-import Events from "./pages/Events";
-import AdminHome from "./pages/AdminHome";
 import FirstRun from "./pages/FirstRun";
-import Achievements from "./pages/Achievements";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api, type TodayInfo } from "./api";
 import { useAuth } from "./auth";
 import { fmt } from "./lib/dates";
 import { useChangeCounter } from "./lib/events";
-import Admin from "./pages/Admin";
-import HistoryPage from "./pages/History";
 import Leaderboard from "./pages/Leaderboard";
-import Animations from "./pages/Animations";
 import Guard from "./lib/Guard";
-import ProfilePage from "./pages/Profile";
-import Benefits from "./pages/Benefits";
 import SignIn from "./pages/SignIn";
 import Welcome from "./pages/Welcome";
-import Tasks from "./pages/Tasks";
 import Today from "./pages/Today";
+// Pages a member doesn't need straight away load when first opened (a smaller first download).
+const Events = lazy(() => import("./pages/Events"));
+const AdminHome = lazy(() => import("./pages/AdminHome"));
+const Achievements = lazy(() => import("./pages/Achievements"));
+const Admin = lazy(() => import("./pages/Admin"));
+const HistoryPage = lazy(() => import("./pages/History"));
+const Animations = lazy(() => import("./pages/Animations"));
+const ProfilePage = lazy(() => import("./pages/Profile"));
+const Benefits = lazy(() => import("./pages/Benefits"));
+const Tasks = lazy(() => import("./pages/Tasks"));
+
 
 export default function App() {
   const { viewer, loading, signOut } = useAuth();
@@ -75,6 +77,7 @@ export default function App() {
       <main className="band">
         <div className="wrap">
           <Guard name="This page">
+          <Suspense fallback={<p className="note page-loading">Loading…</p>}>
           <Routes>
             <Route path="/" element={viewer.is_admin
               ? <div className="main"><AdminHome info={info} /><Leaderboard info={info} /></div>
@@ -91,6 +94,7 @@ export default function App() {
             <Route path="/tasks" element={viewer.is_admin ? <Tasks /> : <Navigate to="/" />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
+          </Suspense>
           </Guard>
         </div>
       </main>
