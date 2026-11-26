@@ -89,11 +89,18 @@ export async function soundOffset(key: SoundKey): Promise<number> {
   return (await allInfo())[key]?.offset_ms ?? 0;
 }
 
+/** Sound can play right now (the browser has let it, after a tap). A sound that can't play on time is skipped,
+ * because the browser would otherwise hold it and play it late, at the first tap. */
+async function ready(c: AudioContext): Promise<boolean> {
+  if (c.state === "running") return true;
+  try { await Promise.race([c.resume(), new Promise((r) => window.setTimeout(r, 120))]); } catch { /* blocked */ }
+  return (c.state as string) === "running";
+}
+
 /** Start a decoded sound: its chosen section, at its volume. Returns the nodes, or null if sound is blocked. */
 function start(m: { buffer: AudioBuffer; info: MusicInfo }, volume: number) {
   const c = audio();
-  if (!c) return null;
-  if (c.state !== "running") void c.resume().catch(() => undefined);
+  if (!c || c.state !== "running") return null;
   const src = c.createBufferSource();
   src.buffer = m.buffer;
   const gain = c.createGain();
@@ -119,6 +126,8 @@ export async function playSound(key: SoundKey, delayed = true): Promise<boolean>
   const m = await preloadSound(key);
   if (!m) return false;
   if (delayed && m.info.offset_ms > 0) await sleep(m.info.offset_ms);
+  const c = audio();
+  if (!c || !(await ready(c))) return false;
   return !!start(m, m.info.volume / 100);
 }
 
@@ -129,6 +138,7 @@ export async function playMusic(key: SoundKey, delayed = true): Promise<boolean>
   if (delayed && m.info.offset_ms > 0) await sleep(m.info.offset_ms);
   stopMusic(key, 0);
   const c = audio();
+  if (!c || !(await ready(c))) return false;
   const s = start(m, 0);
   if (!c || !s) return false;
   const vol = m.info.volume / 100, now = c.currentTime;

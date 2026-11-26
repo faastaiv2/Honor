@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Cauliflower } from "./GobiGame";
-import { playSound } from "./sounds";
+import { playSound, preloadSound } from "./sounds";
 
 /**
  * For the person who was hit: a cauliflower flies at the screen and SPLATS on it. Mushy bits stick to the
@@ -10,14 +10,23 @@ import { playSound } from "./sounds";
 const LENGTH = 10_000;
 
 export default function GobiSplat({ by, onDone }: { by: string[]; onDone: () => void }) {
-  const [phase, setPhase] = useState<"fly" | "splat" | "fade">("fly");
+  const [phase, setPhase] = useState<"wait" | "fly" | "splat" | "fade">("wait");
   useEffect(() => {
-    const t = [
-      window.setTimeout(() => { setPhase("splat"); void playSound("gobi-splat"); }, 850),
-      window.setTimeout(() => setPhase("fade"), LENGTH - 1200),
-      window.setTimeout(onDone, LENGTH),
-    ];
-    return () => t.forEach(clearTimeout);
+    // Get the splat sound ready first (at most a second and a half), so it lands exactly with the cauliflower.
+    let live = true;
+    const t: number[] = [];
+    const go = () => {
+      if (!live || t.length) return;
+      setPhase("fly");
+      t.push(
+        window.setTimeout(() => { setPhase("splat"); void playSound("gobi-splat"); }, 850),
+        window.setTimeout(() => setPhase("fade"), LENGTH - 1200),
+        window.setTimeout(onDone, LENGTH),
+      );
+    };
+    preloadSound("gobi-splat").finally(go);
+    const fallback = window.setTimeout(go, 1500);
+    return () => { live = false; clearTimeout(fallback); t.forEach(clearTimeout); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const who = by.length > 2 ? `${by.slice(0, -1).join(", ")} and ${by[by.length - 1]}` : by.join(" and ");
   return createPortal(
@@ -25,7 +34,7 @@ export default function GobiSplat({ by, onDone }: { by: string[]; onDone: () => 
       {phase === "fly" && (
         <svg className="gs-fly" viewBox="-60 -60 120 120" aria-hidden="true"><Cauliflower size={56} /></svg>
       )}
-      {phase !== "fly" && <>
+      {(phase === "splat" || phase === "fade") && <>
         <svg className="gs-mush" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <defs>
             <radialGradient id="gs-m" cx="45%" cy="40%"><stop offset="0" stopColor="#fffdf2" /><stop offset=".6" stopColor="#f6edcf" /><stop offset="1" stopColor="#e2d4a6" /></radialGradient>
