@@ -2585,3 +2585,4 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .sh-won .sh-cloud.top:nth-child(even), .sh-won .sh-cloud.bank:nth-child(even) { --out: -70vw; }
 .sh-won .sh-bolt { display: none; }
 @keyframes sh-bolt-loop { 0%, 12%, 100% { opacity: 0; } 2% { opacity: 1; } 5% { opacity: .15; } 8% { opacity: .9; } }
+.sh-gone .sh-body { opacity: 0; transform: translateY(70%) scale(.7); transition: none; }

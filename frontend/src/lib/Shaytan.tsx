@@ -88,7 +88,7 @@ function Clouds({ closing }: { closing: boolean }) {
   );
 }
 
-type Stage = "clouds" | "rise" | "offer" | "sink" | "grow" | "flee" | "leave";
+type Stage = "clouds" | "rise" | "offer" | "sink" | "gone" | "grow" | "flee" | "leave";
 
 /** What he says at each visit: the first offer, the second (bigger), and his "final offer". */
 const PITCH = [
@@ -119,8 +119,9 @@ export default function ShaytanScene({ name, offer, ladder, onAnswer, onDone, pr
     if (!accept && round < steps.length - 1) {
       // "No": he grumbles, sinks back into his clouds, and comes back with a bigger sack.
       setStage("sink");
-      window.setTimeout(() => { setRound((r) => r + 1); setStage("rise"); }, 1700);
-      window.setTimeout(() => setStage("offer"), 2900);
+      window.setTimeout(() => setStage("gone"), 1700);  // a pause: just the storm
+      window.setTimeout(() => { setRound((r) => r + 1); setStage("rise"); }, 3200);
+      window.setTimeout(() => setStage("offer"), 4600);
       return;
     }
     setStage(accept ? "grow" : "flee");
