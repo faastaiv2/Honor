@@ -2003,3 +2003,9 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .shop-ach { font-size: 12px; font-weight: 800; padding: 4px 8px; border-radius: 999px; background: #fff3d0; color: #7a4a00; text-decoration: none; text-align: center; line-height: 1.2; }
 .ach-pic { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; font-size: 13px; font-weight: 700; color: var(--mute); }
 .ach-pic-face { display: inline-grid; }
+.pic .pa-zap { animation: pa-zap 3.2s steps(1) infinite; opacity: 0; }
+.pic .pa-zap.late { animation-delay: 1.4s; }
+@keyframes pa-zap { 0%, 100% { opacity: 0; } 6% { opacity: 1; } 9% { opacity: .2; } 12% { opacity: 1; } 18% { opacity: 0; } }
+.pic .pa-drift { animation: pa-drift 9s ease-in-out infinite alternate; }
+@keyframes pa-drift { to { translate: 4px 0; } }
+@media (prefers-reduced-motion: reduce) { .pic .pa-zap { opacity: 1; } }
