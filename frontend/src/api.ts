@@ -178,6 +178,7 @@ export const api = {
   claimDaily: () => request<Profile>("/board/claim", send("POST", {})),
   takeGems: (victimId: string) => request<{ taken: number; from: string; profile: Profile }>(`/board/take/${encodeURIComponent(victimId)}`, send("POST", {})),
   godfatherSeen: () => request<{ ok: boolean }>("/board/profile/godfather-seen", send("POST", {})),
+  setAdminTheme: (theme: "white" | "dark") => request<{ theme: string }>("/admin/theme", send("PUT", { theme })),
   adminGems: () => request<Record<string, number>>("/admin/gems"),
   changeGems: (id: string, body: { delta?: number; balance?: number; note?: string }) =>
     request<{ balance: number; delta: number }>(`/admin/members/${id}/gems`, send("POST", body)),

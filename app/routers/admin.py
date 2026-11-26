@@ -137,6 +137,22 @@ class GemsIn(BaseModel):
     note: str = Field(default="", max_length=200)
 
 
+class ThemeIn(BaseModel):
+    theme: str = Field(pattern=r"^(white|dark)$")
+
+
+@router.put("/theme")
+def set_theme(body: ThemeIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    """The parent's own look: white or dark (members pick theirs in the shop)."""
+    from app.models import Admin
+    a = db.get(Admin, v.id)
+    if not a:
+        raise HTTPException(404, "Admin not found")
+    a.theme = body.theme
+    db.commit()
+    return {"theme": a.theme}
+
+
 @router.get("/gems")
 def gem_balances(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
     """Every member's gem balance."""

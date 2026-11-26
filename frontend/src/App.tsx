@@ -54,7 +54,7 @@ export default function App() {
 
   useEffect(() => {
     // White is the base look for everyone (sign-in, admin, new members); members can pick another theme.
-    document.documentElement.dataset.skin = viewer && !viewer.is_admin ? info?.viewer.theme || "white" : "white";
+    document.documentElement.dataset.skin = viewer ? info?.viewer.theme || "white" : "white";
   }, [viewer, info]);
 
   if (loading) return <p className="band note">Loading…</p>;
@@ -89,7 +89,15 @@ export default function App() {
             {viewer.is_admin && <NavLink to="/tasks">Tasks</NavLink>}
             {viewer.is_admin && <NavLink to="/animations">Animations</NavLink>}
             {viewer.is_admin && <NavLink to="/admin" end>Members</NavLink>}
-            <span className="who"><span>{viewer.name}</span><button onClick={signOut}>Sign out</button></span>
+            <span className="who"><span>{viewer.name}</span>
+              {viewer.is_admin && info && <button className="theme-toggle" aria-label={info.viewer.theme === "dark" ? "Switch to the white theme" : "Switch to the dark theme"}
+                title={info.viewer.theme === "dark" ? "White theme" : "Dark theme"}
+                onClick={async () => {
+                  const next = info.viewer.theme === "dark" ? "white" : "dark";
+                  setInfo({ ...info, viewer: { ...info.viewer, theme: next } });
+                  await api.setAdminTheme(next).catch(() => undefined);
+                }}>{info.viewer.theme === "dark" ? "☀️" : "🌙"}</button>}
+              <button onClick={signOut}>Sign out</button></span>
           </nav>
         </div>
       </header>

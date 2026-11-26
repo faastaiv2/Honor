@@ -1028,3 +1028,12 @@ def test_an_undone_fall_calls_the_goblins_off(client, family, db):
         prof = client.get("/api/board/profile", headers=h).json()
     db.refresh(m)
     assert not prof.get("raid") and m.gems_stolen == 0 and m.raid_owed == -1
+
+
+def test_admin_can_switch_to_dark(client, family):
+    ha, h = auth(client, admin=True), auth(client, family["A"])
+    assert client.get("/api/board/today", headers=ha).json()["viewer"]["theme"] == "white"
+    assert client.put("/api/admin/theme", headers=ha, json={"theme": "dark"}).json() == {"theme": "dark"}
+    assert client.get("/api/board/today", headers=ha).json()["viewer"]["theme"] == "dark"
+    assert client.put("/api/admin/theme", headers=ha, json={"theme": "pink"}).status_code == 422
+    assert client.put("/api/admin/theme", headers=h, json={"theme": "dark"}).status_code == 403

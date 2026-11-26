@@ -10,7 +10,7 @@ from app import scoring
 from app.db import get_db
 from app.deps import Viewer, current_viewer
 from app.makeup import check_week, remaining, week_start
-from app.models import GemTake, AchievementClaim, DailyClaim, DayLog, Member, Purchase
+from app.models import Admin, GemTake, AchievementClaim, DailyClaim, DayLog, Member, Purchase
 from app.achievements import BY_KEY as ACHIEVEMENT_BY_KEY, Facts, evaluate as evaluate_achievements
 from app.progress import Progress, gems_earned
 from app.routers.events import placings, unseen_win
@@ -103,7 +103,7 @@ def today_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db
         "task_count": len(load_tasks(db)),
         "avatars": AVATARS,
         "viewer": {"kind": v.kind, "id": v.id, "name": v.name, "is_admin": v.is_admin,
-                   "theme": _theme_of(db.get(Member, v.id)) if v.kind == "member" else "white"},
+                   "theme": _theme_of(db.get(Member, v.id)) if v.kind == "member" else _admin_theme(db, v)},
         "gems": {"per_task": GEMS_PER_TASK, "full_day": GEMS_FOR_FULL_DAY, "per_level": GEMS_PER_LEVEL, "per_rank": RANK_GEMS},
     }
 
@@ -380,6 +380,14 @@ def set_avatar(body: AvatarIn, v: Viewer = Depends(current_viewer), db: Session 
 
 
 _RANK_ORDER = [t.key for t in TIERS]
+
+
+ADMIN_THEMES = ("white", "dark")
+
+
+def _admin_theme(db: Session, v: Viewer) -> str:
+    a = db.get(Admin, v.id)
+    return a.theme if a and a.theme in ADMIN_THEMES else "white"
 
 
 def _theme_of(m: Member) -> str:

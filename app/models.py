@@ -22,6 +22,7 @@ class Admin(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(80))
     password_hash: Mapped[str] = mapped_column(String(100))
+    theme: Mapped[str] = mapped_column(String(16), default="white")  # the parent's own look: "white" or "dark"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
