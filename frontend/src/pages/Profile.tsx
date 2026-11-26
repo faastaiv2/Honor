@@ -55,8 +55,13 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const pct = p.legendary || !p.next || nextMin === null || t.min === null ? 100 : Math.max(6, Math.min(100, ((p.level - t.min) / (nextMin - t.min)) * 100));
   // Pictures: free ones first, then the shop by rarity (common, rare, epic, legendary), cheapest first in each.
   const rank = (it: ShopItem) => (it.rarity ? RARITY.findIndex((r) => r.key === it.rarity) + 1 : 0);
-  const items = tab === "frame" ? p.frames : tab === "theme" ? p.themes
-    : [...p.avatars].sort((a, b) => rank(a) - rank(b) || a.price - b.price || Number(!!a.unlock) - Number(!!b.unlock));
+  // Within each group: free first, then cheapest to dearest, and pictures won by achievements last.
+  const group = (it: ShopItem) => (it.unlock ? 2 : it.price > 0 ? 1 : 0);
+  const byPrice = (a: ShopItem, b: ShopItem) => group(a) - group(b) || a.price - b.price;
+  // Frames and themes: special and rank ones first (in rank order, as listed), then the shop ones by price.
+  const looks = (list: ShopItem[]) => [...list.filter((x) => x.price === 0), ...list.filter((x) => x.price > 0).sort((a, b) => a.price - b.price)];
+  const items = tab === "frame" ? looks(p.frames) : tab === "theme" ? looks(p.themes)
+    : [...p.avatars].sort((a, b) => rank(a) - rank(b) || byPrice(a, b));
   const shamed = !!p.member.shamed; // on the Pillar of Shame: picture and frame are locked
   const current = tab === "frame" ? (p.member.own_frame ?? p.member.frame) || "plain" : tab === "theme" ? p.member.theme || "white" : (p.member.own_avatar ?? p.member.avatar);
   const lockedLook = shamed && tab !== "theme";
