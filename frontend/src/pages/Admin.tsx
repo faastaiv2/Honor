@@ -236,12 +236,14 @@ function StartDate({ settings, today, onSave }: { settings: Settings; today: str
   return (
     <section className="card sd">
       <h2>Start date</h2>
-      <p className="sd-now">Honor started counting on <b>{nice(settings.score_from)}</b>{days > 0 ? ` · day ${days}` : " · not started yet"}.</p>
+      <p className="sd-now">{days > 0
+        ? <>The program started on <b>{nice(settings.score_from)}</b> · today is day {days}.</>
+        : <>The program starts on <b>{nice(settings.score_from)}</b> · not started yet. Until then members can only preview their tasks.</>}</p>
       {!sure ? (
         <>
           <button className="sd-today" onClick={() => setSure(true)} disabled={settings.score_from === today}>▶ Start from today</button>
           <div className="sd-pick">
-            <input type="date" aria-label="Start date" value={pick} max={today} onChange={(e) => setPick(e.target.value)} />
+            <input type="date" aria-label="Start date" value={pick} onChange={(e) => setPick(e.target.value)} />
             <button disabled={!pick || pick === settings.score_from} onClick={() => onSave(pick)}>Set this date</button>
           </div>
           <p className="field-hint">Days before the start date don't count for Honor, cuts or streaks. Week 1 is the week it starts.</p>
