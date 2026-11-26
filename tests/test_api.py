@@ -1133,10 +1133,10 @@ def test_deploy_shaytan_and_what_follows(client, family, db):
     a, b = at_today()
     with a, b:
         prof = client.get("/api/board/profile", headers=h).json()
-        assert prof["shaytan"] == {"id": t["id"], "show": "offer", "offer": 50}
+        assert prof["shaytan"] == {"id": t["id"], "show": "offer", "offer": 50, "ladder": [50, 100, 500]}
         assert client.post(f"/api/tests/{t['id']}/answer", headers=hb, json={"accept": True}).status_code == 403
         before = prof["level"]
-        assert client.post(f"/api/tests/{t['id']}/answer", headers=h, json={"accept": True}).json() == {"answer": "yes"}
+        assert client.post(f"/api/tests/{t['id']}/answer", headers=h, json={"accept": True, "refusals": 1}).json() == {"answer": "yes"}
         assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == prof["gems"]["balance"]  # no gems: he lied
         assert client.post(f"/api/tests/{t['id']}/reward", headers=ha, json={"gems": 10}).status_code == 400
         assert client.post(f"/api/tests/{t['id']}/cut", headers=ha, json={"levels": 2}).json()["cut"] == 2
@@ -1153,4 +1153,7 @@ def test_deploy_shaytan_and_what_follows(client, family, db):
         client.post(f"/api/tests/{t2['id']}/reward", headers=ha, json={"gems": 30})
         prof = client.get("/api/board/profile", headers=hb).json()
         assert prof["gems"]["balance"] == g + 30 and prof["shaytan"]["show"] == "reward"
-        assert [x["answer"] for x in client.get("/api/tests", headers=ha).json()] == ["no", "yes"]
+        listed = client.get("/api/tests", headers=ha).json()
+        assert [x["answer"] for x in listed] == ["no", "yes"]
+        assert (listed[0]["refusals"], listed[0]["final_offer"]) == (3, 1000)  # started at 100: turned down 100, 200, 1000
+        assert (listed[1]["refusals"], listed[1]["final_offer"]) == (1, 100)  # said no to 50, yes to 100

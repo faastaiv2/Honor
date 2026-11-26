@@ -249,8 +249,8 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} jewel={reward.jewel} sound={reward.win ? "event-win" : undefined}
         onDone={() => { if (reward.win) api.winSeen(reward.win).catch(() => undefined); setReward(null); }} />}
       {p?.shaytan?.show === "offer" && !godfather && raid === null && !rankUp && !reward && (() => { const s = p.shaytan!; return (
-        <ShaytanScene name={p.member.name} offer={s.show === "offer" ? s.offer : 50}
-          onAnswer={async (accept) => { await api.answerShaytan(s.id, accept).catch(() => undefined); }}
+        <ShaytanScene name={p.member.name} offer={s.show === "offer" ? s.offer : 50} ladder={s.show === "offer" ? s.ladder : undefined}
+          onAnswer={async (accept, refusals) => { await api.answerShaytan(s.id, accept, refusals).catch(() => undefined); }}
           onDone={() => { api.profile().then(setP).catch(() => undefined); notifyChanged(); }} />); })()}
       {p?.shaytan?.show === "cut" && !rankUp && !reward && (() => { const s = p.shaytan!; return (
         <ShaytanCut levels={s.show === "cut" ? s.levels : 1}

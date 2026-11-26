@@ -34,7 +34,8 @@ export default function Tests() {
       <div className="card ts-deploy">
         <h2>😈 Deploy Shaytan</h2>
         <p className="note">Dark clouds roll in on the member's screen and Shaytan appears with a sack of gems: he offers them to skip today's tasks.
-          If they say yes he laughs (there are no gems) and vanishes in fire; if they say no he is blown away. Then you decide what happens below.</p>
+          Each "no" brings him back with a bigger offer (then 100, then 500). If they say yes he laughs (there are no gems) and vanishes in fire;
+          after the third "no" he is blown away. Then you decide what happens below.</p>
         <div className="ts-row">
           <select value={who} onChange={(e) => setWho(e.target.value)} aria-label="Member">
             {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -55,8 +56,9 @@ export default function Tests() {
                 <div className="ts-head">
                   <Avatar avatar={t.member.avatar} color="#ffffff" size={36} />
                   <b>{t.member.name}</b>
-                  <span className={`ts-state ${t.answer || "wait"}`}>{t.answer === "yes" ? "😈 Said yes" : t.answer === "no" ? "🛡️ Said no" : "⏳ Waiting"}</span>
-                  <small className="note">{fmt(t.created_at.slice(0, 10), { day: "numeric", month: "short" })} · offer {t.offer} gems</small>
+                  <span className={`ts-state ${t.answer || "wait"}`}>{t.answer === "yes" ? `😈 Said yes to ${t.final_offer}` : t.answer === "no" ? "🛡️ Said no 3 times" : "⏳ Waiting"}</span>
+                  <small className="note">{fmt(t.created_at.slice(0, 10), { day: "numeric", month: "short" })} · offers {t.ladder.join(" → ")} gems
+                    {t.answer === "yes" && t.refusals > 0 ? ` · refused ${t.refusals} first` : ""}</small>
                 </div>
                 {t.answer === "" && <div className="ts-row"><span className="ts-done">Shaytan appears the next time {t.member.name} opens the app.</span>
                   <button onClick={() => act(() => api.cancelTest(t.id), "Called off")}>Call off</button></div>}

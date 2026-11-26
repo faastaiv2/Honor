@@ -65,22 +65,39 @@ function Clouds({ closing }: { closing: boolean }) {
   );
 }
 
-type Stage = "clouds" | "rise" | "offer" | "grow" | "flee" | "leave";
+type Stage = "clouds" | "rise" | "offer" | "sink" | "grow" | "flee" | "leave";
 
-export default function ShaytanScene({ name, offer, onAnswer, onDone, preview = false }: {
-  name: string; offer: number; onAnswer?: (accept: boolean) => Promise<void> | void; onDone: () => void; preview?: boolean;
+/** What he says at each visit: the first offer, the second (bigger), and his "final offer". */
+const PITCH = [
+  (n: string) => <>Psst… <b className="who">{n}</b>! Skip your tasks today, and I'll give you</>,
+  () => <>Hmm… you're tough. Fine! Skip just today and I'll give you</>,
+  () => <>Okay, okay! My <b className="who">FINAL</b> offer. Skip today and take</>,
+];
+
+export default function ShaytanScene({ name, offer, ladder, onAnswer, onDone, preview = false }: {
+  name: string; offer: number; ladder?: number[]; onAnswer?: (accept: boolean, refusals: number) => Promise<void> | void; onDone: () => void; preview?: boolean;
 }) {
+  const steps = ladder && ladder.length ? ladder : [offer, 100, 500];
   const [stage, setStage] = useState<Stage>("clouds");
+  const [round, setRound] = useState(0);
   useEffect(() => {
     const t = [window.setTimeout(() => setStage("rise"), 1500), window.setTimeout(() => setStage("offer"), 2900)];
     return () => t.forEach(clearTimeout);
   }, []);
   async function answer(accept: boolean) {
+    if (!accept && round < steps.length - 1) {
+      // "No": he grumbles, sinks back into his clouds, and comes back with a bigger sack.
+      setStage("sink");
+      window.setTimeout(() => { setRound((r) => r + 1); setStage("rise"); }, 1700);
+      window.setTimeout(() => setStage("offer"), 2900);
+      return;
+    }
     setStage(accept ? "grow" : "flee");
-    if (!preview) await onAnswer?.(accept);
+    if (!preview) await onAnswer?.(accept, round);
     window.setTimeout(() => setStage("leave"), accept ? 3600 : 2600);
     window.setTimeout(onDone, accept ? 5000 : 3800);
   }
+  const amount = steps[Math.min(round, steps.length - 1)];
   const fire = stage === "grow" || (stage === "leave" && true);
   return createPortal(
     <div className={`sh sh-${stage}`} role="dialog" aria-modal="true" aria-label="Shaytan appears">
@@ -88,17 +105,18 @@ export default function ShaytanScene({ name, offer, onAnswer, onDone, preview = 
       <Clouds closing={stage === "leave"} />
       <div className="sh-stage">
         {fire && <div className="sh-fire" aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
-        <div className="sh-body"><Devil /></div>
+        <div className="sh-body" style={{ ["--sack" as string]: 1 + round * 0.35 }}><Devil /></div>
         {stage === "flee" && <div className="sh-poof" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
       </div>
       <div className="sh-talk">
         {stage === "offer" && <>
-          <p className="sh-bubble">Psst… <b>{name}</b>! Skip your tasks today, and I'll give you <b>{offer} <Gem /></b>. Deal?</p>
+          <p className={`sh-bubble r${round}`} key={round}>{PITCH[Math.min(round, 2)](name)} <b className="sh-amount">{amount} <Gem /></b>. Deal?</p>
           <div className="sh-choices">
             <button className="sh-yes" onClick={() => answer(true)}>😈 Yes, deal!</button>
             <button className="sh-no" onClick={() => answer(false)}>🛡️ No! Aʿūdhu billāh</button>
           </div>
         </>}
+        {stage === "sink" && <p className="sh-bubble grumble">Grrr… we'll see about that!</p>}
         {stage === "grow" && <p className="sh-bubble evil">HA HA HA! There are no gems, {name}. My promises are empty!</p>}
         {stage === "flee" && <p className="sh-bubble good">Aʿūdhu billāhi min ash-shayṭān ir-rajīm. He's gone! Well done, {name} 🌟</p>}
       </div>

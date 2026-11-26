@@ -81,8 +81,8 @@ export interface News {
 }
 export interface NewsIn { title: string; body: string; emoji: string; pinned: boolean }
 export interface ShaytanTest { id: string; member: { id: string; name: string; avatar: string }; offer: number; answer: "" | "yes" | "no";
-  answered_at: string | null; cut: number; reward: number; posted: boolean; created_at: string }
-export type ShaytanShow = { id: string; show: "offer"; offer: number } | { id: string; show: "cut"; levels: number } | { id: string; show: "reward"; gems: number };
+  answered_at: string | null; refusals: number; final_offer: number; ladder: number[]; cut: number; reward: number; posted: boolean; created_at: string }
+export type ShaytanShow = { id: string; show: "offer"; offer: number; ladder: number[] } | { id: string; show: "cut"; levels: number } | { id: string; show: "reward"; gems: number };
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 
 export class ApiError extends Error {
@@ -195,7 +195,7 @@ export const api = {
   cutTest: (id: string, levels: number) => request<ShaytanTest>(`/tests/${id}/cut`, send("POST", { levels })),
   rewardTest: (id: string, gems: number) => request<ShaytanTest>(`/tests/${id}/reward`, send("POST", { gems })),
   postTest: (id: string) => request<ShaytanTest>(`/tests/${id}/post`, send("POST", {})),
-  answerShaytan: (id: string, accept: boolean) => request<{ answer: string }>(`/tests/${id}/answer`, send("POST", { accept })),
+  answerShaytan: (id: string, accept: boolean, refusals = 0) => request<{ answer: string }>(`/tests/${id}/answer`, send("POST", { accept, refusals })),
   shaytanSeen: (id: string, what: "cut" | "reward") => request<{ ok: boolean }>(`/tests/${id}/seen`, send("POST", { what })),
   adminGems: () => request<Record<string, number>>("/admin/gems"),
   changeGems: (id: string, body: { delta?: number; balance?: number; note?: string }) =>

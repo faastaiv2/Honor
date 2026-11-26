@@ -276,6 +276,8 @@ class Temptation(Base):
     offer: Mapped[int] = mapped_column(Integer, default=50)
     answer: Mapped[str] = mapped_column(String(8), default="")  # "", "yes" or "no"
     answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    refusals: Mapped[int] = mapped_column(Integer, default=0)  # how many offers they turned down (up to 3)
+    final_offer: Mapped[int] = mapped_column(Integer, default=0)  # the offer they said yes to (or the last one refused)
     cut: Mapped[int] = mapped_column(Integer, default=0)  # Honor taken away afterwards
     cut_seen: Mapped[bool] = mapped_column(Boolean, default=True)
     reward: Mapped[int] = mapped_column(Integer, default=0)  # gems given for refusing
