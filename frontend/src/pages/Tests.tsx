@@ -37,7 +37,7 @@ export default function Tests() {
         <p className="note">Dark clouds roll in on the member's screen and Shaytan appears with a sack of gems: he offers them to skip today's tasks.
           Each "no" brings him back with a bigger offer (then 100, then 500). If they say yes he laughs (there are no gems), vanishes in fire,
           and their Honor is cut straight away by the amount you set (they see why);
-          after the third "no" he is blown away. Then you decide what happens below.</p>
+          after the third "no" he is blown away and they earn the “Beat Shaytan” achievement (+30 gems).</p>
         <div className="ts-row">
           <select value={who} onChange={(e) => setWho(e.target.value)} aria-label="Member">
             {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -73,11 +73,7 @@ export default function Tests() {
                     : <button onClick={() => act(() => api.postTest(t.id), "Posted to Community")}>📣 Post "worked with Shaytan"</button>}
                   {t.cut > 0 && <span className="ts-done">Cut so far: −{t.cut}{t.auto_cut > 0 ? ` (−${t.auto_cut} automatic)` : ""}</span>}
                 </div>}
-                {t.answer === "no" && <div className="ts-row">
-                  <input inputMode="numeric" value={amount[t.id] ?? "20"} onChange={(e) => setAmount({ ...amount, [t.id]: e.target.value.replace(/\D/g, "").slice(0, 4) })} aria-label="Gems to give" />
-                  <button className="primary" onClick={() => act(() => api.rewardTest(t.id, n(t.id, 20)), `Gave ${n(t.id, 20)} gems to ${t.member.name}`)}>Reward +{n(t.id, 20)} <Gem /></button>
-                  {t.reward > 0 && <span className="ts-done">Given so far: +{t.reward}</span>}
-                </div>}
+                {t.answer === "no" && <div className="ts-row"><span className="ts-done">🏅 Earned the “Beat Shaytan” achievement (+30 <Gem />){t.reward > 0 ? ` · you also gave +${t.reward}` : ""}</span></div>}
               </li>
             ))}
           </ul>

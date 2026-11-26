@@ -22,6 +22,7 @@ class Facts:
     third: int = 0
     oath: int = 0  # 1 once the member has sworn the Oath of Honor ("I SWEAR")
     godfather: int = 0  # 1 if the admin made them a Godfather
+    shaytan: int = 0  # times they turned Shaytan down three times
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,8 @@ ACHIEVEMENTS: list[Achievement] = [
     # Honor
     Achievement("oath", "I Swear", "Swear the Oath of Honor: mark tasks only after you do them", "Honor", "shield", "bronze", 1,
                 lambda f: f.oath, reward=5),
+    Achievement("shaytan", "Beat Shaytan", "Say no to all three of Shaytan's offers", "Honor", "shield", "bronze", 1,
+                lambda f: f.shaytan, reward=30),
     Achievement("godfather", "The Godfather", "Be named a Godfather of the family", "Honor", "godfather", "godfather", 1,
                 lambda f: f.godfather, reward=313, only_godfather=True),
     # Streaks

@@ -1154,6 +1154,10 @@ def test_deploy_shaytan_and_what_follows(client, family, db):
         # Bravo refuses and gets a reward
         t2 = client.post("/api/tests/shaytan", headers=ha, json={"member_id": family["B"].id, "offer": 100}).json()
         client.post(f"/api/tests/{t2['id']}/answer", headers=hb, json={"accept": False})
+        beat = next(x for x in client.get("/api/board/achievements", headers=hb).json()["items"] if x["key"] == "shaytan")
+        assert beat["unlocked"] and beat["gems"] == 30 and beat["tier"] == "bronze"
+        nope = next(x for x in client.get("/api/board/achievements", headers=h).json()["items"] if x["key"] == "shaytan")
+        assert not nope["unlocked"]  # Alpha said yes
         g = client.get("/api/board/profile", headers=hb).json()["gems"]["balance"]
         client.post(f"/api/tests/{t2['id']}/reward", headers=ha, json={"gems": 30})
         prof = client.get("/api/board/profile", headers=hb).json()
