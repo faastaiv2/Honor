@@ -220,7 +220,7 @@ SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c, _ in SHOP_PICTURES]
 _PICTURE_NAMES = {k: n for k, n in FREE_PICTURES} | {k: n for k, n, _, _ in SHOP_PICTURES}
 _PICTURE_RARITY = {k: r for k, _, _, r in SHOP_PICTURES}
 # Pictures earned by an achievement instead of gems: picture -> achievement key.
-PICTURE_UNLOCKS = {"squire": "oath", "eagle": "fajr30", "owl": "mulk30", "bear": "fit10", "lion": "streak7"}
+PICTURE_UNLOCKS = {"squire": "oath", "bear": "spark", "eagle": "shop1", "owl": "streak3", "lion": "bonus10"}  # easy, early achievements
 
 TIER_ORDER = [t.key for t in TIERS]
 FRAME_KEYS = {f[0] for f in FRAMES}

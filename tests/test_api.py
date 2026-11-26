@@ -891,7 +891,7 @@ def test_free_and_achievement_pictures(client, family):
     client.post("/api/board/oath", headers=h, json={"words": "I SWEAR"})
     assert client.put("/api/board/profile", headers=h, json={"avatar": "squire"}).status_code == 200
     assert client.put("/api/board/profile", headers=h, json={"avatar": "bunny"}).status_code == 200
-    assert not pics["eagle"]["available"] and pics["eagle"]["unlock"]["key"] == "fajr30"
+    assert not pics["eagle"]["available"] and pics["eagle"]["unlock"]["key"] == "shop1"
 
 
 def test_ticking_a_video_task_before_watching_means_swearing_again(client, family, db, watch_rule):
