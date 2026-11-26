@@ -119,7 +119,7 @@ GEMS_NEW_RATES_FROM = date(2026, 11, 26)
 GEMS_PER_TASK_BEFORE = 5
 GEMS_PER_LEVEL = 10        # the first time a member reaches each new level
 # Extra, the first time a member reaches each rank: the higher the rank, the bigger the reward.
-RANK_GEMS = {"low": 0, "member": 0, "bronze": 25, "silver": 50, "gold": 100, "platinum": 150, "emerald": 200, "sapphire": 300,
+RANK_GEMS = {"low": 0, "member": 0, "bronze": 10, "silver": 50, "gold": 100, "platinum": 150, "emerald": 200, "sapphire": 300,
              "ruby": 400, "diamond": 500, "obsidian": 750, "legendary": 1000}
 GEMS_FOR_LEGENDARY = RANK_GEMS["legendary"]
 # The daily streak chest: claim once a day while your streak is alive. Higher ranks get more.
