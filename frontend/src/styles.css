@@ -1418,7 +1418,7 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .ev-hero.live { background: radial-gradient(circle at 12% 20%, #ffffff33, transparent 45%), linear-gradient(135deg, #e0479a, #8a2fd0 55%, #2f5fd0); }
 .ev-hero-art { font-size: 64px; filter: drop-shadow(0 6px 12px #0006); animation: ach-bob 2.4s ease-in-out infinite; }
 .ev-kicker { margin: 0; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; font-size: 13px; color: #ffe9a8; }
-.ev-hero.live .ev-kicker { color: #fff; animation: ru-pulse 1.4s ease-in-out infinite; }
+.ev-hero.live .ev-kicker { color: #fff; }
 .ev-hero h1 { margin: 2px 0; font: clamp(28px, 6vw, 40px)/1.1 Marcellus, Georgia, serif; }
 .ev-theme { margin: 4px 0; font-size: 16px; } .ev-theme b { color: #ffe9a8; }
 .ev-sub { margin: 4px 0 10px; opacity: .92; font-weight: 600; }
@@ -2224,3 +2224,10 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .cm-likes small { color: var(--mute); font-weight: 700; }
 :root[data-skin=dark] .cm-win { background: linear-gradient(180deg, #2a2210, var(--paper) 40%); }
 :root[data-skin=dark] .cm-like.on { background: #3a1420; border-color: #7a2840; color: #ff8aa8; }
+
+.ev-ends { margin: 12px 0 4px; }
+.ev-ends > small { display: block; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; font-size: 12px; opacity: .9; }
+.ev-count.ev-count-hero { justify-content: center; margin: 6px 0 0; gap: 8px; }
+.ev-count-hero > span { min-width: 62px; padding: 8px; background: #ffffff26; box-shadow: inset 0 0 0 1px #ffffff40; backdrop-filter: blur(4px); text-align: center; }
+.ev-count-hero b { color: #fff; font-size: 28px; font-variant-numeric: tabular-nums; }
+.ev-count-hero small { color: #ffffffcc; }

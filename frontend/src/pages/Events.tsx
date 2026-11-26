@@ -65,15 +65,28 @@ async function shrink(file: File): Promise<string> {
   return c.toDataURL("image/jpeg", 0.82);
 }
 
-function Countdown({ day, at = "00:00" }: { day: string; at?: string }) {
+/** Time left until a moment on a day ("23:59" means the very end of the day). Ticks every second. */
+/** How far the board's clock (its time zone) is from this device's, from the server's "today" and "HH:MM". */
+const boardSkew = (today: string, clock: string) =>
+  Math.round((new Date(`${today}T${clock}:00`).getTime() - Date.now()) / 900_000) * 900_000;
+
+function Countdown({ day, at = "00:00", label = "Time until the tournament opens", onEnd, className = "", skew = 0 }: {
+  day: string; at?: string; label?: string; onEnd?: () => void; className?: string; skew?: number;
+}) {
   const [now, setNow] = useState(Date.now());
-  useEffect(() => { const t = window.setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
-  const target = new Date(`${day}T${at}:00`).getTime();
-  const left = Math.max(0, target - now);
-  const d = Math.floor(left / 86_400_000), h = Math.floor((left % 86_400_000) / 3_600_000), m = Math.floor((left % 3_600_000) / 60_000);
+  useEffect(() => { const t = window.setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  const target = new Date(`${day}T${at === "23:59" ? "23:59:59" : `${at}:00`}`).getTime();
+  const left = Math.max(0, target - (now + skew));
+  const ended = left === 0;
+  useEffect(() => { if (ended) onEnd?.(); }, [ended]); // eslint-disable-line react-hooks/exhaustive-deps
+  const d = Math.floor(left / 86_400_000), h = Math.floor((left % 86_400_000) / 3_600_000),
+    m = Math.floor((left % 3_600_000) / 60_000), s = Math.floor((left % 60_000) / 1000);
+  const two = (n: number) => String(n).padStart(2, "0");
   return (
-    <div className="ev-count" aria-label="Time until the tournament opens">
-      <span><b>{d}</b><small>days</small></span><span><b>{h}</b><small>hours</small></span><span><b>{m}</b><small>mins</small></span>
+    <div className={`ev-count ${className}`} role="timer" aria-label={label}>
+      {d > 0 && <span><b>{d}</b><small>{d === 1 ? "day" : "days"}</small></span>}
+      <span><b>{d > 0 ? h : two(h)}</b><small>hours</small></span><span><b>{two(m)}</b><small>mins</small></span>
+      {d === 0 && <span><b>{two(s)}</b><small>secs</small></span>}
     </div>
   );
 }
@@ -343,9 +356,11 @@ export default function Events() {
       <section className={`ev-hero${data.open ? " live" : ""}${heroBg.art ? "" : " photo"}`} style={{ background: heroBg.bg }}>
         {heroBg.art && <div className="ev-hero-art" aria-hidden="true">{heroBg.art}</div>}
         <div>
-          <p className="ev-kicker">{data.open ? `● Live now · until ${ampm(data.event!.closes)}`   : `${hero.day === data.today ? "Today" : fmt(hero.day, { weekday: "long", day: "numeric", month: "short" })} · ${hours(hero)}`}</p>
+          <p className="ev-kicker">{data.open ? `Open now · until ${allDay(data.event!) ? "midnight" : ampm(data.event!.closes)}` : `${hero.day === data.today ? "Today" : fmt(hero.day, { weekday: "long", day: "numeric", month: "short" })} · ${hours(hero)}`}</p>
           <h1>{hero.title}</h1>
           {hero.prompt ? <p className="ev-theme">Theme: <b>{hero.prompt}</b></p> : null}
+          {data.open && data.event && <div className="ev-ends"><small>Ends in</small>
+            <Countdown day={data.event.day} at={data.event.closes} label="Time left to enter" className="ev-count-hero" onEnd={load} skew={boardSkew(data.today, data.clock)} /></div>}
           <p className="ev-sub">Make something beautiful, take a photo and send it in. The best three win gems!</p>
           <div className="ev-prizes">
             <span className="gold">🥇 1st <b>{prizes["1"]}</b> <Gem /></span>
@@ -363,7 +378,7 @@ export default function Events() {
         <section className="card ev-closed">
           {data.next ? <>
             <h2>🔒 Opens {data.next.day === data.today ? "today" : fmt(data.next.day, { weekday: "long", day: "numeric", month: "short" })}{allDay(data.next) ? "" : ` at ${ampm(data.next.opens)}`}</h2>
-            <Countdown day={data.next.day} at={data.next.opens} />
+            <Countdown day={data.next.day} at={data.next.opens} skew={boardSkew(data.today, data.clock)} onEnd={load} />
             {!isAdmin && <button className="ev-enter" disabled>📷 Enter the tournament<small>Opens {data.next.day === data.today ? "today" : fmt(data.next.day, { weekday: "long" })}{allDay(data.next) ? "" : ` at ${ampm(data.next.opens)}`}</small></button>}
             <p className="note">{data.next.prompt ? <>Get ready now: <b>{data.next.prompt}</b></> : <>Get your entry for {data.next.title} ready now.</>}</p>
           </> : <>
