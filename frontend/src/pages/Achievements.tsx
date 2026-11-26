@@ -6,7 +6,7 @@ import Medal from "../lib/Medal";
 import GemReward from "../lib/GemReward";
 import { notifyChanged, useToast } from "../lib/events";
 
-const TIER_NAME: Record<string, string> = { bronze: "Bronze", silver: "Silver", gold: "Gold", legend: "Legend", godfather: "Godfather" };
+const TIER_NAME: Record<string, string> = { bronze: "Common", silver: "Rare", gold: "Epic", legend: "Legendary", godfather: "Godfather" };
 
 function Card({ a, onClaim }: { a: Achievement; onClaim: (a: Achievement) => void }) {
   const ready = a.unlocked && !a.claimed;

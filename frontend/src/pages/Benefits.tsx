@@ -191,10 +191,9 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
       <section className="card bx-earn">
         <h2>Ways to earn gems</h2>
         <div className="bx-earn-grid">
-          <div><span>✅</span><b>+{gems?.full_day ?? 20}</b><p>Finish every task in a day</p></div>
           <div><span>⬆️</span><b>+{gems?.per_level ?? 10}</b><p>Each new level, the first time</p></div>
           <div><span><RankIcon rank="gold" size={30} /></span><b>+10 to +1000</b><p>Each new rank, the first time</p></div>
-          <div><span>🗺️</span><b>+5 to +35</b><p>Weekly treasure map: Day 1 +5, Day 2 +10 … Day 7 +35. A new map every Sunday</p></div>
+          <div><span>🗺️</span><b>Daily treasure</b><p>Finish your tasks and collect a stop on the weekly map: Day 1 +5, Day 2 +10 … Day 6 +30, and a mystery chest on Day 7. A new map every Sunday</p></div>
           <div><span>🏅</span><b>Up to +500</b><p>Achievements</p></div>
           <div><span>🎨</span><b>Prizes</b><p>Win art tournaments in Events</p></div>
         </div>

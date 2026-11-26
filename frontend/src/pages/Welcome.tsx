@@ -87,6 +87,15 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
   const [godfather, setGodfather] = useState(false);
   const [newAch, setNewAch] = useState<NewAchievement[]>([]);
   const [mapOpen, setMapOpen] = useState(false);
+  const wantMap = useRef(false);
+  useEffect(() => {  // finishing the day opens the map at today's stop
+    const ask = () => { wantMap.current = true; };
+    window.addEventListener("honor:open-map", ask);
+    return () => window.removeEventListener("honor:open-map", ask);
+  }, []);
+  useEffect(() => {
+    if (wantMap.current && p?.daily.available) { wantMap.current = false; setMapOpen(true); }
+  }, [p]);
   const gfShown = useRef(false);
   const [place, setPlace] = useState<{ rank: number; of: number; ahead: string | null; gap: number } | null>(null);
   async function claim() {
@@ -96,7 +105,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       const np = await api.claimDaily();
       setClaimMsg("");
       setMapOpen(false);
-      setReward({ amount: gems, from: before, title: `Treasure map · Day ${dayN}`, chest: true, jewel: np.tier.color });
+      setReward({ amount: gems, from: before, title: dayN === 7 ? "Mystery chest · Day 7" : `Treasure map · Day ${dayN}`, chest: dayN === 7, jewel: np.tier.color });
       prev.current = np;
       setP(np);
     } catch (e) { setClaimMsg(e instanceof Error ? e.message : "Could not open the chest"); }

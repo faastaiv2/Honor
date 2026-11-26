@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from app import scoring
-from app.tiers import (CAP_WITHOUT_LEGENDARY, GEMS_FOR_FULL_DAY, GEMS_FOR_LEGENDARY, GEMS_NEW_RATES_FROM, GEMS_PER_LEVEL,
+from app.tiers import (FULL_DAY_PAID, FULL_DAY_UNTIL, CAP_WITHOUT_LEGENDARY, GEMS_FOR_FULL_DAY, GEMS_FOR_LEGENDARY, GEMS_NEW_RATES_FROM, GEMS_PER_LEVEL,
                        GEMS_PER_TASK, GEMS_PER_TASK_BEFORE, RANK_GEMS, LEGENDARY_LEVEL, LOW_FLOOR, OBSIDIAN_FLOOR, tier_for)
 
 
@@ -86,7 +86,8 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
         if d < GEMS_NEW_RATES_FROM:
             ticked = n_ticked * GEMS_PER_TASK_BEFORE
         else:  # a little for each task, the real prize for finishing the whole day
-            ticked = n_ticked * GEMS_PER_TASK + (GEMS_FOR_FULL_DAY if s.gain else 0)
+            full = FULL_DAY_PAID if d < FULL_DAY_UNTIL else GEMS_FOR_FULL_DAY
+            ticked = n_ticked * GEMS_PER_TASK + (full if s.gain else 0)
         p.gems_tasks += ticked
         for k in set(ticks or []):
             p.ticks[k] = p.ticks.get(k, 0) + 1

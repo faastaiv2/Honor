@@ -104,7 +104,7 @@ const CARDS = [
         <div className="tour-menu">🛡️ Excuse this task…</div>
       </div>
     ),
-    text: <>Sick or travelling? Tap <b>⋯</b> next to a task and give an honest reason. Your parents will see it. That's what Honor means.</>,
+    text: <>Sick or travelling? Tap <b>⋯</b> next to a task and give an honest reason. That's what Honor means.</>,
   },
 ];
 

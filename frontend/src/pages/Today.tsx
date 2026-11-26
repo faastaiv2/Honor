@@ -5,7 +5,6 @@ import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import Brazier from "../lib/Brazier";
 import QuestFilm from "./QuestFilm";
-import GemReward from "../lib/GemReward";
 import { api, ApiError, type DayView, type SignInMember, type TaskItem, type TodayInfo } from "../api";
 import { useAuth } from "../auth";
 import { addDays, fmt } from "../lib/dates";
@@ -83,7 +82,7 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
 }
 
 export default function Today({ info, member }: { info: TodayInfo | null; member?: string }) {
-  const perTask = info?.gems.per_task ?? 0, fullDay = info?.gems.full_day ?? 20;
+  const perTask = info?.gems.per_task ?? 0;
   const { viewer } = useAuth();
   const [members, setMembers] = useState<SignInMember[]>([]);
   const [memberId, setMemberId] = useState<string | null>(member ?? (viewer?.is_admin ? null : viewer?.id ?? null));
@@ -110,7 +109,6 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
 
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [questFilm, setQuestFilm] = useState(false);
-  const [dayReward, setDayReward] = useState(0);
   const [excusing, setExcusing] = useState<{ key: string; reason: string } | null>(null);
 
   function save(next: DayView, nextExcuse: string, taskExcuses?: Record<string, string>): Promise<DayView | undefined> {
@@ -139,10 +137,10 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
     }
     save(next, excuse).then((saved) => {
       const s = saved?.score;
-      const gained = (saved?.gems_today ?? 0) - (view.gems_today ?? 0);
       if (on && s && s.done === s.of && s.gain) {
         setToast("All tasks done! Your Honor arrives at midnight 🌙");
-        if (isMeNow && gained > 0) setDayReward(gained); else confetti();
+        confetti();
+        if (isMeNow) window.dispatchEvent(new Event("honor:open-map"));  // the daily reward: today's stop on the map
       }
       else if (on && saved?.mode === "makeup") setToast("Made up ✔");
     });
@@ -272,9 +270,9 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
         <div className={`goal${s.gain ? " won" : ""}`}>
           <span className="goal-title">{s.gain ? "Day complete! MashaAllah 🌟" : `Finish all ${s.of} to win:`}</span>
           <span className="goal-chip">🌙 +1 Honor at midnight</span>
-          <span className="goal-chip gem">+{fullDay} <Gem /></span>
           <span className="goal-chip">🔓 Bonus · +1 Honor</span>
-          <span className="goal-chip"><Brazier lit={s.gain > 0} /> Streak &amp; chest</span>
+          <span className="goal-chip"><Brazier lit={s.gain > 0} /> Streak</span>
+          <span className="goal-chip gem">🗺️ Today's treasure</span>
         </div>
       )}
       {view.mode === "preview" && (
@@ -304,7 +302,6 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
       {error && <p className="err" role="alert">{error}</p>}
       <Perks view={view} canAct={isMe || !!viewer?.is_admin}
         onQuest={async () => { try { await api.startQuest(view.member.id); load(); if (isMe) setQuestFilm(true); else { notifyChanged(); setToast("The Legendary quest has begun"); } } catch (e) { setError(e instanceof ApiError ? e.message : "Could not start"); } }} />
-      {dayReward > 0 && <GemReward amount={dayReward} title="Day complete!" onDone={() => setDayReward(0)} />}
       {questFilm && <QuestFilm name={view.member.name} onClose={() => { setQuestFilm(false); notifyChanged(); }} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </section>

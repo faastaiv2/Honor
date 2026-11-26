@@ -1094,3 +1094,19 @@ def test_weekly_map_grows_by_five_and_starts_again_on_sunday(client, family, db)
     with a, b:
         w = client.get("/api/board/profile", headers=h).json()["daily"]
         assert w["step"] == 0 and w["gems"] == 5
+
+
+def test_no_separate_gems_for_finishing_the_day_from_the_27th(client, family, db):
+    from app.progress import gems_earned
+    from app.services import get_settings_row, progress_for
+    m = family["A"]
+    mulk_last_night(db, m, date(2026, 11, 26))
+    h = auth(client, m)
+    for d in (date(2026, 11, 26), date(2026, 11, 27)):
+        a, b = at_today(d)
+        with a, b:
+            assert put_day(client, h, m, d, ALL).status_code == 200
+    cfg = get_settings_row(db)
+    p = progress_for(db, cfg, [m], date(2026, 11, 27))[m.id]
+    assert p.gems_tasks == 25  # 5 for Mulk on the 25th (old rate), 20 for the 26th; the 27th pays nothing extra: the map is the reward
+    assert gems_earned(p) >= 20
