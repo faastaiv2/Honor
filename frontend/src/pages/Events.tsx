@@ -365,7 +365,7 @@ export default function Events() {
             <h2>🔒 Opens {data.next.day === data.today ? "today" : fmt(data.next.day, { weekday: "long", day: "numeric", month: "short" })}{allDay(data.next) ? "" : ` at ${ampm(data.next.opens)}`}</h2>
             <Countdown day={data.next.day} at={data.next.opens} />
             {!isAdmin && <button className="ev-enter" disabled>📷 Enter the tournament<small>Opens {data.next.day === data.today ? "today" : fmt(data.next.day, { weekday: "long" })}{allDay(data.next) ? "" : ` at ${ampm(data.next.opens)}`}</small></button>}
-            <p className="note">Get your art ready now: drawing, painting, calligraphy, a model… anything you made yourself.</p>
+            <p className="note">{data.next.prompt ? <>Get ready now: <b>{data.next.prompt}</b></> : <>Get your entry for {data.next.title} ready now.</>}</p>
           </> : <>
             <h2>🗓️ New tournament next Saturday!</h2>
             <p className="note">{isAdmin ? "Create it above so the kids can see when it opens." : "Start your art now, so it's ready for Saturday. The best three win gems!"}</p>
@@ -410,7 +410,7 @@ export default function Events() {
       <details className="card ev-rules" open={!isAdmin && !data.mine}>
         <summary><h2>📜 How to take part</h2></summary>
         <ol>
-          <li><b>Make your art.</b> A drawing, painting, calligraphy, a model… anything you made yourself.{hero?.prompt ? <> This time the theme is <b>{hero.prompt}</b>.</> : null}</li>
+          <li><b>{hero?.prompt ? <>Make: {hero.prompt}</> : <>Make your entry for {hero?.title ?? "the tournament"}.</>}</b> It must be your own work.</li>
           <li><b>Wait for the tournament to open.</b> {hero ? <>It opens {hero.day === data.today ? "today" : fmt(hero.day, { weekday: "long", day: "numeric", month: "short" })}{allDay(hero) ? "" : `, ${hours(hero)}`}.</> : "Usually on Saturdays."}</li>
           <li><b>Tap “Enter the tournament”</b>, take a photo of your art (or choose one), give it a name, and send it.{(hero?.fee ?? 0) > 0 ? <> Entering costs <b>{hero!.fee} gems</b>.</> : " It's free."}</li>
           <li><b>One picture each.</b> You can replace it until the tournament closes.</li>
