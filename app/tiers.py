@@ -201,9 +201,9 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("doctor", "Little Doctor", 150, "common"), ("builder", "Builder", 150, "common"),
     # Rare
     ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("shieldmaiden", "Shieldmaiden", 250, "rare"),
-    ("fairy", "Fairy", 250, "rare"), ("swordsman", "Swordsman", 300, "rare"), ("chef", "Chef", 250, "rare"), ("pirate", "Pirate", 300, "rare"),
+    ("fairy", "Fairy", 0, "rare"), ("swordsman", "Swordsman", 300, "rare"), ("chef", "Chef", 250, "rare"), ("pirate", "Pirate", 300, "rare"),
     ("firefighter", "Firefighter", 300, "rare"), ("snowleopard", "Snow Leopard", 350, "rare"), ("unicorn", "Unicorn", 300, "rare"),
-    ("dino", "Dino", 300, "rare"), ("astronaut", "Astronaut", 400, "rare"), ("robot", "Robot", 400, "rare"),
+    ("dino", "Dino", 0, "rare"), ("astronaut", "Astronaut", 0, "rare"), ("robot", "Robot", 0, "rare"),
     ("ninja", "Ninja", 440, "rare"), ("parrot", "Parrot", 250, "rare"), ("giraffe", "Giraffe", 250, "rare"),
     ("octopus", "Octopus", 300, "rare"), ("whale", "Whale", 300, "rare"), ("ballerina", "Ballerina", 250, "rare"),
     ("scientist", "Scientist", 300, "rare"), ("wizardkid", "Little Wizard", 350, "rare"), ("herokid", "Super Kid", 350, "rare"),
@@ -211,7 +211,7 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("knight", "Knight", 500, "epic"), ("spartan", "Spartan", 500, "epic"), ("frostknight", "Frost Knight", 500, "epic"),
     ("warriorprincess", "Warrior Princess", 500, "epic"), ("crystalfox", "Crystal Fox", 600, "epic"),
     ("thundertiger", "Thunder Tiger", 650, "epic"), ("pharaohcat", "Pharaoh Cat", 750, "epic"),
-    ("phoenix", "Phoenix", 600, "epic"), ("dragon", "Dragon", 700, "epic"), ("kinglion", "Lion King", 800, "epic"),
+    ("phoenix", "Phoenix", 0, "epic"), ("dragon", "Dragon", 0, "epic"), ("kinglion", "Lion King", 800, "epic"),
     ("cosmiccat", "Cosmic cat", 900, "epic"), ("unicornepic", "Epic Unicorn", 750, "epic"),
     # Legendary
     ("dragonknight", "Dragon Knight", 1000, "legendary"), ("crystalqueen", "Crystal Queen", 1000, "legendary"),
@@ -225,7 +225,14 @@ SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c, _ in SHOP_PICTURES]
 _PICTURE_NAMES = {k: n for k, n in FREE_PICTURES} | {k: n for k, n, _, _ in SHOP_PICTURES}
 _PICTURE_RARITY = {k: r for k, _, _, r in SHOP_PICTURES}
 # Pictures earned by an achievement instead of gems: picture -> achievement key.
-PICTURE_UNLOCKS = {"squire": "oath", "bear": "spark", "eagle": "shop1", "owl": "streak3", "lion": "bonus10"}  # easy, early achievements
+PICTURE_UNLOCKS = {
+    # Common: easy, early achievements
+    "squire": "oath", "bear": "spark", "eagle": "shop1", "owl": "streak3", "lion": "bonus10",
+    # Rare: a bit of effort
+    "astronaut": "streak7", "dino": "days10", "robot": "fit10", "fairy": "chest7",
+    # Epic: hard
+    "phoenix": "streak30", "dragon": "days50",
+}
 
 TIER_ORDER = [t.key for t in TIERS]
 GODFATHER_FRAME = "godfather"  # only for members the admin marks as Godfather; never sold
