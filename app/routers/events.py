@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import Viewer, current_viewer, require_admin
-from app.models import Event, EventEntry, Member
+from app.models import Announcement, Event, EventEntry, Member
 from app.services import clock_for, gem_balance, get_settings_row, today_for
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -261,6 +261,17 @@ def judge(body: JudgeIn, v: Viewer = Depends(require_admin), db: Session = Depen
         if place != e.place:
             e.win_seen = False
         e.place, e.gems = place, prizes[place] if place else 0
+    winner = next((e for e in entries if e.place == 1), None)
+    from app.routers.news import system_post
+    if winner:  # tell the family (Community); a re-judged tournament keeps only its new winner
+        m = db.get(Member, winner.member_id)
+        system_post(db, "win", m, f"{m.name} won 1st place! 🥇", {"day": ev.day.isoformat(), "entry_id": winner.id,
+                    "art": winner.title, "event": ev.title, "gems": winner.gems}, body=ev.title, emoji="🥇",
+                    replace={"day": ev.day.isoformat()})
+    else:
+        for old in db.scalars(select(Announcement).where(Announcement.kind == "win")):
+            if (old.data or {}).get("day") == ev.day.isoformat():
+                db.delete(old)
     db.commit()
     return events(v, db)
 

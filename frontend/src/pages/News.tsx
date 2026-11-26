@@ -1,8 +1,29 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type News, type NewsIn } from "../api";
 import { notifyChanged, useToast } from "../lib/events";
+import Avatar from "../lib/Avatar";
+import Gem from "../lib/Gem";
 
-/** Announcements: news the parents post for the whole family. Members see what's new since they last looked. */
+/** Community: posts from the parents and from the app (new pictures, 1st places). Everyone can ❤️ them. */
+
+/** A tournament picture (fetched with the sign-in, like on the Events page). */
+function Art({ id, alt }: { id: string; alt: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => { let live = true; api.artUrl(id).then((u) => live && setSrc(u)).catch(() => undefined); return () => { live = false; }; }, [id]);
+  return src ? <img className="cm-art" src={src} alt={alt} /> : <span className="cm-art wait" aria-label={alt} />;
+}
+
+function Likes({ n, onLike }: { n: News; onLike: () => void }) {
+  const others = n.likers.filter(Boolean);
+  return (
+    <div className="cm-likes">
+      <button className={`cm-like${n.liked ? " on" : ""}`} onClick={onLike} aria-pressed={n.liked} aria-label={n.liked ? "Unlike" : "Like"}>
+        <span className="cm-heart" aria-hidden="true">{n.liked ? "❤️" : "🤍"}</span>{n.likes > 0 && <b>{n.likes}</b>}
+      </button>
+      {others.length > 0 && <small>{others.slice(0, 3).join(", ")}{n.likes > 3 ? ` and ${n.likes - 3} more` : ""} liked this</small>}
+    </div>
+  );
+}
 const EMOJIS = ["📣", "🎉", "🏆", "📅", "🕌", "⚠️", "🎁", "❤️", "🌙", "⭐"];
 const blank: NewsIn = { title: "", body: "", emoji: "📣", pinned: false };
 
@@ -48,13 +69,20 @@ export default function NewsPage({ admin }: { admin: boolean }) {
     await api.deleteNews(n.id).catch(() => undefined);
     setToast("Deleted"); load();
   };
+  const like = async (n: News) => {
+    setItems((xs) => xs && xs.map((x) => x.id === n.id ? { ...x, liked: !x.liked, likes: x.likes + (x.liked ? -1 : 1) } : x));
+    try {
+      const r = await api.likeNews(n.id);
+      setItems((xs) => xs && xs.map((x) => x.id === n.id ? { ...x, ...r } : x));
+    } catch { load(); }
+  };
   const togglePin = async (n: News) => { await api.editNews(n.id, { pinned: !n.pinned }).catch(() => undefined); load(); };
 
   return (
     <section className="news">
       <div className="card news-head">
-        <h2>📣 Announcements</h2>
-        {admin && <p className="note">Post news for the whole family. Members see a badge on this tab until they read it.</p>}
+        <h2>🏘️ Community</h2>
+        {admin && <p className="note">Post for the whole family. The app also posts here when someone puts on a new picture or wins 1st place. Everyone can ❤️ posts.</p>}
         {admin && !open && <button className="primary" onClick={() => { setForm(blank); setEditing(null); setOpen(true); }}>+ New announcement</button>}
         {admin && open && (
           <form className="news-form" onSubmit={(e) => { e.preventDefault(); save(); }}>
@@ -78,14 +106,41 @@ export default function NewsPage({ admin }: { admin: boolean }) {
         {error && <p className="error">{error}</p>}
       </div>
       {items === null ? <p className="note">Loading…</p> : items.length === 0 ? (
-        <div className="card news-empty"><span>📭</span><p>No announcements yet.</p></div>
-      ) : items.map((n) => (
+        <div className="card news-empty"><span>📭</span><p>Nothing here yet.</p></div>
+      ) : items.map((n) => n.kind === "picture" && n.member ? (
+        <article key={n.id} className={`card cm-post cm-picture${n.new ? " fresh" : ""}`}>
+          <div className="cm-pic"><Avatar avatar={n.data.avatar ?? n.member.avatar} color="#ffffff" frame={n.member.frame} size={96} /></div>
+          <div className="news-main">
+            <p className="cm-kicker">🖼️ New picture{n.new && <span className="news-new">New</span>}</p>
+            <h3>{n.member.name}{n.data.picture ? <> is now the <b>{n.data.picture}</b></> : " has a new picture"}</h3>
+            <small className="note">{when(n.created_at)}</small>
+            <Likes n={n} onLike={() => like(n)} />
+            {admin && <div className="news-tools"><button className="danger" onClick={() => remove(n)}>Delete</button></div>}
+          </div>
+        </article>
+      ) : n.kind === "win" && n.member ? (
+        <article key={n.id} className={`card cm-post cm-win${n.new ? " fresh" : ""}`}>
+          <div className="cm-win-head">
+            <Avatar avatar={n.member.avatar} color="#ffffff" frame={n.member.frame} size={56} />
+            <div>
+              <p className="cm-kicker">🥇 1st place{n.data.event ? ` · ${n.data.event}` : ""}{n.new && <span className="news-new">New</span>}</p>
+              <h3>{n.member.name} won 1st place!</h3>
+            </div>
+          </div>
+          {n.data.entry_id && <figure className="cm-figure"><Art id={n.data.entry_id} alt={n.data.art || "The winning picture"} />
+            <figcaption>{n.data.art ? <>“{n.data.art}”</> : null}{n.data.gems ? <span className="cm-prize">+{n.data.gems} <Gem /></span> : null}</figcaption></figure>}
+          <small className="note">{when(n.created_at)}</small>
+          <Likes n={n} onLike={() => like(n)} />
+          {admin && <div className="news-tools"><button className="danger" onClick={() => remove(n)}>Delete</button></div>}
+        </article>
+      ) : (
         <article key={n.id} className={`card news-item${n.pinned ? " pinned" : ""}${n.new ? " fresh" : ""}`}>
           <div className="news-icon" aria-hidden="true">{n.emoji}</div>
           <div className="news-main">
             <h3>{n.title}{n.new && <span className="news-new">New</span>}{n.pinned && <span className="news-pinned">📌 Pinned</span>}</h3>
             {n.body && <p className="news-body">{n.body}</p>}
             <small className="note">{when(n.created_at)}{n.author ? ` · ${n.author}` : ""}</small>
+            <Likes n={n} onLike={() => like(n)} />
             {admin && (
               <div className="news-tools">
                 <button onClick={() => edit(n)}>Edit</button>

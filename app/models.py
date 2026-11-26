@@ -228,12 +228,27 @@ class GemTake(Base):
 
 
 class Announcement(Base):
-    """News from the parents, shown on the Announcements tab."""
+    """A post on the Community tab: from a parent ("post"), or written by the app when something happens
+    ("picture": a member put on a new picture, "win": 1st place in a tournament)."""
     __tablename__ = "announcements"
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    kind: Mapped[str] = mapped_column(String(16), default="post")
+    member_id: Mapped[str | None] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), nullable=True, index=True)
+    data: Mapped[dict] = mapped_column(JSON, default=dict)
     title: Mapped[str] = mapped_column(String(120))
     body: Mapped[str] = mapped_column(Text, default="")
     emoji: Mapped[str] = mapped_column(String(8), default="📣")
     pinned: Mapped[bool] = mapped_column(Boolean, default=False)
     author: Mapped[str] = mapped_column(String(80), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class PostLike(Base):
+    """A ❤️ on a Community post (one per person)."""
+    __tablename__ = "post_likes"
+    __table_args__ = (UniqueConstraint("post_id", "who", name="uq_post_like"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    post_id: Mapped[str] = mapped_column(ForeignKey("announcements.id", ondelete="CASCADE"), index=True)
+    who: Mapped[str] = mapped_column(String(48))  # "member:<id>" or "admin:<id>"
+    name: Mapped[str] = mapped_column(String(80), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

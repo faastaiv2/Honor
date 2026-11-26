@@ -73,7 +73,12 @@ export interface EventsInfo {
 }
 export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number>; members: string[] }
 export interface Period extends PeriodIn { id: string }
-export interface News { id: string; title: string; body: string; emoji: string; pinned: boolean; author: string; created_at: string; new: boolean }
+export interface News {
+  id: string; kind: "post" | "picture" | "win"; title: string; body: string; emoji: string; pinned: boolean; author: string; created_at: string; new: boolean;
+  data: { avatar?: string; picture?: string; entry_id?: string; art?: string; event?: string; gems?: number };
+  member: { id: string; name: string; avatar: string; frame: string } | null;
+  likes: number; liked: boolean; likers: string[];
+}
 export interface NewsIn { title: string; body: string; emoji: string; pinned: boolean }
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 
@@ -143,6 +148,7 @@ export const api = {
   watched: (member_id: string, date: string, task: string) =>
     request<{ watched: string[] }>("/board/watched", send("POST", { member_id, date, task })),
   news: () => request<{ items: News[]; unread: number }>("/news"),
+  likeNews: (id: string) => request<{ likes: number; liked: boolean; likers: string[] }>(`/news/${encodeURIComponent(id)}/like`, send("POST", {})),
   newsSeen: () => request<{ unread: number }>("/news/seen", send("POST", {})),
   addNews: (body: NewsIn) => request<News>("/news", send("POST", body)),
   editNews: (id: string, body: Partial<NewsIn>) => request<News>(`/news/${encodeURIComponent(id)}`, send("PATCH", body)),

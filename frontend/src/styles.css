@@ -2202,3 +2202,25 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .gr-is-heap .gr-chest-btn, .gr-is-fly .gr-chest-btn, .gr-is-done .gr-chest-btn { animation: tc-away .7s .15s cubic-bezier(.4,0,.6,1) forwards; pointer-events: none; }
 @keyframes tc-away { to { opacity: 0; transform: translateY(14%) scale(.82); } }
 .gr-heap.rain .gr-gem { will-change: transform; }
+
+/* Community */
+.cm-post { display: flex; gap: 14px; align-items: center; }
+.cm-pic { flex: none; }
+.cm-kicker { margin: 0 0 2px; font-size: 12px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; color: #b8862b; display: flex; gap: 8px; align-items: center; }
+.cm-post h3 { margin: 0 0 4px; font: 20px/1.25 Marcellus, Georgia, serif; }
+.cm-post h3 b { font-weight: 400; color: #b8862b; }
+.cm-win { display: grid; gap: 10px; background: linear-gradient(180deg, #fff8e0, var(--paper) 40%); box-shadow: inset 0 0 0 2px #f0c040; }
+.cm-win-head { display: flex; gap: 12px; align-items: center; }
+.cm-figure { margin: 0; border-radius: 16px; overflow: hidden; background: #0001; }
+.cm-art { display: block; width: 100%; max-height: 420px; object-fit: contain; background: #f4f0e8; }
+.cm-art.wait { height: 220px; animation: fx-pulse 1.4s ease-in-out infinite; }
+.cm-figure figcaption { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; font-weight: 800; }
+.cm-prize { display: inline-flex; align-items: center; gap: 4px; color: #1a5fb4; }
+.cm-likes { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.cm-like { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 999px; font-weight: 900; background: var(--soft); border: 1px solid var(--line); }
+.cm-like.on { background: #ffe8ee; border-color: #ffb3c4; color: #c8103e; }
+.cm-like.on .cm-heart { animation: cm-pop .4s cubic-bezier(.2,1.6,.4,1); }
+@keyframes cm-pop { 0% { transform: scale(.4); } 70% { transform: scale(1.35); } 100% { transform: none; } }
+.cm-likes small { color: var(--mute); font-weight: 700; }
+:root[data-skin=dark] .cm-win { background: linear-gradient(180deg, #2a2210, var(--paper) 40%); }
+:root[data-skin=dark] .cm-like.on { background: #3a1420; border-color: #7a2840; color: #ff8aa8; }

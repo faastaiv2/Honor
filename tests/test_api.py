@@ -1037,3 +1037,33 @@ def test_admin_can_switch_to_dark(client, family):
     assert client.get("/api/board/today", headers=ha).json()["viewer"]["theme"] == "dark"
     assert client.put("/api/admin/theme", headers=ha, json={"theme": "pink"}).status_code == 422
     assert client.put("/api/admin/theme", headers=h, json={"theme": "dark"}).status_code == 403
+
+
+def test_community_posts_pictures_wins_and_likes(client, family, db):
+    from app.models import Event, EventEntry
+    h, hb, ha = auth(client, family["A"]), auth(client, family["B"]), auth(client, admin=True)
+    a, b = at_today()
+    with a, b:
+        client.post("/api/board/oath", headers=h, json={"words": "I swear"})
+        assert client.put("/api/board/profile", headers=h, json={"avatar": "cat"}).status_code == 200
+        assert client.put("/api/board/profile", headers=h, json={"avatar": "bunny"}).status_code == 200  # merged
+    feed = client.get("/api/news", headers=hb).json()["items"]
+    pics = [x for x in feed if x["kind"] == "picture"]
+    assert len(pics) == 1 and pics[0]["data"]["avatar"] == "bunny" and pics[0]["member"]["name"] == "Alpha"
+    pid = pics[0]["id"]
+    assert client.post(f"/api/news/{pid}/like", headers=hb).json() == {"likes": 1, "liked": True, "likers": ["Bravo"]}
+    client.post(f"/api/news/{pid}/like", headers=ha)
+    item = next(x for x in client.get("/api/news", headers=hb).json()["items"] if x["id"] == pid)
+    assert item["likes"] == 2 and item["liked"] and item["likers"] == ["Bravo", "Parent"]
+    assert client.post(f"/api/news/{pid}/like", headers=hb).json()["liked"] is False  # un-like
+    # 1st place in a tournament
+    sat = date(2026, 11, 28)
+    db.add(Event(day=sat, title="Art Tournament"))
+    e1 = EventEntry(event_day=sat, member_id=family["A"].id, title="Sunset", image=b"x")
+    e2 = EventEntry(event_day=sat, member_id=family["B"].id, title="Cat", image=b"x")
+    db.add_all([e1, e2])
+    db.commit()
+    assert client.post("/api/events/judge", headers=ha, json={"day": sat.isoformat(), "first": e1.id}).status_code == 200
+    client.post("/api/events/judge", headers=ha, json={"day": sat.isoformat(), "first": e2.id, "second": e1.id})
+    wins = [x for x in client.get("/api/news", headers=h).json()["items"] if x["kind"] == "win"]
+    assert len(wins) == 1 and wins[0]["member"]["name"] == "Bravo" and wins[0]["data"]["entry_id"] == e2.id

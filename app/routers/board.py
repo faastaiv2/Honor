@@ -609,6 +609,7 @@ def save_profile(body: ProfileIn, v: Viewer = Depends(current_viewer), db: Sessi
     owned = owned_items(db, m.id)
     prog = progress_for(db, cfg, [m], today_for(cfg))[m.id]
     earned = {a["key"] for a in _achievements(db, m, prog) if a["unlocked"]}
+    old_avatar = m.avatar
     for kind, value, keys in (("avatar", body.avatar, None), ("frame", body.frame, FRAME_KEYS), ("theme", body.theme, THEME_KEYS)):
         if value is None or value == "":
             if value == "":
@@ -621,6 +622,12 @@ def save_profile(body: ProfileIn, v: Viewer = Depends(current_viewer), db: Sessi
         if not item_available(kind, value, tier, owned, earned, godfather=bool(m.godfather)):
             raise HTTPException(403, "Unlock it first: climb to its rank or buy it in the shop")
         setattr(m, kind, value)
+    if body.avatar and m.avatar != old_avatar:  # tell the family (Community)
+        from app.routers.news import system_post
+        from app.tiers import _PICTURE_NAMES
+        pic = _PICTURE_NAMES.get(m.avatar, "")
+        system_post(db, "picture", m, f"{m.name} has a new picture{f': {pic}' if pic else ''}",
+                    {"avatar": m.avatar, "picture": pic}, emoji="🖼️", merge_minutes=15)
     db.commit()
     return _profile(db, m)
 

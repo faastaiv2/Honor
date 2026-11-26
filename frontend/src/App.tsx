@@ -88,7 +88,7 @@ export default function App() {
             <NavLink to="/" end>Today</NavLink>
             {!viewer.is_admin && <NavLink to="/leaderboard">Leaderboard</NavLink>}
             {!viewer.is_admin && <NavLink to="/achievements">Achievements</NavLink>}
-            <NavLink to="/news">News{unread > 0 && <span className="nbadge" aria-label={`${unread} new`}>{unread}</span>}</NavLink>
+            <NavLink to="/news">Community{unread > 0 && <span className="nbadge" aria-label={`${unread} new`}>{unread}</span>}</NavLink>
             <NavLink to="/events">Events</NavLink>
             {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Profile</NavLink>}
             <NavLink to="/benefits">Benefits</NavLink>
