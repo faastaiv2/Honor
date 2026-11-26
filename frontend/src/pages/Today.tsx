@@ -216,12 +216,17 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
   const taskBox = (t: TaskItem, cls = "", label: React.ReactNode = t.label, extra?: React.ReactNode, isBonus = false) => (
     <label key={t.key} className={`task ${cls}${t.done ? " done" : ""}${canTick(t, isBonus) ? "" : " off"}`}>
       <input type="checkbox" checked={t.done} disabled={!canTick(t, isBonus)} onChange={(e) => toggle(t.key, e.target.checked)} />
-      <span>{label}</span>{t.late && <i className="late">made up</i>}
-      {t.not_before && <i className="from" title={`Can be ticked from ${t.not_before}`}>🕛 from {t.not_before}</i>}
-      {t.link && <a className="watch" href={t.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>▶ Watch</a>}
-      {t.next_day && <i className={`night${t.counted_today ? " ok" : ""}`} title="Read at night: it counts for the next day">
-        🌙 for tomorrow · {t.counted_today ? "last night's counted ✓" : "not read last night"}</i>}
-      {extra}
+      <span className="task-name">{label}</span>
+      {(t.late || t.not_before || t.link || t.next_day || extra) && (
+        <span className="task-tags">
+          {t.late && <i className="late">made up</i>}
+          {t.not_before && <i className="from" title={`Can be ticked from ${t.not_before}`}>🕛 from {t.not_before}</i>}
+          {t.link && <a className="watch" href={t.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>▶ Watch</a>}
+          {t.next_day && <i className={`night${t.counted_today ? " ok" : ""}`} title="Read at night: it counts for the next day">
+            🌙 for tomorrow · {t.counted_today ? "last night's counted ✓" : "not read last night"}</i>}
+          {extra}
+        </span>
+      )}
       {perTask > 0 && pops[t.key] && <span className="gem-pop" key={pops[t.key]} aria-hidden="true">+{perTask} <Gem /></span>}
     </label>
   );

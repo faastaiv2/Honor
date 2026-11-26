@@ -1987,3 +1987,14 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 @keyframes pa-flap-r { 50% { rotate: 9deg; } }
 .pic .pa-wing { transform-box: view-box; transform-origin: 44px 52px; animation: pa-flap 2.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .pic * { animation: none !important; } }
+
+/* Task rows: the name keeps its room; the little tags sit to the right, or drop onto their own line when tight */
+label.task { flex-wrap: wrap; row-gap: 6px; }
+label.task > span.task-name.task-name { flex: 1 1 9em; min-width: 0; overflow-wrap: anywhere; }
+label.task > span.task-tags.task-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; margin-inline-start: auto; max-width: 100%; }
+label.task .task-tags > * { margin: 0; }
+.task i.night { white-space: normal; text-align: center; }
+label.task { container-type: inline-size; }
+label.task > span.task-tags.task-tags { container-type: normal; }
+@container (max-width: 420px) { label.task > span.task-tags.task-tags { flex: 1 1 100%; justify-content: flex-start; padding-inline-start: 40px; } }
+label.task.done .task-tags, label.task.done .task-tags span { text-decoration: none; color: inherit; }
