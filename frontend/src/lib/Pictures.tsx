@@ -1171,29 +1171,54 @@ const PICS: Record<string, Pic> = {
     <Smile y={64} w={5} />
     <Cheeks y={60} dx={15} />
   </> },
-  nightpanther: { bg: ["#1a1a4a", "#04020e"], draw: (id) => <>
+  nightpanther: { bg: ["#1c1a4a", "#05040f"], draw: (id) => <>
     <defs>
-      <radialGradient id={`${id}m`}><stop offset="0" stopColor="#fffbe0" /><stop offset=".7" stopColor="#e8e0ff" /><stop offset="1" stopColor="#a8a0e0" stopOpacity="0" /></radialGradient>
-      <radialGradient id={`${id}e`}><stop offset="0" stopColor="#fff8c0" /><stop offset=".5" stopColor="#ffd020" /><stop offset="1" stopColor="#c07000" /></radialGradient>
-      <linearGradient id={`${id}f`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3a3a5a" /><stop offset="1" stopColor="#0e0e1c" /></linearGradient>
+      <radialGradient id={`${id}m`} cx="50%" cy="50%" r="50%"><stop offset="0" stopColor="#fffdf0" /><stop offset=".75" stopColor="#f2ecd6" /><stop offset="1" stopColor="#d8d0b8" /></radialGradient>
+      <radialGradient id={`${id}mg`}><stop offset=".55" stopColor="#f6efd0" stopOpacity=".55" /><stop offset="1" stopColor="#f6efd0" stopOpacity="0" /></radialGradient>
+      <linearGradient id={`${id}f`} x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stopColor="#3a3650" /><stop offset=".45" stopColor="#16141f" /><stop offset="1" stopColor="#07060b" /></linearGradient>
+      <linearGradient id={`${id}rim`} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#9a8aff" /><stop offset=".5" stopColor="#9a8aff" stopOpacity="0" /><stop offset="1" stopColor="#6ad0ff" /></linearGradient>
+      <radialGradient id={`${id}e`} cx="45%" cy="40%"><stop offset="0" stopColor="#fffbd0" /><stop offset=".45" stopColor="#ffd23a" /><stop offset="1" stopColor="#d07a00" /></radialGradient>
+      <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff3c0" /><stop offset=".5" stopColor="#e0aa30" /><stop offset="1" stopColor="#8a5a00" /></linearGradient>
     </defs>
-    <circle className="pa-pulse" cx="50" cy="40" r="36" fill={`url(#${id}m)`} opacity=".55" />
-    <g className="pa-drift" opacity=".5"><ellipse cx="18" cy="70" rx="16" ry="4" fill="#5a5a90" /><ellipse cx="84" cy="22" rx="14" ry="3" fill="#5a5a90" /></g>
-    {[[12, 14], [90, 52], [24, 44], [78, 84], [10, 88]].map(([x, y], i) => <circle key={i} className="fx-twinkle" style={{ animationDelay: `${i * .4}s` }} cx={x} cy={y} r="1.4" fill="#fff" />)}
-    <path d="M14 100 Q18 76 34 72 Q50 82 66 72 Q82 76 86 100Z" fill={`url(#${id}f)`} />
-    <path d="M30 26 L26 8 L42 20Z M70 26 L74 8 L58 20Z" fill="#1e1e30" />
-    <path d="M31 22 L29 12 L38 19Z M69 22 L71 12 L62 19Z" fill="#6a3a8a" />
-    <path d="M50 16 C30 16 22 34 24 50 C26 66 38 76 50 76 C62 76 74 66 76 50 C78 34 70 16 50 16Z" fill={`url(#${id}f)`} />
-    <path d="M50 16 C44 30 44 40 50 46 C56 40 56 30 50 16Z" fill="#4a4a70" opacity=".6" />
+    {/* a big moon and a few stars */}
+    <circle className="pa-pulse" cx="68" cy="30" r="30" fill={`url(#${id}mg)`} />
+    <circle cx="68" cy="30" r="21" fill={`url(#${id}m)`} />
+    <g fill="#d8d0b8" opacity=".55"><circle cx="61" cy="24" r="3.2" /><circle cx="74" cy="36" r="2.2" /><circle cx="72" cy="22" r="1.4" /></g>
+    {[[12, 14, 1.4], [26, 30, 1], [16, 56, 1.2], [92, 62, 1.1], [36, 8, .9]].map(([x, y, r], i) =>
+      <circle key={i} className="fx-twinkle" style={{ animationDelay: `${i * .45}s` }} cx={x} cy={y} r={r} fill="#fff" />)}
+    {/* shoulders */}
+    <path d="M10 100 Q14 78 32 74 Q50 84 68 74 Q86 78 90 100Z" fill={`url(#${id}f)`} />
+    <path d="M12 100 Q16 80 32 76" stroke="#9a8aff" strokeWidth="1.4" fill="none" opacity=".6" />
+    {/* ears */}
+    <path d="M24 44 Q20 24 30 18 Q40 24 42 34Z M76 44 Q80 24 70 18 Q60 24 58 34Z" fill={`url(#${id}f)`} />
+    <path d="M27 38 Q25 26 31 22 Q37 27 38 33Z M73 38 Q75 26 69 22 Q63 27 62 33Z" fill="#3a2a4a" />
+    {/* head: wide cheeks, a narrower muzzle */}
+    <path d="M50 24 C34 24 22 34 22 50 C22 62 28 70 36 74 C40 78 45 80 50 80 C55 80 60 78 64 74 C72 70 78 62 78 50 C78 34 66 24 50 24Z" fill={`url(#${id}f)`} />
+    <path d="M50 24 C34 24 22 34 22 50 C22 62 28 70 36 74" fill="none" stroke={`url(#${id}rim)`} strokeWidth="1.3" opacity=".55" />
+    <path d="M78 50 C78 62 72 70 64 74" fill="none" stroke="#6ad0ff" strokeWidth="1.2" opacity=".45" />
+    {/* glossy highlights in the fur */}
+    <path d="M38 30 Q50 26 62 30" stroke="#ffffff" strokeWidth="1.6" fill="none" opacity=".18" strokeLinecap="round" />
+    <path d="M47 33 Q50 40 53 33" stroke="#ffffff" strokeWidth="1" fill="none" opacity=".15" />
+    {/* muzzle */}
+    <ellipse cx="50" cy="66" rx="12" ry="9" fill="#24202e" />
+    <path d="M45 61 Q50 58 55 61 L51.5 65 Q50 66 48.5 65Z" fill="#4a3a52" />
+    <path d="M50 66 v3 M50 69 q-4 3 -7 0 M50 69 q4 3 7 0" stroke="#8a7aa0" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+    <g fill="#8a7aa0" opacity=".7"><circle cx="42" cy="66" r=".8" /><circle cx="40" cy="68" r=".8" /><circle cx="58" cy="66" r=".8" /><circle cx="60" cy="68" r=".8" /></g>
+    {/* golden eyes, almond-shaped, glowing */}
     <g className="pa-glow">
-      <path d="M32 44 Q38 38 46 44 Q38 50 32 44Z" fill={`url(#${id}e)`} /><path d="M68 44 Q62 38 54 44 Q62 50 68 44Z" fill={`url(#${id}e)`} />
+      <path d="M31 49 Q38 42 45 49 Q38 54 31 49Z" fill={`url(#${id}e)`} />
+      <path d="M69 49 Q62 42 55 49 Q62 54 69 49Z" fill={`url(#${id}e)`} />
     </g>
-    <ellipse cx="39" cy="44" rx="1.2" ry="3.4" fill="#100800" /><ellipse cx="61" cy="44" rx="1.2" ry="3.4" fill="#100800" />
-    <path d="M44 56 Q50 52 56 56 L50 62Z" fill="#6a5a8a" />
-    <path d="M50 62 v3 M50 65 q-4 3 -8 0 M50 65 q4 3 8 0" stroke="#8a7aaa" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-    <path d="M32 58 h-14 M32 62 l-13 3 M68 58 h14 M68 62 l13 3" stroke="#a8a0e0" strokeWidth="1" strokeLinecap="round" opacity=".8" />
-    <path d="M36 80 Q50 88 64 80" stroke="#c8b8ff" strokeWidth="2.4" fill="none" />
-    <path className="pa-glow" d="M50 82 a5 5 0 1 0 4 8 a4 4 0 1 1 -4 -8z" fill="#fffbe0" />
+    <ellipse cx="38" cy="48.6" rx="1.3" ry="3.4" fill="#120800" /><ellipse cx="62" cy="48.6" rx="1.3" ry="3.4" fill="#120800" />
+    <circle cx="39.6" cy="47" r="1" fill="#fff" /><circle cx="63.6" cy="47" r="1" fill="#fff" />
+    <path d="M30 48 Q38 40 46 47 M70 48 Q62 40 54 47" stroke="#07060b" strokeWidth="1.4" fill="none" />
+    {/* whiskers */}
+    <g stroke="#c8c0e8" strokeWidth=".8" strokeLinecap="round" opacity=".75">
+      <path d="M38 67 L18 63 M38 69 L17 70 M38 71 L20 76" /><path d="M62 67 L82 63 M62 69 L83 70 M62 71 L80 76" />
+    </g>
+    {/* gold collar with a crescent */}
+    <path d="M34 80 Q50 88 66 80" stroke={`url(#${id}g)`} strokeWidth="3.4" fill="none" strokeLinecap="round" />
+    <path className="pa-glow" d="M50 84 a5.5 5.5 0 1 0 4.6 8.6 a4.4 4.4 0 1 1 -4.6 -8.6z" fill={`url(#${id}g)`} stroke="#8a5a00" strokeWidth=".6" />
   </> },
 };
 
