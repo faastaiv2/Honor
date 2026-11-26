@@ -1281,7 +1281,6 @@ button.shop-face:disabled { cursor: default; opacity: 1; }
 .gr-shadow { display: none; }
 .gr-gem { width: 21%; filter: drop-shadow(0 4px 6px #0006) drop-shadow(0 0 6px #4ab8ff55); }
 .gr-gem .gem-art { display: block; width: 100%; height: auto; overflow: visible; }
-.gr-heap:has(.tc) .gr-gem { animation-name: gr-burst; animation-duration: .9s; }
 .tc { position: absolute; left: 50%; bottom: -2%; width: 88%; translate: -50% 0; overflow: visible; }
 .tc-beams, .tc-mouth { opacity: 0; }
 .tc-seam { opacity: 0; filter: blur(2px); }
@@ -1731,14 +1730,13 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .tc-closed { animation: tc-in .55s cubic-bezier(.2,.8,.2,1) both, tc-breathe 2.6s .6s ease-in-out infinite; transform-origin: 50% 92%; }
 .tc-closed .tc-seam { animation: tc-glow 2.6s .6s ease-in-out infinite; }
 .tc-closed .tc-lock circle:first-of-type { animation: tc-glint 2.6s .6s ease-in-out infinite; }
-.gr-chest-btn:hover .tc-closed, .gr-chest-btn:active .tc-closed { animation-play-state: paused; filter: brightness(1.08) drop-shadow(0 0 18px #9fdcff66); }
+@media (hover: hover) { .gr-chest-btn:hover .tc-closed { filter: brightness(1.08) drop-shadow(0 0 18px #9fdcff66); } }
 .tc .tc-lid, .tc .tc-lock { transition: transform .7s cubic-bezier(.2,.8,.2,1), opacity .5s ease; }
 .tc-open .tc-lid { transform: translateY(-30px) rotate(-10deg) scaleY(.86); }
 .tc-open .tc-lock { transform: translateY(-26px) rotate(-10deg); opacity: 0; }
 .tc-open .tc-mouth { opacity: 1; transition: opacity .3s .15s; }
 .tc-open .tc-beams { animation: tc-beams 2.6s .2s ease-out both; }
 .gr-is-fly .tc { animation: tc-fade .6s ease-in forwards; }
-.gr-heap:has(.tc) .gr-gem { animation: gr-rise .9s cubic-bezier(.2,.8,.3,1) both; }
 .gr-is-fly .gr-heap .gr-gem { animation: gr-fly .75s cubic-bezier(.5,0,.8,.4) forwards !important; }
 .gr-collect.wait { visibility: hidden; }
 @keyframes tc-in { from { opacity: 0; transform: scale(.85); } }
@@ -2199,3 +2197,8 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .ach-pop-go { flex: none; padding: 8px 14px; border-radius: 12px; font-weight: 900; text-decoration: none; color: #3a2400; background: linear-gradient(180deg, #ffe58a, #f0b820); box-shadow: 0 3px 0 #b07a00; }
 .ach-pop-x { flex: none; width: 30px; min-height: 30px; padding: 0; border: 0; background: transparent; color: var(--mute); font-size: 22px; }
 @media (prefers-reduced-motion: reduce) { .ach-pop, .ach-pop.out, .ach-pop-medal, .ach-pop-shine { animation: none; } }
+
+/* The chest opens, then steps back and fades while its gems rain down onto the floor */
+.gr-is-heap .gr-chest-btn, .gr-is-fly .gr-chest-btn, .gr-is-done .gr-chest-btn { animation: tc-away .7s .15s cubic-bezier(.4,0,.6,1) forwards; pointer-events: none; }
+@keyframes tc-away { to { opacity: 0; transform: translateY(14%) scale(.82); } }
+.gr-heap.rain .gr-gem { will-change: transform; }

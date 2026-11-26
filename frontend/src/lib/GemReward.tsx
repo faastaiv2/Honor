@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Gem from "./Gem";
-import GemArt, { HexGem } from "./GemArt";
+import { HexGem } from "./GemArt";
 import { Particles } from "./particles";
 import { playSound } from "./sounds";
 import type { SoundKey } from "../api";
@@ -63,33 +63,12 @@ function Chest({ state, jewel = "#e3214a" }: { state: "closed" | "open"; jewel?:
   );
 }
 
-/** Spots for a pyramid of gems, bottom row first (in % of the heap box). */
-function heapSpots(n: number) {
-  const rows: number[] = [];
-  for (let w = 1; rows.reduce((a, b) => a + b, 0) < n; w++) rows.unshift(w);
-  const out: { x: number; y: number; r: number; s: number; tone: "blue" | "sky" | "deep" }[] = [];
-  const widest = rows[0];
-  let left = n;
-  rows.forEach((count, row) => {
-    for (let i = 0; i < count && left > 0; i++, left--) {
-      out.push({
-        x: 50 + (i - (count - 1) / 2) * (84 / widest) + (((row * 7 + i * 13) % 5) - 2),
-        y: 96 - row * (70 / Math.max(rows.length, 3)),
-        r: ((i * 37 + row * 23) % 36) - 18,
-        s: 0.9 + ((i + row) % 3) * 0.09,
-        tone: (["blue", "sky", "deep"] as const)[(i * 2 + row) % 3],
-      });
-    }
-  });
-  return out;
-}
-
 /** A tall cone of nuggets for the gem rain: wide at the bottom, each row a little narrower, packed and overlapping. */
 function coneSpots(n: number) {
   const rows: number[] = [];
   for (let w = 1; rows.reduce((a, b) => a + b, 0) < n; w++) rows.unshift(w);
   const widest = rows[0], h = rows.length;
-  const size = Math.min(24, 124 / widest); // % of the heap box, overlapping a little
+  const size = Math.min(22, 124 / widest); // % of the heap box, overlapping a little
   const out: { x: number; y: number; r: number; s: number; tone: "blue" | "sky" | "deep"; size: number; spill: number }[] = [];
   let left = n;
   rows.forEach((count, row) => {
@@ -114,9 +93,11 @@ function coneSpots(n: number) {
     const pick = side < 0 ? sameRow[0] : sameRow[sameRow.length - 1];
     if (pick && !pick.spill) pick.spill = side;
   };
-  edge(-1, 1); edge(1, 1); edge(1, 3); edge(-1, 4);
-  const front = out.find((g, k) => k >= rows[0] && !g.spill && g.x < 50);
-  if (front) front.spill = 2;
+  if (n >= 12) {
+    edge(-1, 1); edge(1, 1); edge(1, 3); edge(-1, 4);
+    const front = out.find((g, k) => k >= rows[0] && !g.spill && g.x < 50);
+    if (front) front.spill = 2;
+  }
   return out;
 }
 
@@ -132,9 +113,10 @@ export interface GemRewardProps {
 
 export default function GemReward({ amount, title, from, chest = false, jewel, sound, onDone }: GemRewardProps) {
   const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const n = Math.max(6, Math.min(24, Math.round(Math.sqrt(amount) * 2.4)));
-  const rain = !chest; // gems rain down onto the floor, pile up, and the floor cracks under them
-  const spots = useMemo(() => (rain ? coneSpots(Math.max(36, Math.min(55, Math.round(Math.sqrt(amount) * 6)))) : heapSpots(n)), [n, rain, amount]);
+  // One falling gem for every gem won (a big prize shows its first 80; "+N" still counts the whole amount).
+  const n = Math.max(1, Math.min(80, Math.round(amount)));
+  const rain = true; // gems rain down onto the floor, pile up, and the floor cracks under them (after the chest opens)
+  const spots = useMemo(() => coneSpots(n), [n]);
   const [cracked, setCracked] = useState(!rain || reduced);
   const [phase, setPhase] = useState<"ready" | "burst" | "heap" | "fly" | "done">(chest && !reduced ? "ready" : "heap");
   const [shown, setShown] = useState(reduced ? amount : 0);
@@ -185,7 +167,7 @@ export default function GemReward({ amount, title, from, chest = false, jewel, s
   // The rain: when the last gem lands, the floor cracks, the heap sinks a little and a few gems tumble off.
   const rainMs = 380 + spots.length * 30 + 620;
   useEffect(() => {
-    if (!rain || reduced || cracked) return;
+    if (!rain || reduced || cracked || phase !== "heap") return;
     const t = window.setTimeout(() => {
       setCracked(true);
       void playSound("gems-crack");
@@ -193,7 +175,11 @@ export default function GemReward({ amount, title, from, chest = false, jewel, s
       if (e && h) e.burst("sparkle", 40, ["#9aa8b4", "#cfd8df", "#ffffff"], { x: h.left + h.width / 2, y: h.top + h.height * 0.98 });
     }, rainMs);
     return () => clearTimeout(t);
-  }, [rain, reduced, cracked, rainMs]);
+  }, [rain, reduced, cracked, rainMs, phase]);
+  // The chest's gems: once the lid is up, they rain down.
+  useEffect(() => {
+    if (chest && phase === "heap" && !reduced) void playSound("gems");
+  }, [chest, phase, reduced]);
 
   // "+N" counts up while the heap builds (after the crack, for the rain), with glints as gems land.
   useEffect(() => {
@@ -266,7 +252,7 @@ export default function GemReward({ amount, title, from, chest = false, jewel, s
                 ...(g.size ? { width: `${g.size}%` } : {}),
                 ["--fx" as string]: `${((i * 53) % 60) - 30}px`,
                 animationDelay: phase === "fly" ? `${(spots.length - i) * 25}ms` : rain ? `${380 + i * 30}ms` : `${(chest ? 0 : 120) + i * 70}ms`,
-              }}>{rain ? <HexGem tone={s.tone} glint={i % 6 === 0} /> : <GemArt tone={s.tone} glint={i % 4 === 0} />}</span>
+              }}><HexGem tone={s.tone} glint={i % 6 === 0} /></span>
             );
           })}
         </div>
