@@ -14,9 +14,9 @@ from app.models import Admin, GemTake, AchievementClaim, DailyClaim, DayLog, Mem
 from app.achievements import BY_KEY as ACHIEVEMENT_BY_KEY, Facts, evaluate as evaluate_achievements
 from app.progress import Progress, gems_earned
 from app.routers.events import placings, unseen_win
-from app.services import (achievement_gems, active_members, clock_for, chests_opened, load_periods, can_start_quest, claimed_on, gems_claimed, gems_granted, gems_spent, get_settings_row, load_tasks, logs_between,
+from app.services import (achievement_gems, active_members, clock_for, chests_opened, load_periods, can_start_quest, gems_claimed, gems_granted, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
-from app.tiers import (PICTURE_UNLOCKS, shown_look, CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
+from app.tiers import (WEEKLY_MAP, PICTURE_UNLOCKS, shown_look, CAP_WITHOUT_LEGENDARY, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
                        FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
                        tier_for)
 
@@ -468,6 +468,21 @@ def _week_days(db: Session, cfg, m: Member, today: date) -> list[dict]:
     return out
 
 
+def _weekly_map(db: Session, m: Member, tier, p, today: date) -> dict:
+    """The weekly treasure map: the Nth chest opened this week (Sunday to Saturday) holds WEEKLY_MAP[N-1] gems."""
+    start = week_start(today)
+    opened = sorted(db.scalars(select(DailyClaim.day).where(DailyClaim.member_id == m.id, DailyClaim.day >= start,
+                                                             DailyClaim.day <= today)))
+    step = len(opened)
+    claimed_today = today in opened
+    gems = WEEKLY_MAP[step] if step < len(WEEKLY_MAP) else 0
+    return {"gems": gems, "claimed_today": claimed_today, "step": step,
+            "available": gems > 0 and not claimed_today and p.streak > 0 and tier.key != "low",
+            "resets": (start + timedelta(days=7)).isoformat(),
+            "map": [{"day": i + 1, "gems": g, "done": i < step, "on": opened[i].isoformat() if i < step else None}
+                    for i, g in enumerate(WEEKLY_MAP)]}
+
+
 def _profile(db: Session, m: Member) -> dict:
     cfg = get_settings_row(db)
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
@@ -479,8 +494,7 @@ def _profile(db: Session, m: Member) -> dict:
     claimed = gems_claimed(db, m.id)
     from_achievements, _ = achievement_gems(db, m.id)
     today = today_for(cfg)
-    daily_gems = DAILY_CLAIM.get(tier.key, 0)
-    claimed_today = claimed_on(db, m.id, today)
+    daily = _weekly_map(db, m, tier, p, today)
     nxt = p.best_level + 1
     reward = 0 if p.legendary or nxt > CAP_WITHOUT_LEGENDARY else GEMS_PER_LEVEL + (
         RANK_GEMS[tier_for(nxt, False).key] if tier_for(nxt, False).min == nxt else 0)
@@ -500,8 +514,7 @@ def _profile(db: Session, m: Member) -> dict:
             "next_level_reward": {"level": roman(nxt), "gems": reward} if reward else None,
             "frames": catalogue("frame", tier, owned, godfather=bool(m.godfather)), "themes": catalogue("theme", tier, owned),
             "avatars": catalogue("avatar", tier, owned, earned), "celebrate": celebrate,
-            "daily": {"gems": daily_gems, "claimed_today": claimed_today,
-                      "available": daily_gems > 0 and p.streak > 0 and not claimed_today},
+            "daily": daily,
             "week_days": _week_days(db, cfg, m, today),
             "event_win": unseen_win(db, m.id),
             "godfather": {"is": bool(m.godfather), "seen": bool(m.godfather_seen)},
@@ -751,12 +764,14 @@ def claim_daily(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     cfg = get_settings_row(db)
     today = today_for(cfg)
     p = progress_for(db, cfg, [m], today)[m.id]
-    gems = DAILY_CLAIM.get(tier_of_progress(p).key, 0)
-    if claimed_on(db, m.id, today):
-        raise HTTPException(400, "Already claimed today. Come back tomorrow!")
-    if p.streak <= 0 or gems <= 0:
-        raise HTTPException(400, "Finish all of today's tasks to light your streak, then claim")
-    db.add(DailyClaim(member_id=m.id, day=today, gems=gems))
+    w = _weekly_map(db, m, tier_of_progress(p), p, today)
+    if w["claimed_today"]:
+        raise HTTPException(400, "Already opened today. Come back tomorrow!")
+    if w["step"] >= len(WEEKLY_MAP):
+        raise HTTPException(400, "This week's map is complete! A new one starts on Sunday")
+    if not w["available"]:
+        raise HTTPException(400, "Finish all of today's tasks to light your streak, then open today's chest")
+    db.add(DailyClaim(member_id=m.id, day=today, gems=w["gems"]))
     db.commit()
     return _profile(db, m)
 

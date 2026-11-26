@@ -13,6 +13,7 @@ import RankUp from "./RankUp";
 import GoblinRaid from "../lib/GoblinRaid";
 import GodfatherReveal from "../lib/GodfatherReveal";
 import AchievementPop, { type NewAchievement } from "../lib/AchievementPop";
+import WeeklyMap, { MapButton } from "../lib/WeeklyMap";
 
 /** A gem-shaped badge in the rank's colour with the level inside. */
 export function RankBadge({ color, label, size = 56 }: { color: string; label: string; size?: number }) {
@@ -45,23 +46,6 @@ function Ring({ done, of }: { done: number; of: number }) {
   );
 }
 
-/** The daily streak chest. */
-function Chest({ open }: { open: boolean }) {
-  return (
-    <svg className={`chest${open ? " open" : ""}`} viewBox="0 0 64 56" aria-hidden="true">
-      <defs>
-        <linearGradient id="chest-w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#b8742e" /><stop offset="1" stopColor="#7a4518" /></linearGradient>
-        <linearGradient id="chest-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff2b8" /><stop offset=".5" stopColor="#e0aa20" /><stop offset="1" stopColor="#8a6100" /></linearGradient>
-      </defs>
-      {open && <g className="chest-glow"><circle cx="32" cy="24" r="20" fill="#ffe58a" opacity=".55" /><path d="M24 26 L32 8 L40 26 Z M14 24 L20 12 L26 24 Z M38 24 L44 12 L50 24 Z" fill="#9fe8ff" opacity=".9" /></g>}
-      <rect x="8" y="26" width="48" height="26" rx="4" fill="url(#chest-w)" stroke="#4a2a0e" strokeWidth="1.4" />
-      <path d={open ? "M8 26 L12 8 H52 L56 26 Z" : "M8 26 C8 12 56 12 56 26 Z"} fill="url(#chest-w)" stroke="#4a2a0e" strokeWidth="1.4" className="chest-lid" />
-      <path d="M8 34 H56 M8 46 H56" stroke="url(#chest-g)" strokeWidth="3" />
-      <rect x="27" y="30" width="10" height="12" rx="2" fill="url(#chest-g)" stroke="#5a3a00" strokeWidth="1" />
-      <circle cx="32" cy="35" r="1.6" fill="#4a2a0e" /><path d="M32 36 V39" stroke="#4a2a0e" strokeWidth="1.4" />
-    </svg>
-  );
-}
 
 const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -102,14 +86,17 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
   const [raid, setRaid] = useState<number | null>(null);
   const [godfather, setGodfather] = useState(false);
   const [newAch, setNewAch] = useState<NewAchievement[]>([]);
+  const [mapOpen, setMapOpen] = useState(false);
   const gfShown = useRef(false);
   const [place, setPlace] = useState<{ rank: number; of: number; ahead: string | null; gap: number } | null>(null);
   async function claim() {
     try {
       const before = p?.gems.balance ?? 0;
+      const gems = p?.daily.gems ?? 0, dayN = (p?.daily.step ?? 0) + 1;
       const np = await api.claimDaily();
       setClaimMsg("");
-      setReward({ amount: np.daily.gems, from: before, title: `${np.tier.name} streak chest`, chest: true, jewel: np.tier.color });
+      setMapOpen(false);
+      setReward({ amount: gems, from: before, title: `Treasure map · Day ${dayN}`, chest: true, jewel: np.tier.color });
       prev.current = np;
       setP(np);
     } catch (e) { setClaimMsg(e instanceof Error ? e.message : "Could not open the chest"); }
@@ -176,6 +163,8 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
 
   return (
     <section className="welcome-card" style={{ ["--tc" as string]: t.color }} aria-label="Your status">
+      <MapButton daily={p.daily} onClick={() => setMapOpen(true)} />
+      {mapOpen && <WeeklyMap daily={p.daily} onOpen={claim} onClose={() => setMapOpen(false)} />}
       <div className="wc-top">
         <div className="wc-avatar">
           <Avatar avatar={p.member.avatar} color={t.color} frame={p.member.frame} size={96} />
@@ -212,16 +201,6 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
         <div className="wc-week">
           <div className="wc-week-head"><span>This week</span><b>{p.week_days.filter((d) => d.state === "done").length}/7 days</b></div>
           <WeekStrip days={p.week_days} />
-        </div>
-        <div className={`wc-chest${p.daily.available ? " ready" : ""}`}>
-          <Chest open={p.daily.claimed_today} />
-          <div className="wc-chest-text">
-            <b>Streak chest</b>
-            <small>{p.daily.claimed_today ? "Opened today ✓ Come back tomorrow"
-              : p.daily.available ? <>Your {t.name} chest holds +{p.daily.gems} <Gem /></>
-              : <>Finish today's tasks to light your streak · +{p.daily.gems} <Gem /> a day at {t.name}</>}</small>
-          </div>
-          {p.daily.available && <button className="wc-claim" onClick={claim}>Open</button>}
         </div>
       </div>
       {claimMsg && <p className="wc-claimed" role="status">{claimMsg}</p>}

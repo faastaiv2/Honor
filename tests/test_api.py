@@ -1067,3 +1067,30 @@ def test_community_posts_pictures_wins_and_likes(client, family, db):
     client.post("/api/events/judge", headers=ha, json={"day": sat.isoformat(), "first": e2.id, "second": e1.id})
     wins = [x for x in client.get("/api/news", headers=h).json()["items"] if x["kind"] == "win"]
     assert len(wins) == 1 and wins[0]["member"]["name"] == "Bravo" and wins[0]["data"]["entry_id"] == e2.id
+
+
+def test_weekly_map_grows_by_five_and_starts_again_on_sunday(client, family, db):
+    from app.models import DailyClaim
+    m = family["A"]
+    h = auth(client, m)
+    sun = date(2026, 11, 22)
+    for i in range(3):  # Sun, Mon, Tue of last... this week: three chests opened already
+        db.add(DailyClaim(member_id=m.id, day=sun + timedelta(days=i - 7), gems=5))  # last week's don't count
+    db.add(DailyClaim(member_id=m.id, day=sun, gems=5))
+    db.add(DailyClaim(member_id=m.id, day=sun + timedelta(days=1), gems=10))
+    db.commit()
+    mulk_last_night(db, m)
+    a, b = at_today()  # Tuesday
+    with a, b:
+        put_day(client, h, m, TODAY, ALL)
+        prof = client.get("/api/board/profile", headers=h).json()
+        w = prof["daily"]
+        assert w["step"] == 2 and w["gems"] == 15 and w["available"]
+        assert [x["gems"] for x in w["map"]] == [5, 10, 15, 20, 25, 30, 35]
+        assert [x["done"] for x in w["map"]][:3] == [True, True, False]
+        after = client.post("/api/board/claim", headers=h).json()
+        assert after["gems"]["balance"] == prof["gems"]["balance"] + 15 and after["daily"]["step"] == 3
+    a, b = at_today(date(2026, 11, 29))  # next Sunday: a new map
+    with a, b:
+        w = client.get("/api/board/profile", headers=h).json()["daily"]
+        assert w["step"] == 0 and w["gems"] == 5

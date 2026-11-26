@@ -2,7 +2,6 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
-import Brazier from "../lib/Brazier";
 import Avatar from "../lib/Avatar";
 import ThemePreview from "../lib/ThemePreview";
 import { api, type Profile, type Tier, type TodayInfo } from "../api";
@@ -57,7 +56,6 @@ function RankDetail({ t, state, needed, avatar }: { t: Tier; state: "done" | "he
       <div className="bx-stats">
         {t.key !== "member" && <Stat tone="gem" icon={<Gem size={34} />} label="Arrival reward" big={<>+{t.gems ?? 0} <Gem /></>}
           note={t.achievement ? `Once, the first time you reach it. Plus the “${t.achievement.name}” achievement: +${t.achievement.gems} more` : "Once, the first time you reach it"} />}
-        {t.key !== "member" && <Stat tone="fire" icon={<Brazier size={38} />} label="Daily streak chest" big={<>+{t.daily ?? 0} <Gem /> <span className="bx-per">a day</span></>} note="While your streak is alive" />}
         <Stat icon="🎮" label="Game / YouTube time" big={games} note={gamesNote} />
         <Stat icon="🔁" label="Make-ups" big={mu} note={muNote} />
       </div>
@@ -139,7 +137,6 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
         </div>
         {current && (
           <div className="bx-hero-chips">
-            <span><Gem /> <b>+{current.daily ?? 0}</b> daily chest</span>
             <span>🎮 <b>{gameText(current)[0]}</b></span>
             <span>🔁 <b>{makeUpText(current)[0]}</b></span>
           </div>
@@ -172,7 +169,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
         <div className="bx-table-wrap">
           <table className="bx-table">
             <thead>
-              <tr><th>Rank</th><th>Levels</th><th>Arrival</th><th>Daily chest</th><th>Game time</th></tr>
+              <tr><th>Rank</th><th>Levels</th><th>Arrival</th><th>Game time</th></tr>
             </thead>
             <tbody>
               {[...tiers].reverse().map((t) => {
@@ -182,7 +179,6 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
                     <td><span className="bx-tr-rank"><RankIcon rank={t.key} size={28} /> <b>{t.name}</b>{stateOf(i) === "here" && <em>You</em>}</span></td>
                     <td>{romanRange(t)}</td>
                     <td className="num">+{t.gems ?? 0} <Gem /></td>
-                    <td className="num">+{t.daily ?? 0} <Gem /></td>
                     <td>{gameText(t)[0]}</td>
                   </tr>
                 );
@@ -197,8 +193,8 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
         <div className="bx-earn-grid">
           <div><span>✅</span><b>+{gems?.full_day ?? 20}</b><p>Finish every task in a day</p></div>
           <div><span>⬆️</span><b>+{gems?.per_level ?? 10}</b><p>Each new level, the first time</p></div>
-          <div><span><RankIcon rank="gold" size={30} /></span><b>+25 to +1000</b><p>Each new rank, the first time</p></div>
-          <div><span><Brazier size={30} /></span><b>+3 to +25</b><p>Daily streak chest, every day</p></div>
+          <div><span><RankIcon rank="gold" size={30} /></span><b>+10 to +1000</b><p>Each new rank, the first time</p></div>
+          <div><span>🗺️</span><b>+5 to +35</b><p>Weekly treasure map: Day 1 +5, Day 2 +10 … Day 7 +35. A new map every Sunday</p></div>
           <div><span>🏅</span><b>Up to +500</b><p>Achievements</p></div>
           <div><span>🎨</span><b>Prizes</b><p>Win art tournaments in Events</p></div>
         </div>

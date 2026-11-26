@@ -123,6 +123,9 @@ RANK_GEMS = {"low": 0, "member": 0, "bronze": 10, "silver": 50, "gold": 100, "pl
              "ruby": 400, "diamond": 500, "obsidian": 750, "legendary": 1000}
 GEMS_FOR_LEGENDARY = RANK_GEMS["legendary"]
 # The daily streak chest: claim once a day while your streak is alive. Higher ranks get more.
+# The weekly treasure map: one chest a day (while the streak is alive); the Nth chest of the week holds 5 × N gems.
+# The map starts again every Sunday.
+WEEKLY_MAP = [5, 10, 15, 20, 25, 30, 35]
 DAILY_CLAIM = {"low": 0, "member": 0, "bronze": 3, "silver": 4, "gold": 5, "platinum": 6, "emerald": 8, "sapphire": 10, "ruby": 12,
                "diamond": 15, "obsidian": 20, "legendary": 25}
 
@@ -133,7 +136,7 @@ def tier_dict(t: Tier) -> dict:
     return {"achievement": {"name": ach.name, "gems": ach.gems} if ach else None,
             "key": t.key, "min": t.min if t.key != "low" else None, "max": t.max, "emoji": t.emoji, "name": t.name,
             "color": t.color, "range": tier_range(t), "games": t.games, "benefits": t.benefits,
-            "gems": RANK_GEMS.get(t.key, 0), "daily": DAILY_CLAIM.get(t.key, 0),
+            "gems": RANK_GEMS.get(t.key, 0),
             "frame": next(({"key": k, "name": n} for k, n, r, _ in FRAMES if r == t.key), None),
             "theme": next(({"key": k, "name": n} for k, n, r, _ in THEMES if r == t.key), None)}
 

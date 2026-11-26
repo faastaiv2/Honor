@@ -44,7 +44,7 @@ export interface Profile extends Status {
   next_level_reward: { level: string; gems: number } | null;
   frames: ShopItem[]; themes: ShopItem[]; avatars: ShopItem[];
   celebrate: { tier: string; reward: number } | null; // a rank-up show not watched yet
-  daily: { gems: number; claimed_today: boolean; available: boolean }; // the daily streak chest
+  daily: { gems: number; claimed_today: boolean; available: boolean; step: number; resets: string; map: { day: number; gems: number; done: boolean; on: string | null }[] }; // the weekly treasure map
   achievements_ready: number; event_win: { id: string; place: number; gems: number; day: string; title: string } | null; oath: boolean; oath_note: string; toured: boolean;
   week_days: { date: string; state: "done" | "open" | "missed" | "rest" | "excused" | "future" | "pre"; today: boolean }[];
 }
