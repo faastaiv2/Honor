@@ -12,6 +12,7 @@ export default function Tests() {
   const [tests, setTests] = useState<ShaytanTest[] | null>(null);
   const [who, setWho] = useState("");
   const [offer, setOffer] = useState("50");
+  const [autoCut, setAutoCut] = useState("1");
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useToast();
@@ -34,14 +35,16 @@ export default function Tests() {
       <div className="card ts-deploy">
         <h2>😈 Deploy Shaytan</h2>
         <p className="note">Dark clouds roll in on the member's screen and Shaytan appears with a sack of gems: he offers them to skip today's tasks.
-          Each "no" brings him back with a bigger offer (then 100, then 500). If they say yes he laughs (there are no gems) and vanishes in fire;
+          Each "no" brings him back with a bigger offer (then 100, then 500). If they say yes he laughs (there are no gems), vanishes in fire,
+          and their Honor is cut straight away by the amount you set (they see why);
           after the third "no" he is blown away. Then you decide what happens below.</p>
         <div className="ts-row">
           <select value={who} onChange={(e) => setWho(e.target.value)} aria-label="Member">
             {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
           <label className="ts-row">Offer <input inputMode="numeric" value={offer} onChange={(e) => setOffer(e.target.value.replace(/\D/g, "").slice(0, 4))} aria-label="Gems offered" /> <Gem /></label>
-          <button className="ts-go" disabled={!who} onClick={() => act(() => api.deployShaytan(who, Math.max(1, Number(offer) || 50)), `😈 Shaytan is on his way to ${name}`)}>Deploy Shaytan</button>
+          <label className="ts-row">If they say yes, cut Honor <input inputMode="numeric" value={autoCut} onChange={(e) => setAutoCut(e.target.value.replace(/\D/g, "").slice(0, 2))} aria-label="Honor cut if they say yes" /></label>
+          <button className="ts-go" disabled={!who} onClick={() => act(() => api.deployShaytan(who, Math.max(1, Number(offer) || 50), Math.min(20, Number(autoCut) || 0)), `😈 Shaytan is on his way to ${name}`)}>Deploy Shaytan</button>
           <button onClick={() => setPreview(true)}>👁 Preview</button>
         </div>
         {error && <p className="err">{error}</p>}
@@ -62,12 +65,13 @@ export default function Tests() {
                 </div>
                 {t.answer === "" && <div className="ts-row"><span className="ts-done">Shaytan appears the next time {t.member.name} opens the app.</span>
                   <button onClick={() => act(() => api.cancelTest(t.id), "Called off")}>Call off</button></div>}
+                {t.answer === "" && t.auto_cut > 0 && <span className="ts-done">If they say yes: Honor −{t.auto_cut} straight away</span>}
                 {t.answer === "yes" && <div className="ts-row">
                   <input inputMode="numeric" value={amount[t.id] ?? "1"} onChange={(e) => setAmount({ ...amount, [t.id]: e.target.value.replace(/\D/g, "").slice(0, 2) })} aria-label="Honor to cut" />
-                  <button className="danger" onClick={() => act(() => api.cutTest(t.id, n(t.id, 1)), `Cut ${n(t.id, 1)} Honor from ${t.member.name}`)}>Cut Honor −{n(t.id, 1)}</button>
+                  <button className="danger" onClick={() => act(() => api.cutTest(t.id, n(t.id, 1)), `Cut ${n(t.id, 1)} more Honor from ${t.member.name}`)}>Cut more −{n(t.id, 1)}</button>
                   {t.posted ? <span className="ts-done">Posted ✓</span>
                     : <button onClick={() => act(() => api.postTest(t.id), "Posted to Community")}>📣 Post "worked with Shaytan"</button>}
-                  {t.cut > 0 && <span className="ts-done">Cut so far: −{t.cut}</span>}
+                  {t.cut > 0 && <span className="ts-done">Cut so far: −{t.cut}{t.auto_cut > 0 ? ` (−${t.auto_cut} automatic)` : ""}</span>}
                 </div>}
                 {t.answer === "no" && <div className="ts-row">
                   <input inputMode="numeric" value={amount[t.id] ?? "20"} onChange={(e) => setAmount({ ...amount, [t.id]: e.target.value.replace(/\D/g, "").slice(0, 4) })} aria-label="Gems to give" />

@@ -26,7 +26,7 @@ def ladder(offer: int) -> list[int]:
 def _out(t: Temptation, m: Member | None) -> dict:
     return {"id": t.id, "member": {"id": t.member_id, "name": m.name if m else "?", "avatar": m.avatar if m else ""},
             "offer": t.offer, "answer": t.answer, "answered_at": t.answered_at.isoformat() if t.answered_at else None,
-            "refusals": t.refusals, "final_offer": t.final_offer, "ladder": ladder(t.offer),
+            "auto_cut": t.auto_cut, "refusals": t.refusals, "final_offer": t.final_offer, "ladder": ladder(t.offer),
             "cut": t.cut, "reward": t.reward, "posted": t.posted, "created_at": t.created_at.isoformat()}
 
 
@@ -40,6 +40,7 @@ def _get(db: Session, test_id: str) -> Temptation:
 class DeployIn(BaseModel):
     member_id: str
     offer: int = Field(default=50, ge=1, le=1000)
+    cut: int = Field(default=1, ge=0, le=20)  # Honor cut straight away if they say yes (0 = decide later)
 
 
 @router.get("")
@@ -56,7 +57,7 @@ def deploy(body: DeployIn, v: Viewer = Depends(require_admin), db: Session = Dep
         raise HTTPException(404, "Member not found")
     if db.scalar(select(Temptation.id).where(Temptation.member_id == m.id, Temptation.answer == "")):
         raise HTTPException(400, f"Shaytan is already waiting for {m.name}")
-    t = Temptation(member_id=m.id, offer=body.offer, created_by=v.name)
+    t = Temptation(member_id=m.id, offer=body.offer, auto_cut=body.cut, created_by=v.name)
     db.add(t)
     db.commit()
     return _out(t, m)
@@ -151,6 +152,9 @@ def answer(test_id: str, body: AnswerIn, v: Viewer = Depends(current_viewer), db
     else:
         t.refusals, t.final_offer = 3, steps[-1]
     t.answer, t.answered_at = ("yes" if body.accept else "no"), datetime.now(timezone.utc)
+    if body.accept and t.auto_cut > 0:  # the deal costs Honor at once; they see why next
+        db.add(Adjustment(member_id=t.member_id, delta=-t.auto_cut, note="Made a deal with Shaytan", created_by="Honor"))
+        t.cut, t.cut_seen = t.cut + t.auto_cut, False
     db.commit()
     return {"answer": t.answer}
 

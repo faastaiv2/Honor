@@ -274,6 +274,7 @@ class Temptation(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
     member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
     offer: Mapped[int] = mapped_column(Integer, default=50)
+    auto_cut: Mapped[int] = mapped_column(Integer, default=1)  # Honor cut straight away if they say yes
     answer: Mapped[str] = mapped_column(String(8), default="")  # "", "yes" or "no"
     answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     refusals: Mapped[int] = mapped_column(Integer, default=0)  # how many offers they turned down (up to 3)

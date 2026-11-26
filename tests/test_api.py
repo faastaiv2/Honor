@@ -1139,9 +1139,11 @@ def test_deploy_shaytan_and_what_follows(client, family, db):
         assert client.post(f"/api/tests/{t['id']}/answer", headers=h, json={"accept": True, "refusals": 1}).json() == {"answer": "yes"}
         assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == prof["gems"]["balance"]  # no gems: he lied
         assert client.post(f"/api/tests/{t['id']}/reward", headers=ha, json={"gems": 10}).status_code == 400
-        assert client.post(f"/api/tests/{t['id']}/cut", headers=ha, json={"levels": 2}).json()["cut"] == 2
+        prof = client.get("/api/board/profile", headers=h).json()  # saying yes cut 1 Honor straight away
+        assert prof["level"] == before - 1 and prof["shaytan"] == {"id": t["id"], "show": "cut", "levels": 1}
+        assert client.post(f"/api/tests/{t['id']}/cut", headers=ha, json={"levels": 2}).json()["cut"] == 3  # and the admin can add more
         prof = client.get("/api/board/profile", headers=h).json()
-        assert prof["level"] == before - 2 and prof["shaytan"] == {"id": t["id"], "show": "cut", "levels": 2}
+        assert prof["level"] == before - 3 and prof["shaytan"] == {"id": t["id"], "show": "cut", "levels": 3}
         client.post(f"/api/tests/{t['id']}/seen", headers=h, json={"what": "cut"})
         assert client.get("/api/board/profile", headers=h).json()["shaytan"] is None
         client.post(f"/api/tests/{t['id']}/post", headers=ha)

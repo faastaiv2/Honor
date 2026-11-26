@@ -81,7 +81,7 @@ export interface News {
 }
 export interface NewsIn { title: string; body: string; emoji: string; pinned: boolean }
 export interface ShaytanTest { id: string; member: { id: string; name: string; avatar: string }; offer: number; answer: "" | "yes" | "no";
-  answered_at: string | null; refusals: number; final_offer: number; ladder: number[]; cut: number; reward: number; posted: boolean; created_at: string }
+  answered_at: string | null; auto_cut: number; refusals: number; final_offer: number; ladder: number[]; cut: number; reward: number; posted: boolean; created_at: string }
 export type ShaytanShow = { id: string; show: "offer"; offer: number; ladder: number[] } | { id: string; show: "cut"; levels: number } | { id: string; show: "reward"; gems: number };
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 
@@ -190,7 +190,7 @@ export const api = {
   godfatherSeen: () => request<{ ok: boolean }>("/board/profile/godfather-seen", send("POST", {})),
   setAdminTheme: (theme: "white" | "dark") => request<{ theme: string }>("/admin/theme", send("PUT", { theme })),
   tests: () => request<ShaytanTest[]>("/tests"),
-  deployShaytan: (member_id: string, offer: number) => request<ShaytanTest>("/tests/shaytan", send("POST", { member_id, offer })),
+  deployShaytan: (member_id: string, offer: number, cut: number) => request<ShaytanTest>("/tests/shaytan", send("POST", { member_id, offer, cut })),
   cancelTest: (id: string) => request<void>(`/tests/${id}`, { method: "DELETE" }),
   cutTest: (id: string, levels: number) => request<ShaytanTest>(`/tests/${id}/cut`, send("POST", { levels })),
   rewardTest: (id: string, gems: number) => request<ShaytanTest>(`/tests/${id}/reward`, send("POST", { gems })),
