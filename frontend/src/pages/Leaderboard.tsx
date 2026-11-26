@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import RankIcon from "../lib/RankIcon";
-import { api, ApiError, type Board, type BoardRow, type Tier, type TodayInfo } from "../api";
+import { api, type Board, type BoardRow, type Tier, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
+import GobiGame from "../lib/GobiGame";
 import { daysLeftLabel } from "../lib/board";
 import { notifyChanged, useChangeCounter, useToast } from "../lib/events";
 
@@ -38,17 +39,8 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
   const floorRefs = useRef<(HTMLDivElement | null)[]>([]);
   const timer = useRef<number | undefined>(undefined);
   const changes = useChangeCounter();
-  const [busy, setBusy] = useState<string | null>(null);
-  const [toast, setToast] = useToast();
-  async function take(r: BoardRow) {
-    setBusy(r.member.id);
-    try {
-      const res = await api.takeGems(r.member.id);
-      setToast(`💎 +${res.taken} gems taken from ${res.from}!`);
-      notifyChanged();
-    } catch (e) { setToast(e instanceof ApiError ? e.message : "Could not take gems"); }
-    finally { setBusy(null); }
-  }
+  const [toast] = useToast();
+  const [gobiAt, setGobiAt] = useState<BoardRow | null>(null);
   useEffect(() => { api.leaderboard().then(setBoard).catch(() => undefined); }, [changes]);
 
   const floors = board && info ? floorsOf(board.rows, info.tiers) : [];
@@ -129,8 +121,8 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
                       <Avatar avatar={r.member.avatar} color={r.tier.color} frame={r.member.frame} size={46} />
                       <span className="p-name">{r.tier.key === "low" && <span className="p-chain" aria-hidden="true">⛓️</span>}{r.is_me ? "You" : r.member.name}{r.quest.active && <small><RankIcon rank="legendary" /> on the quest</small>}</span>
                       {r.is_me && found && <span className="you-bubble">That's you!</span>}
-                      {r.can_take && <button className="take-btn" disabled={busy === r.member.id} onClick={() => take(r)}>💎 Take 5</button>}
-                      {r.taken && <span className="take-done" title="You already took gems from them today">Taken ✓</span>}
+                      {r.can_gobi && <button className="take-btn gobi-btn" onClick={() => setGobiAt(r)}>🥦 Launch Gobi</button>}
+                      {r.gobi_hit && <span className="take-done" title="You hit them with today's gobi">🥦 Hit ✓</span>}
                       <TickingLevel row={r} run={counting} />
                     </li>
                   ))}
@@ -140,6 +132,9 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
           ))}
         </div>
       )}
+      {gobiAt && <GobiGame name={gobiAt.member.name} avatar={gobiAt.member.avatar} frame={gobiAt.member.frame} color={gobiAt.tier.color}
+        onHit={async () => { const res = await api.launchGobi(gobiAt.member.id); notifyChanged(); return res.gems; }}
+        onClose={() => { setGobiAt(null); api.leaderboard().then(setBoard).catch(() => undefined); }} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </section>
   );

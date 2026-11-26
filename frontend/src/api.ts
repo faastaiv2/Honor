@@ -32,12 +32,12 @@ export interface DayView {
   makeup_left: number; makeup_rule: string; before_scoring: boolean; status: Status;
 }
 export interface BoardRow extends Status {
-  rank: number; member: { id: string; name: string; avatar: string; frame: string }; can_take?: boolean; taken?: boolean;
+  rank: number; member: { id: string; name: string; avatar: string; frame: string }; can_gobi?: boolean; gobi_hit?: boolean;
   today: Score; week_delta: number; is_me: boolean; excused_today?: { task: string; reason: string }[];
 }
 export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary"; unlock?: { key: string; name: string; text: string; tier?: string; icon?: string }; special?: "godfather" }
 export interface Profile extends Status {
-  raid?: { stolen: number } | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[];
+  raid?: { stolen: number } | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[];
   member: { id: string; name: string; avatar: string; frame: string; theme: string; shamed?: boolean; own_avatar?: string; own_frame?: string };
   week_delta: number; streak: number;
   gems: { balance: number; earned: number; spent: number; claimed: number; today: number; from_tasks: number; from_levels: number };
@@ -182,6 +182,7 @@ export const api = {
     return URL.createObjectURL(await res.blob());
   },
   claimDaily: () => request<Profile>("/board/claim", send("POST", {})),
+  launchGobi: (victimId: string) => request<{ gems: number; at: string; profile: Profile }>(`/board/gobi/${encodeURIComponent(victimId)}`, send("POST", {})),
   takeGems: (victimId: string) => request<{ taken: number; from: string; profile: Profile }>(`/board/take/${encodeURIComponent(victimId)}`, send("POST", {})),
   godfatherSeen: () => request<{ ok: boolean }>("/board/profile/godfather-seen", send("POST", {})),
   setAdminTheme: (theme: "white" | "dark") => request<{ theme: string }>("/admin/theme", send("PUT", { theme })),

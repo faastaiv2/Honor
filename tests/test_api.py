@@ -841,27 +841,6 @@ def test_swearing_the_oath_unlocks_the_i_swear_achievement(client, family):
     assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before + 5
 
 
-def test_members_take_five_gems_from_the_pillar_of_shame_once_a_day(client, family, db):
-    from app.models import Member as M
-    ha = auth(client, admin=True)
-    low = client.post("/api/admin/members", headers=ha, json={"name": "Lowly", "pin": "1234", "base_honor": -1}).json()
-    row = db.get(M, low["id"]); row.gems_stolen = -12; db.commit()  # Lowly has 12 gems
-    hl = {"Authorization": "Bearer " + client.post("/api/auth/member", json={"member_id": low["id"], "pin": "1234"}).json()["token"]}
-    ha_, hb = auth(client, family["A"]), auth(client, family["B"])
-    a0 = client.get("/api/board/profile", headers=ha_).json()["gems"]["balance"]
-    rows = client.get("/api/board/leaderboard", headers=ha_).json()["rows"]
-    assert next(r for r in rows if r["member"]["name"] == "Lowly")["can_take"] is True
-    assert not any(r["can_take"] for r in rows if r["member"]["name"] != "Lowly")
-    r = client.post(f"/api/board/take/{low['id']}", headers=ha_).json()
-    assert r["taken"] == 5 and r["profile"]["gems"]["balance"] == a0 + 5
-    assert client.post(f"/api/board/take/{low['id']}", headers=ha_).status_code == 400  # once a day
-    assert client.post(f"/api/board/take/{low['id']}", headers=hb).json()["taken"] == 5
-    me = client.get("/api/board/profile", headers=hl).json()
-    assert me["gems"]["balance"] == 2 and [t["name"] for t in me["taken_today"]] == ["Alpha", "Bravo"]
-    assert client.post(f"/api/board/take/{family['A'].id}", headers=hb).status_code == 400  # not on the Pillar
-    assert client.post(f"/api/board/take/{low['id']}", headers=hl).status_code == 400  # not yourself
-
-
 def test_dalilul_khairat_has_the_days_video_link(client, family):
     from app.scoring import DALAIL_LINKS
     h, ha = auth(client, family["A"]), auth(client, admin=True)
@@ -1123,3 +1102,24 @@ def test_northern_lights_theme_is_won_by_centurion(client, family):
     assert client.put("/api/board/profile", headers=h, json={"theme": "northern"}).status_code == 403
     cent = next(a for a in client.get("/api/board/achievements", headers=h).json()["items"] if a["key"] == "days100")
     assert cent["theme"] == {"key": "northern", "name": "Northern lights"}
+
+
+def test_launch_gobi_at_the_pillar_once_a_day(client, family, db):
+    from app.models import Member
+    low = Member(name="Lowe", code="L", base_honor=-1, pin_hash=family["A"].pin_hash, created_at=family["A"].created_at)
+    db.add(low)
+    db.commit()
+    h, hl = auth(client, family["B"]), auth(client, low)
+    a, b = at_today()
+    with a, b:
+        row = next(r for r in client.get("/api/board/leaderboard", headers=h).json()["rows"] if r["member"]["id"] == low.id)
+        assert row["can_gobi"] and not row["gobi_hit"]
+        before = client.get("/api/board/profile", headers=h).json()["gems"]["balance"]
+        r = client.post(f"/api/board/gobi/{low.id}", headers=h)
+        assert r.status_code == 200 and r.json()["profile"]["gems"]["balance"] == before + 10
+        assert client.post(f"/api/board/gobi/{low.id}", headers=h).status_code == 400  # once a day
+        rows = client.get("/api/board/leaderboard", headers=h).json()["rows"]
+        assert next(r for r in rows if r["member"]["id"] == low.id)["gobi_hit"]
+        assert not any(r["can_gobi"] for r in rows)
+        assert client.get("/api/board/profile", headers=hl).json()["gobi_today"] == ["Bravo"]
+        assert client.post(f"/api/board/gobi/{family['A'].id}", headers=auth(client, family["S"])).status_code == 400  # not on the Pillar

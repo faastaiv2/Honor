@@ -162,11 +162,12 @@ def owned_items(db: Session, member_id: str) -> set[str]:
 def gems_claimed(db: Session, member_id: str) -> int:
     from sqlalchemy import func
 
-    from app.models import DailyClaim, EventEntry, GemTake
+    from app.models import DailyClaim, EventEntry, GemTake, GobiLaunch
     chests = db.scalar(select(func.coalesce(func.sum(DailyClaim.gems), 0)).where(DailyClaim.member_id == member_id)) or 0
+    gobi = db.scalar(select(func.coalesce(func.sum(GobiLaunch.gems), 0)).where(GobiLaunch.launcher_id == member_id)) or 0
     prizes = db.scalar(select(func.coalesce(func.sum(EventEntry.gems), 0)).where(EventEntry.member_id == member_id)) or 0
     taken = db.scalar(select(func.coalesce(func.sum(GemTake.gems), 0)).where(GemTake.taker_id == member_id)) or 0
-    return int(chests) + int(prizes) + int(taken)  # streak chests, tournament prizes, gems taken from the Pillar of Shame
+    return int(chests) + int(prizes) + int(taken) + int(gobi)  # streak chests, tournament prizes, gems taken from the Pillar of Shame
 
 
 @_request_cache

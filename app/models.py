@@ -252,3 +252,15 @@ class PostLike(Base):
     who: Mapped[str] = mapped_column(String(48))  # "member:<id>" or "admin:<id>"
     name: Mapped[str] = mapped_column(String(80), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class GobiLaunch(Base):
+    """A member hit someone on the Pillar of Shame with a cauliflower (gobi): +10 gems, once a day."""
+    __tablename__ = "gobi_launches"
+    __table_args__ = (UniqueConstraint("launcher_id", "day", name="uq_gobi_launcher_day"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    launcher_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    victim_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date)
+    gems: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

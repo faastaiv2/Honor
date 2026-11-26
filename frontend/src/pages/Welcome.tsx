@@ -182,6 +182,9 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
         <div className="wc-hello">
           <p className="wc-salam">As-salāmu ʿalaykum · {hello}</p>
           <h1>Welcome, {p.member.name}!</h1>
+          {!!p.gobi_today?.length && (
+            <p className="wc-taken gobi" role="status">🥦 Splat! {p.gobi_today.join(", ")} hit you with a gobi today</p>
+          )}
           {!!p.taken_today?.length && (
             <p className="wc-taken" role="status">💸 Taken from you today: {p.taken_today.map((x) => `${x.name} −${x.gems}`).join(" · ")}</p>
           )}

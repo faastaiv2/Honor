@@ -10,7 +10,7 @@ from app import scoring
 from app.db import get_db
 from app.deps import Viewer, current_viewer
 from app.makeup import check_week, remaining, week_start
-from app.models import Admin, GemTake, AchievementClaim, DailyClaim, DayLog, Member, Purchase
+from app.models import Admin, GemTake, GobiLaunch, AchievementClaim, DailyClaim, DayLog, Member, Purchase
 from app.achievements import BY_KEY as ACHIEVEMENT_BY_KEY, Facts, evaluate as evaluate_achievements
 from app.progress import Progress, gems_earned
 from app.routers.events import placings, unseen_win
@@ -296,6 +296,8 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     all_tasks, all_periods = load_tasks(db), load_periods(db)
     taken_today = set(db.scalars(select(GemTake.victim_id).where(GemTake.taker_id == v.id, GemTake.day == today))) \
         if v.kind == "member" else set()
+    gobi_at = db.scalar(select(GobiLaunch.victim_id).where(GobiLaunch.launcher_id == v.id, GobiLaunch.day == today)) \
+        if v.kind == "member" else None
     rows = []
     for m in members:
         specs = scoring.day_plan(all_tasks, scoring.for_member(all_periods, m.id), today)
@@ -307,8 +309,8 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
         s = scoring.score_day(today, counted, log.excuse if log else None, today, cfg.cut_misses, specs, skip)
         look = shown_look(m.avatar, m.frame, tier_of_progress(p).key)
         shamed = tier_of_progress(p).key == "low"
-        row = {"can_take": v.kind == "member" and shamed and m.id != v.id and m.id not in taken_today,
-               "taken": shamed and m.id in taken_today,
+        row = {"can_gobi": v.kind == "member" and shamed and m.id != v.id and gobi_at is None,
+               "gobi_hit": gobi_at == m.id,
                "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1]},
                **_status(p), "today": _score_out(s), "week_delta": p.week_delta,
                "is_me": v.kind == "member" and v.id == m.id}
@@ -504,7 +506,9 @@ def _profile(db: Session, m: Member) -> dict:
     raid = {"stolen": m.raid_owed} if m.raid_owed is not None and m.raid_owed >= 0 else None
     takers = db.execute(select(Member.name, GemTake.gems).join(Member, Member.id == GemTake.taker_id)
                         .where(GemTake.victim_id == m.id, GemTake.day == today_for(cfg)).order_by(GemTake.created_at)).all()
-    return {"raid": raid, "taken_today": [{"name": n, "gems": g} for n, g in takers], "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
+    gobis = db.scalars(select(Member.name).join(GobiLaunch, Member.id == GobiLaunch.launcher_id)
+                       .where(GobiLaunch.victim_id == m.id, GobiLaunch.day == today_for(cfg)).order_by(GobiLaunch.created_at)).all()
+    return {"raid": raid, "taken_today": [{"name": n, "gems": g} for n, g in takers], "gobi_today": list(gobis), "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
                        "shamed": tier.key == "low", "own_avatar": m.avatar, "own_frame": m.frame},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
             "gems": {"balance": gems_earned(p) + claimed + from_achievements - spent + gems_granted(db, m.id),
@@ -530,7 +534,29 @@ def get_profile(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     return _profile(db, db.get(Member, v.id))
 
 
-TAKE_GEMS = 5  # gems a member can take from someone on the Pillar of Shame, once a day each
+TAKE_GEMS = 5  # (older) gems a member could take from someone on the Pillar of Shame
+GOBI_GEMS = 10  # hitting someone on the Pillar of Shame with a cauliflower: once a day
+
+
+@router.post("/gobi/{victim_id}")
+def launch_gobi(victim_id: str, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """A cauliflower hit someone on the Pillar of Shame: +10 gems for the launcher, once a day."""
+    if v.kind != "member":
+        raise HTTPException(400, "Only members can launch a gobi")
+    if victim_id == v.id:
+        raise HTTPException(400, "You can't launch a gobi at yourself")
+    victim = db.get(Member, victim_id)
+    if not victim or not victim.active:
+        raise HTTPException(404, "Member not found")
+    cfg = get_settings_row(db)
+    today = today_for(cfg)
+    if tier_of_progress(progress_for(db, cfg, [victim], today)[victim.id]).key != "low":
+        raise HTTPException(400, f"{victim.name} isn't on the Pillar of Shame")
+    if db.scalar(select(GobiLaunch.id).where(GobiLaunch.launcher_id == v.id, GobiLaunch.day == today)):
+        raise HTTPException(400, "You already launched today's gobi. Try again tomorrow")
+    db.add(GobiLaunch(launcher_id=v.id, victim_id=victim.id, day=today, gems=GOBI_GEMS))
+    db.commit()
+    return {"gems": GOBI_GEMS, "at": victim.name, "profile": _profile(db, db.get(Member, v.id))}
 
 
 @router.post("/take/{victim_id}")

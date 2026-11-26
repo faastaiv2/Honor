@@ -2368,3 +2368,33 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 @keyframes midnight-twinkle { from { opacity: .25; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { :root[data-skin=midnight] .hero::before, :root[data-skin=midnight] .hero::after, :root[data-skin=midnight] .hero h1 { animation: none; } }
 .ru-theme.midnight .ru-theme-top { background: linear-gradient(110deg, #070b22, #121c4a 45%, #cfe0ff55 50%, #121c4a 55%, #1c1240); background-size: 260% 100%; animation: midnight-shine 4s ease-in-out infinite; }
+
+/* Launch Gobi */
+.gobi-btn { background: linear-gradient(180deg, #8ad86a, #4caf50) !important; color: #fff !important; border-color: #2e7d32 !important; }
+.gobi { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: #0a1a10cc; animation: gfr-in .25s ease-out; touch-action: none; user-select: none; -webkit-user-select: none; }
+.gobi-stage { width: min(100vw, calc(100dvh * .6), 460px); height: auto; aspect-ratio: 360 / 600; border-radius: 22px; box-shadow: 0 20px 60px #0008; overflow: hidden; }
+.gobi-top { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; color: #1a3a10; pointer-events: none; }
+.gobi-top b { font-size: 20px; text-shadow: 0 1px 0 #fff; }
+.gobi-x { pointer-events: auto; width: 40px; min-height: 40px; padding: 0; border-radius: 50%; background: #ffffffcc; border: 0; font-size: 24px; }
+.gobi-say { position: absolute; top: 56%; left: 50%; translate: -50% 0; margin: 0; padding: 8px 14px; border-radius: 999px; background: #ffffffe6; color: #1a3a10; font-weight: 800; text-align: center; max-width: 92vw; pointer-events: none; }
+.gobi-say:empty { display: none; }
+.gobi-say.miss { background: #ffe1e1; color: #a0101a; animation: ach-pop .3s; }
+.gobi-face { display: grid; place-items: center; width: 100%; height: 100%; }
+.gobi-name { font: 900 14px "Nunito Sans", sans-serif; fill: #3a1010; paint-order: stroke; stroke: #fff; stroke-width: 4px; }
+.gobi-aim { transform-box: fill-box; transform-origin: center; animation: fx-spin 6s linear infinite; }
+.gobi-ball { animation: gobi-wiggle 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes gobi-wiggle { 0%, 100% { rotate: 0deg; } 50% { rotate: 6deg; } }
+.gobi-cloud { animation: gobi-cloud 18s linear infinite alternate; }
+@keyframes gobi-cloud { to { transform: translateX(30px); } }
+.gobi-splat circle { animation: gobi-burst .7s cubic-bezier(.2,.8,.3,1) both; }
+.gobi-splat > g { animation: gobi-squash .5s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes gobi-burst { from { transform: translate(calc(var(--dx) * -1), calc(var(--dy) * -1)) scale(.2); opacity: 0; } }
+@keyframes gobi-squash { 0% { transform: scale(1.6, .5); } 60% { transform: scale(.9, 1.15); } 100% { transform: none; } }
+.gobi-win { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: min(300px, 84vw); padding: 18px; border-radius: 20px; text-align: center; background: #fffdf0; box-shadow: 0 16px 40px #0006; animation: ach-pop .45s cubic-bezier(.2,1.4,.4,1); }
+.gobi-win b { display: block; font: 34px Marcellus, Georgia, serif; color: #2e7d32; }
+.gobi-win p { margin: 6px 0 12px; font-weight: 700; }
+.gobi-gems { display: inline-flex; align-items: center; gap: 4px; color: #1a5fb4; font-weight: 900; }
+.wc-taken.gobi { background: #e2f6dc; color: #1f6a20; }
+@keyframes ach-pop { 0% { transform: scale(.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.gobi-box { position: relative; width: min(100vw, calc(100dvh * .6), 460px); }
+.gobi-stage { display: block; width: 100%; }
