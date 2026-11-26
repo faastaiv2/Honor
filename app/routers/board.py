@@ -103,7 +103,7 @@ def today_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db
         "task_count": len(load_tasks(db)),
         "avatars": AVATARS,
         "viewer": {"kind": v.kind, "id": v.id, "name": v.name, "is_admin": v.is_admin,
-                   "theme": _theme_of(db.get(Member, v.id)) if v.kind == "member" else "bronze"},
+                   "theme": _theme_of(db.get(Member, v.id)) if v.kind == "member" else "white"},
         "gems": {"per_task": GEMS_PER_TASK, "full_day": GEMS_FOR_FULL_DAY, "per_level": GEMS_PER_LEVEL, "per_rank": RANK_GEMS},
     }
 
@@ -378,8 +378,8 @@ _RANK_ORDER = [t.key for t in TIERS]
 
 
 def _theme_of(m: Member) -> str:
-    """The member's theme; Bronze until they pick one (or if theirs no longer exists, like the old Classic)."""
-    return m.theme if m.theme in THEME_KEYS else "bronze"
+    """The member's theme; White until they pick one (or if theirs no longer exists, like the old Classic)."""
+    return m.theme if m.theme in THEME_KEYS else "white"
 
 
 RAID_GEMS = {-1: (15, 35), -2: (35, 75), -3: (75, 99)}  # gems the goblins steal at each level of the Pillar of Shame

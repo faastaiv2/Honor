@@ -53,8 +53,8 @@ export default function App() {
   }, [viewer, changes]);
 
   useEffect(() => {
-    // Bronze is the base look for everyone (sign-in, admin, new members); members can pick another theme.
-    document.documentElement.dataset.skin = viewer && !viewer.is_admin ? info?.viewer.theme || "bronze" : "bronze";
+    // White is the base look for everyone (sign-in, admin, new members); members can pick another theme.
+    document.documentElement.dataset.skin = viewer && !viewer.is_admin ? info?.viewer.theme || "white" : "white";
   }, [viewer, info]);
 
   if (loading) return <p className="band note">Loading…</p>;

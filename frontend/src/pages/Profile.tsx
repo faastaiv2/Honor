@@ -58,7 +58,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const items = tab === "frame" ? p.frames : tab === "theme" ? p.themes
     : [...p.avatars].sort((a, b) => rank(a) - rank(b) || a.price - b.price || Number(!!a.unlock) - Number(!!b.unlock));
   const shamed = !!p.member.shamed; // on the Pillar of Shame: picture and frame are locked
-  const current = tab === "frame" ? (p.member.own_frame ?? p.member.frame) || "plain" : tab === "theme" ? p.member.theme || "bronze" : (p.member.own_avatar ?? p.member.avatar);
+  const current = tab === "frame" ? (p.member.own_frame ?? p.member.frame) || "plain" : tab === "theme" ? p.member.theme || "white" : (p.member.own_avatar ?? p.member.avatar);
   const lockedLook = shamed && tab !== "theme";
 
   return (

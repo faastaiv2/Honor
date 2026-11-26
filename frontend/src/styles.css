@@ -2062,3 +2062,31 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 @keyframes rb-float { 50% { translate: 0 -1.5px; } }
 .shop-grid.avatar { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
 @media (prefers-reduced-motion: reduce) { .rb-legendary .rb-shards, .rb-glint { animation: none; } }
+
+/* White theme: the starting look. A clean white header with a soft gold pattern; accents stay dark so buttons read. */
+:root[data-skin=white] { --em: #2e2a26; --gold: #c9962b; }
+:root[data-skin=white] .hero { background: #fff url("/pattern-soft.svg") center / 90px 90px; color: #1d1a17; box-shadow: inset 0 -1px #e8e2d6; }
+:root[data-skin=white] .hero h1 span { color: #c9962b; }
+:root[data-skin=white] .hero .sub, :root[data-skin=white] .asma small { color: #6e665c; }
+:root[data-skin=white] .asma .ar { color: #b8862b; }
+:root[data-skin=white] nav.tabs a { color: #3a332c; }
+:root[data-skin=white] nav.tabs a:hover { background: #00000008; }
+:root[data-skin=white] nav.tabs a.active { background: var(--bg); color: var(--ink); box-shadow: inset 0 0 0 1px #e8e2d6; }
+:root[data-skin=white] nav.tabs .who { color: #6e665c; }
+:root[data-skin=white] nav.tabs .who button { color: #3a332c; border-color: #d8d0c2; background: #fff; }
+@media (max-width: 700px) {
+  :root[data-skin=white] nav.tabs a { background: #f6f2ea; box-shadow: inset 0 0 0 1px #e8e2d6; }
+  :root[data-skin=white] nav.tabs a.active { background: #2e2a26; color: #fff; box-shadow: 0 2px 8px #0002; }
+}
+:root[data-skin=white] .welcome { background: radial-gradient(ellipse at 50% 0%, #fffaf0 0%, transparent 60%), url("/pattern-soft.svg") center / 110px 110px, #f7f4ee; }
+:root[data-skin=white] .corner-login { color: #2e2a26; border-color: #d8d0c2; background: #fff; }
+.ru-theme.light { border-color: #e8e2d6; }
+.ru-theme.light .ru-theme-top { box-shadow: inset 0 -1px #e8e2d6; background-image: none; }
+/* Member floor: white */
+.floor.member { border-color: #e2ddd2; }
+.floor.member .floor-head { background: linear-gradient(120deg, #f4f1ea, #fff); color: #2e2a26; }
+.floor.member .floor-head::after { background-image: url("/pattern-soft.svg"); opacity: .6; }
+.floor.member .floor-emblem { background: #fff; border-color: #e2ddd2; }
+.floor.member .floor-count { background: #2e2a2610; }
+.floor.member .p-row.me { background: #fff; border-color: #c9962b; color: #2e2a26; }
+.floor.member .p-row.me .p-rank, .floor.member .p-row.me small { color: #6e665c; }

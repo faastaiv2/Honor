@@ -102,7 +102,7 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
         <div className={`floors${counting ? " done" : ""}`}>
           {floors.map((f, i) => (
             <div key={f.tier.key} ref={(el) => { floorRefs.current[i] = el; }}
-              className={`floor${f.tier.key === "low" ? " shame" : ""}${f.rows.length ? "" : " empty"}${i <= lit ? " passed" : ""}${i === lit ? " lit" : ""}`}
+              className={`floor${f.tier.key === "low" ? " shame" : f.tier.key === "member" ? " member" : ""}${f.rows.length ? "" : " empty"}${i <= lit ? " passed" : ""}${i === lit ? " lit" : ""}`}
               style={{ ["--tc" as string]: f.tier.color }}>
               {f.tier.key === "low" ? (
                 <div className="floor-head shame-head">

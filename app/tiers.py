@@ -38,7 +38,7 @@ class Tier:
 
 TIERS: list[Tier] = [
     Tier("low", -10**6, -1, "👺", "Low Honor", "#b4322a", "0 mins", "None"),
-    Tier("member", 0, 0, "🛡️", "Member", "#6f7f8e", "0 mins", "None"),  # where new members start
+    Tier("member", 0, 0, "🛡️", "Member", "#ffffff", "0 mins", "None"),  # where new members start
     Tier("bronze", 1, 3, "🥉", "Bronze", "#b0703a", "0 mins / week (after finishing tasks)", "None"),
     Tier("silver", 4, 7, "🥈", "Silver", "#8a97a3", "10 mins / Sunday (after finishing tasks)",
          "Can miss up to 1 task and make up next day", next_day=1),
@@ -165,6 +165,7 @@ FRAMES: list[tuple[str, str, str | None, int]] = [
     ("orbit", "Solar system", None, 1500),
 ]
 THEMES: list[tuple[str, str, str | None, int]] = [
+    ("white", "White", "low", 0),  # the starting look, free for everyone
     ("bronze", "Bronze", "bronze", 0),
     ("silver", "Silver", "silver", 0),
     ("gold", "Gold", "gold", 0),

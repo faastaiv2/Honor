@@ -122,7 +122,7 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
                 {members?.map((m) => (
                   <button key={m.id} className={`who-tile${m.has_pin ? "" : " is-new"}`}
                     onClick={() => { setPick(m); setPin(""); setFirst(null); setError(""); }}>
-                    <Avatar avatar={m.avatar} color="#6b3e1d" frame={m.frame} size={54} />
+                    <Avatar avatar={m.avatar} color="#ffffff" frame={m.frame} size={54} />
                     <span>{m.name}</span>
                     {!m.has_pin && <small className="who-new">New ✨</small>}
                   </button>
@@ -131,7 +131,7 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
             </>
           ) : (
             <div className="pin-step">
-              <Avatar avatar={pick.avatar} color="#6b3e1d" frame={pick.frame} size={64} />
+              <Avatar avatar={pick.avatar} color="#ffffff" frame={pick.frame} size={64} />
               <h2>{setup ? `Welcome, ${pick.name}!` : `As-salāmu ʿalaykum, ${pick.name}`}</h2>
               {setup ? (
                 <div className="pin-setup">

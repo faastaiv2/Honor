@@ -361,12 +361,13 @@ function FrameArt({ frame }: { frame: string }) {
 export default function Avatar({ avatar, color, frame, size = 48 }: { avatar?: string; color: string; frame?: string; size?: number }) {
   const framed = !!frame && frame !== "plain" && frame in ART;
   const drawn = isPicture(avatar);
+  const light = /^#f{3}(f{3})?$/i.test(color); // a white rank colour: draw the silhouette in grey so it shows
   const tile = (
-    <span className={`avatar${framed ? " in-frame" : ""}${drawn ? " drawn" : ""}`} style={{ width: size, height: size, background: avatar ? `color-mix(in srgb, ${color} 18%, #fff)` : color, fontSize: size * 0.55 }} aria-hidden="true">
+    <span className={`avatar${framed ? " in-frame" : ""}${drawn ? " drawn" : ""}`} style={{ width: size, height: size, background: avatar ? `color-mix(in srgb, ${color} 18%, #fff)` : color, fontSize: size * 0.55, ...(light ? { boxShadow: "inset 0 0 0 1.5px #dde2e8" } : {}) }} aria-hidden="true">
       {drawn ? <Picture name={avatar!} /> : avatar || (
         <svg viewBox="0 0 40 40" width="78%" height="78%">
-          <circle cx="20" cy="14" r="8" fill="#fff" />
-          <path d="M5 40c0-9 6.7-15 15-15s15 6 15 15z" fill="#fff" />
+          <circle cx="20" cy="14" r="8" fill={light ? "#b4bcc6" : "#fff"} />
+          <path d="M5 40c0-9 6.7-15 15-15s15 6 15 15z" fill={light ? "#b4bcc6" : "#fff"} />
         </svg>
       )}
     </span>
