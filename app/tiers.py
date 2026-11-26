@@ -207,7 +207,7 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("cosmiccat", "Cosmic cat", 900, "epic"),
     # Legendary
     ("dragonknight", "Dragon Knight", 1000, "legendary"), ("crystalqueen", "Crystal Queen", 1000, "legendary"),
-    ("wolflegend", "Legendary Wolf", 1200, "legendary"), ("astrolegend", "Legendary Astronaut", 1500, "legendary"),
+    ("astrolegend", "Legendary Astronaut", 1500, "legendary"),
     ("goldeneagle", "Golden Eagle", 1500, "legendary"), ("knightepic", "Epic Knight", 1000, "legendary"),
     ("knightlegend", "Legendary Knight", 1500, "legendary"),
 ]
