@@ -195,13 +195,17 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("squire", "Squire", 0, "common"), ("flowergirl", "Flower Girl", 100, "common"), ("archer", "Archer", 100, "common"),
     ("bunny", "Bunny", 0, "common"), ("hamster", "Hamster", 100, "common"), ("frog", "Frog", 120, "common"),
     ("duckling", "Duckling", 0, "common"), ("puppy", "Puppy", 0, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
-    ("koala", "Koala", 240, "common"),
+    ("koala", "Koala", 240, "common"), ("elephant", "Elephant", 100, "common"), ("monkey", "Monkey", 100, "common"),
+    ("hedgehog", "Hedgehog", 100, "common"), ("lamb", "Lamb", 100, "common"), ("raccoon", "Raccoon", 120, "common"),
+    ("doctor", "Little Doctor", 150, "common"), ("builder", "Builder", 150, "common"),
     # Rare
     ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("shieldmaiden", "Shieldmaiden", 250, "rare"),
     ("fairy", "Fairy", 250, "rare"), ("swordsman", "Swordsman", 300, "rare"), ("chef", "Chef", 250, "rare"), ("pirate", "Pirate", 300, "rare"),
     ("firefighter", "Firefighter", 300, "rare"), ("snowleopard", "Snow Leopard", 350, "rare"), ("unicorn", "Unicorn", 300, "rare"),
     ("dino", "Dino", 300, "rare"), ("astronaut", "Astronaut", 400, "rare"), ("robot", "Robot", 400, "rare"),
-    ("ninja", "Ninja", 440, "rare"),
+    ("ninja", "Ninja", 440, "rare"), ("parrot", "Parrot", 250, "rare"), ("giraffe", "Giraffe", 250, "rare"),
+    ("octopus", "Octopus", 300, "rare"), ("whale", "Whale", 300, "rare"), ("ballerina", "Ballerina", 250, "rare"),
+    ("scientist", "Scientist", 300, "rare"), ("wizardkid", "Little Wizard", 350, "rare"), ("herokid", "Super Kid", 350, "rare"),
     # Epic
     ("knight", "Knight", 500, "epic"), ("spartan", "Spartan", 500, "epic"), ("frostknight", "Frost Knight", 500, "epic"),
     ("warriorprincess", "Warrior Princess", 500, "epic"), ("crystalfox", "Crystal Fox", 600, "epic"),
@@ -213,7 +217,7 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("astrolegend", "Legendary Astronaut", 1500, "legendary"),
     ("goldeneagle", "Golden Eagle", 1500, "legendary"),
     ("catlegend", "Legendary Cat", 1200, "legendary"), ("spartanlegend", "Legendary Spartan", 1500, "legendary"), ("knightepic", "Epic Knight", 1000, "legendary"),
-    ("knightlegend", "Legendary Knight", 1500, "legendary"),
+    ("knightlegend", "Legendary Knight", 1500, "legendary"), ("nightpanther", "Legendary Night Panther", 1500, "legendary"),
 ]
 FREE_AVATARS = [k for k, _ in FREE_PICTURES]
 SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c, _ in SHOP_PICTURES]
