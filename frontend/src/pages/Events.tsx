@@ -353,14 +353,12 @@ export default function Events() {
   return (
     <div className="ev">
       {hero && (
-      <section className={`ev-hero${data.open ? " live" : ""}${heroBg.art ? "" : " photo"}`} style={{ background: heroBg.bg }}>
+      <section className={`ev-hero${data.open ? " live has-timer" : ""}${heroBg.art ? "" : " photo"}`} style={{ background: heroBg.bg }}>
         {heroBg.art && <div className="ev-hero-art" aria-hidden="true">{heroBg.art}</div>}
         <div>
           <p className="ev-kicker">{data.open ? `Open now · until ${allDay(data.event!) ? "midnight" : ampm(data.event!.closes)}` : `${hero.day === data.today ? "Today" : fmt(hero.day, { weekday: "long", day: "numeric", month: "short" })} · ${hours(hero)}`}</p>
           <h1>{hero.title}</h1>
           {hero.prompt ? <p className="ev-theme">Theme: <b>{hero.prompt}</b></p> : null}
-          {data.open && data.event && <div className="ev-ends"><small>Ends in</small>
-            <Countdown day={data.event.day} at={data.event.closes} label="Time left to enter" className="ev-count-hero" onEnd={load} skew={boardSkew(data.today, data.clock)} /></div>}
           <p className="ev-sub">Make something beautiful, take a photo and send it in. The best three win gems!</p>
           <div className="ev-prizes">
             <span className="gold">🥇 1st <b>{prizes["1"]}</b> <Gem /></span>
@@ -369,6 +367,8 @@ export default function Events() {
             {<span className="fee">{hero.fee ? <>🎟️ Entry <b>{hero.fee}</b> <Gem /></> : "🎟️ Free entry"}</span>}
           </div>
         </div>
+        {data.open && data.event && <div className="ev-ends"><small>Ends in</small>
+          <Countdown day={data.event.day} at={data.event.closes} label="Time left to enter" className="ev-count-hero" onEnd={load} skew={boardSkew(data.today, data.clock)} /></div>}
       </section>
       )}
       {error && <p className="err banner" role="alert">{error}</p>}
