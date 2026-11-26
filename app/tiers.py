@@ -181,21 +181,23 @@ THEMES: list[tuple[str, str, str | None, int]] = [
     ("midnight", "Midnight", None, 700),
 ]
 # Drawn pictures (frontend/src/lib/Pictures.tsx): (key, name), and (key, name, gems) for the shop.
-FREE_PICTURES: list[tuple[str, str]] = [
-    ("lion", "Lion"), ("tiger", "Tiger"), ("eagle", "Eagle"), ("wolf", "Wolf"), ("fox", "Fox"), ("owl", "Owl"),
-    ("bear", "Bear"), ("cat", "Cat"), ("turtle", "Turtle"), ("dolphin", "Dolphin"),
-]
+FREE_PICTURES: list[tuple[str, str]] = []  # every picture is in the shop now (Plain stays free)
+ANIMALS_NOW_COMMON = ["lion", "tiger", "eagle", "wolf", "fox", "owl", "bear", "cat", "turtle", "dolphin"]  # were free
 # Shop pictures by rarity: common, rare, epic, legendary. (key, name, gems, rarity)
 RARITIES = ["common", "rare", "epic", "legendary"]
 SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     # Common
+    ("lion", "Lion", 100, "common"), ("tiger", "Tiger", 100, "common"), ("eagle", "Eagle", 100, "common"),
+    ("wolf", "Wolf", 100, "common"), ("fox", "Fox", 100, "common"), ("owl", "Owl", 100, "common"),
+    ("bear", "Bear", 100, "common"), ("cat", "Cat", 100, "common"), ("turtle", "Turtle", 100, "common"),
+    ("dolphin", "Dolphin", 100, "common"),
     ("squire", "Squire", 100, "common"), ("flowergirl", "Flower Girl", 100, "common"), ("archer", "Archer", 100, "common"),
     ("bunny", "Bunny", 100, "common"), ("hamster", "Hamster", 100, "common"), ("frog", "Frog", 120, "common"),
     ("duckling", "Duckling", 150, "common"), ("puppy", "Puppy", 150, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
     ("koala", "Koala", 240, "common"),
     # Rare
     ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("shieldmaiden", "Shieldmaiden", 250, "rare"),
-    ("fairy", "Fairy", 250, "rare"), ("chef", "Chef", 250, "rare"), ("pirate", "Pirate", 300, "rare"),
+    ("fairy", "Fairy", 250, "rare"), ("swordsman", "Swordsman", 300, "rare"), ("chef", "Chef", 250, "rare"), ("pirate", "Pirate", 300, "rare"),
     ("firefighter", "Firefighter", 300, "rare"), ("snowleopard", "Snow Leopard", 350, "rare"), ("unicorn", "Unicorn", 300, "rare"),
     ("dino", "Dino", 300, "rare"), ("astronaut", "Astronaut", 400, "rare"), ("robot", "Robot", 400, "rare"),
     ("ninja", "Ninja", 440, "rare"),

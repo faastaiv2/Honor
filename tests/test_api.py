@@ -226,7 +226,8 @@ def test_legendary_quest_flow(client, family, db):
 
 def test_avatar(client, family):
     h = auth(client, family["A"])
-    assert client.put("/api/board/avatar", headers=h, json={"avatar": "lion"}).json() == {"avatar": "lion"}
+    assert client.put("/api/board/avatar", headers=h, json={"avatar": "lion"}).status_code == 400  # Common now: buy it first
+    assert client.put("/api/board/avatar", headers=h, json={"avatar": ""}).json() == {"avatar": ""}  # Plain is free
     assert client.put("/api/board/avatar", headers=h, json={"avatar": "<b>"}).status_code == 400
     assert client.put("/api/board/avatar", headers=auth(client, admin=True), json={"avatar": "lion"}).status_code == 400
 
@@ -351,13 +352,13 @@ def test_profile_frames_and_themes_unlock_by_rank(client, family):
         themes = {t["key"]: t["available"] for t in prof["themes"]}
         assert frames["plain"] and frames["silver"] and frames["gold"] and not frames["ruby"] and not frames["galaxy"]
         assert "classic" not in themes and themes["bronze"] and themes["gold"] and not themes["obsidian"] and not themes["ocean"]
-        assert client.put("/api/board/profile", headers=h, json={"frame": "silver", "avatar": "eagle", "theme": "gold"}).status_code == 200
+        assert client.put("/api/board/profile", headers=h, json={"frame": "silver", "avatar": "", "theme": "gold"}).status_code == 200
         assert client.put("/api/board/profile", headers=h, json={"frame": "ruby"}).status_code == 403
         assert client.put("/api/board/profile", headers=h, json={"theme": "ocean"}).status_code == 403
         assert client.put("/api/board/profile", headers=h, json={"frame": "neon"}).status_code == 400
         row = next(r for r in client.get("/api/board/leaderboard", headers=h).json()["rows"] if r["is_me"])
         info = client.get("/api/board/today", headers=h).json()
-    assert row["member"]["frame"] == "silver" and row["member"]["avatar"] == "eagle" and info["viewer"]["theme"] == "gold"
+    assert row["member"]["frame"] == "silver" and row["member"]["avatar"] == "" and info["viewer"]["theme"] == "gold"
     assert client.get("/api/board/profile", headers=auth(client, admin=True)).status_code == 400
 
 

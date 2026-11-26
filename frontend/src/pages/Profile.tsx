@@ -100,7 +100,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
           {items.map((it, idx) => {
             const head = tab === "avatar" && (idx === 0 || rank(items[idx - 1]) !== rank(it)) ? (RARITY[rank(it) - 1] ?? FREE) : null;
             const inGroup = head ? items.filter((x) => rank(x) === rank(it)) : [];
-            const firstOther = tab === "avatar" && idx === 0 && !it.rarity;
+            const firstOther = tab === "avatar" && !!head && head.key === "common";  // Plain (free) leads the Common pictures
             const inUse = current === it.key;
             const locked = !it.available;
             const forSale = locked && it.price > 0;

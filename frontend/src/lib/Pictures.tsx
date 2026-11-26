@@ -645,6 +645,33 @@ const PICS: Record<string, Pic> = {
     <path d="M58 82 L72 74 M60 84 L74 78 M60 80 L72 70" stroke="#7a4a1a" strokeWidth="1.4" />
     <path d="M72 74 l3 -2 -1 3z M74 78 l3 -1 -2 3z M72 70 l3 -2 -1 3z" fill="#9aa3b0" />
   </> },
+  swordsman: { bg: ["#e6f0ff", "#5a7ac8"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}b`} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#ffffff" /><stop offset=".5" stopColor="#c8d4e4" /><stop offset="1" stopColor="#7a8aa4" /></linearGradient>
+    </defs>
+    {/* the sword over the shoulder */}
+    <path d="M27 92 L78 16 L86 22 L35 98Z" fill={`url(#${id}b)`} stroke="#5a6a84" strokeWidth="1" strokeLinejoin="round" />
+    <path d="M78 16 L90 6 L86 22Z" fill="#e8eef6" stroke="#5a6a84" strokeWidth="1" strokeLinejoin="round" />
+    <path d="M31 95 L82 19" stroke="#ffffff" strokeWidth="1.4" opacity=".9" />
+    <path className="fx-twinkle" d="M88 4 l1 3 3 1 -3 1 -1 3 -1 -3 -3 -1 3 -1z" fill="#fff" />
+    {/* body: a blue tunic with a leather strap */}
+    <path d="M12 100 Q14 78 32 74 Q50 70 68 74 Q86 78 88 100Z" fill="#2f5aa8" stroke="#1a3570" strokeWidth="1.2" />
+    <path d="M26 78 L70 100" stroke="#7a4a22" strokeWidth="6" />
+    <circle cx="46" cy="87" r="3.4" fill="#e0b030" stroke="#7a5000" strokeWidth="1" />
+    <path d="M40 74 L50 84 L60 74" fill="none" stroke="#e8eef6" strokeWidth="2.4" />
+    {/* hilt and guard behind the shoulder */}
+    <path d="M24 84 L38 92" stroke="#e0b030" strokeWidth="5" strokeLinecap="round" />
+    <path d="M22 100 L30 92" stroke="#5a3010" strokeWidth="5" strokeLinecap="round" />
+    {/* head */}
+    <ellipse cx="50" cy="52" rx="21" ry="22" fill="#f2c9a0" />
+    <path d="M29 48 Q28 26 50 24 Q72 26 71 48 Q66 38 58 38 Q52 34 46 38 Q36 36 29 48Z" fill="#3a2414" />
+    <path d="M28 40 Q50 32 72 40 L72 46 Q50 38 28 46Z" fill="#c8283a" />
+    <path d="M72 42 Q84 40 88 48 Q80 46 74 47Z M72 44 Q82 50 82 58 Q76 52 72 48Z" fill="#c8283a" />
+    <path d="M38 50 Q42 47 46 50 M54 50 Q58 47 62 50" stroke="#2a1a10" strokeWidth="2" fill="none" strokeLinecap="round" />
+    <Eyes y={54} dx={8} r={3.4} />
+    <path d="M44 64 Q50 68 56 63" stroke="#2a1a10" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    <Cheeks y={61} dx={14} />
+  </> },
   lantern: { bg: ["#2a3a6b", "#0f1838"], draw: (id) => <>
     <defs><radialGradient id={`${id}l`}><stop offset="0" stopColor="#fff6c0" /><stop offset=".6" stopColor="#ffc23a" /><stop offset="1" stopColor="#ff8a00" stopOpacity="0" /></radialGradient></defs>
     {[[18, 20], [80, 26], [26, 80], [84, 76], [70, 12]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.4" fill="#fff" />)}

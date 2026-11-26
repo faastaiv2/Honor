@@ -356,9 +356,9 @@ def history(days: int = Query(default=14, ge=1, le=62), v: Viewer = Depends(curr
 def set_avatar(body: AvatarIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
     if v.kind != "member":
         raise HTTPException(400, "Parents set avatars in Admin")
-    if body.avatar and body.avatar not in AVATARS:
-        raise HTTPException(400, "Choose one of the avatars shown")
     m = db.get(Member, v.id)
+    if body.avatar and (price_of("avatar", body.avatar) is None or shop_key("avatar", body.avatar) not in owned_items(db, m.id)):
+        raise HTTPException(400, "Choose one of the avatars shown")
     m.avatar = body.avatar
     db.commit()
     return {"avatar": m.avatar}
