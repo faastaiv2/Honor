@@ -59,11 +59,30 @@ function Devil() {
   );
 }
 
+/** The storm: big clouds roll in over the top from both sides, a cloud bank gathers below, lightning strikes. */
+const TOP: [number, number, number][] = [[-8, -6, 62], [22, -10, 70], [52, -4, 64], [-14, 8, 54], [40, 6, 60], [70, 10, 50]];
+const BANK: [number, number][] = [[-10, 0], [18, 4], [44, -2], [70, 3]];
+const BOLTS = [
+  { x: 22, d: "M30 0 L18 42 L32 42 L14 96 L46 34 L30 34 L42 0Z", t: 0.35 },
+  { x: 72, d: "M24 0 L36 36 L22 36 L40 92 L10 30 L26 30 L14 0Z", t: 0.95 },
+  { x: 46, d: "M28 0 L16 30 L30 30 L20 70 L44 24 L30 24 L38 0Z", t: 1.6 },
+];
+
 function Clouds({ closing }: { closing: boolean }) {
   return (
     <div className={`sh-clouds${closing ? " closing" : ""}`} aria-hidden="true">
-      {Array.from({ length: 9 }, (_, i) => (
-        <span key={i} className={`sh-cloud c${i}`} style={{ ["--i" as string]: i }} />
+      {BOLTS.map((b, i) => (
+        <svg key={i} className="sh-bolt" viewBox="0 0 56 100" style={{ left: `${b.x}%`, ["--t" as string]: `${b.t}s`, ["--loop" as string]: `${5 + i * 1.7}s` }}>
+          <path d={b.d} fill="#fffbe0" stroke="#ffe060" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      ))}
+      {TOP.map(([x, y, w], i) => (
+        <span key={`t${i}`} className="sh-cloud top" style={{ left: `${x}%`, top: `${y}%`, width: `${w}vmax`, ["--i" as string]: i,
+          ["--from" as string]: x < 30 ? "-70vw" : "70vw" }} />
+      ))}
+      {BANK.map(([x, y], i) => (
+        <span key={`b${i}`} className="sh-cloud bank" style={{ left: `${x}%`, bottom: `${y - 8}%`, ["--i" as string]: i + 3,
+          ["--from" as string]: i % 2 ? "60vw" : "-60vw" }} />
       ))}
     </div>
   );
@@ -115,6 +134,7 @@ export default function ShaytanScene({ name, offer, ladder, onAnswer, onDone, pr
   return createPortal(
     <div className={`sh sh-${stage}${won ? " sh-won" : ""}`} role="dialog" aria-modal="true" aria-label="Shaytan appears">
       <div className="sh-flash" aria-hidden="true" />
+      <div className="sh-flash late" aria-hidden="true" />
       {won && <div className="sh-dawn" aria-hidden="true">
         <div className="sh-sun" />
         {Array.from({ length: 14 }, (_, i) => <i key={i} className="sh-spark" style={{ ["--i" as string]: i, left: `${6 + i * 6.5}%`, top: `${10 + ((i * 37) % 55)}%` }} />)}
