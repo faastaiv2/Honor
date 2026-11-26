@@ -176,7 +176,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
           ))}
         </div>)}
 
-      {card("👺", "Goblin raid", "Falling onto the Pillar of Shame: goblins swarm the screen for 15 seconds and steal 5–10 gems.",
+      {card("👺", "Goblin raid", "Falling onto the Pillar of Shame: goblins swarm for 15 seconds and steal gems — 15–35 at −I, 35–75 at −II, 75–99 at −III.",
         () => setPreview({ kind: "goblins" }),
         slot("goblins", "Raid music", "Plays through the raid, fading in and out"))}
 

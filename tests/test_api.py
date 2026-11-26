@@ -806,14 +806,24 @@ def test_pillar_of_shame_locks_picture_and_frame(client, family, db):
 def test_goblin_raid_steals_gems_once_on_falling(client, family, db):
     from app.models import Member as M
     ha = auth(client, admin=True)
-    m = client.post("/api/admin/members", headers=ha, json={"name": "Faller", "pin": "1234", "base_honor": 1}).json()
+    m = client.post("/api/admin/members", headers=ha, json={"name": "Faller", "pin": "1234", "base_honor": 0}).json()
     h = {"Authorization": "Bearer " + client.post("/api/auth/member", json={"member_id": m["id"], "pin": "1234"}).json()["token"]}
-    row = db.get(M, m["id"]); row.gems_stolen = -50; db.commit()  # give them 50 gems to lose
+    row = db.get(M, m["id"]); row.gems_stolen = -500; db.commit()  # give them 500 gems to lose
     first = client.get("/api/board/profile", headers=h).json()
-    assert first["raid"] is None and first["gems"]["balance"] == 50
-    assert client.post("/api/admin/adjustments", headers=ha, json={"member_id": m["id"], "delta": -3, "note": "test"}).status_code == 201
-    fell = client.get("/api/board/profile", headers=h).json()
-    assert fell["tier"]["key"] == "low"
-    assert 5 <= fell["raid"]["stolen"] <= 10 and fell["gems"]["balance"] == 50 - fell["raid"]["stolen"]
-    again = client.post("/api/board/profile/raid-seen", headers=h).json()
-    assert again["raid"] is None and again["gems"]["balance"] == fell["gems"]["balance"]
+    assert first["raid"] is None and first["gems"]["balance"] == 500
+    fall = lambda d: client.post("/api/admin/adjustments", headers=ha, json={"member_id": m["id"], "delta": d, "note": "t"})
+    fall(-1)  # to −I: 15–35
+    one = client.get("/api/board/profile", headers=h).json()
+    assert 15 <= one["raid"]["stolen"] <= 35 and one["gems"]["balance"] == 500 - one["raid"]["stolen"]
+    seen = client.post("/api/board/profile/raid-seen", headers=h).json()
+    assert seen["raid"] is None and client.get("/api/board/profile", headers=h).json()["raid"] is None
+    fall(-1)  # deeper, to −II: 35–75
+    two = client.get("/api/board/profile", headers=h).json()
+    assert 35 <= two["raid"]["stolen"] <= 75
+    client.post("/api/board/profile/raid-seen", headers=h)
+    fall(-1)  # to −III: 75–99
+    three = client.get("/api/board/profile", headers=h).json()
+    assert 75 <= three["raid"]["stolen"] <= 99
+    client.post("/api/board/profile/raid-seen", headers=h)
+    fall(1)  # climbing to −II: no raid
+    assert client.get("/api/board/profile", headers=h).json()["raid"] is None

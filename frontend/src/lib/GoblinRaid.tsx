@@ -63,6 +63,7 @@ export default function GoblinRaid({ stolen, from, onDone, preview = false }: { 
   const [stage, setStage] = useState<"raid" | "after">("raid");
   const [wallet, setWallet] = useState(from ?? stolen);
   const [snatch, setSnatch] = useState<number[]>([]);
+  const [took, setTook] = useState(0);
   const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const done = useRef(false);
 
@@ -71,9 +72,12 @@ export default function GoblinRaid({ stolen, from, onDone, preview = false }: { 
     const ts: number[] = [];
     if (reduced) { setWallet((from ?? stolen) - stolen); setStage("after"); return () => stopMusic("goblins", 800); }
     // At 3 seconds they start grabbing gems out of the wallet, one by one.
+    // Up to 30 grabs spread over about 10 seconds; each grab takes a handful of gems.
     const start = from ?? stolen;
-    for (let i = 0; i < stolen; i++) {
-      ts.push(window.setTimeout(() => { setWallet(start - i - 1); setSnatch((s) => [...s, i]); }, 3000 + i * 650));
+    const grabs = Math.min(stolen, 30), every = grabs ? Math.min(650, 10000 / grabs) : 0;
+    for (let i = 0; i < grabs; i++) {
+      const taken = Math.round((stolen * (i + 1)) / grabs);
+      ts.push(window.setTimeout(() => { setWallet(start - taken); setSnatch((s) => [...s, i]); setTook(taken); }, 3000 + i * every));
     }
     ts.push(window.setTimeout(() => setStage("after"), RAID_MS));
     return () => { ts.forEach(clearTimeout); stopMusic("goblins", 1200); };
@@ -108,7 +112,7 @@ export default function GoblinRaid({ stolen, from, onDone, preview = false }: { 
             <GemArt tone={(["blue", "sky", "deep"] as const)[i % 3]} glint={false} />
           </span>
         ))}
-        {stolen > 0 && snatch.length > 0 && <p className="gbr-count">−{snatch.length} <Gem size={30} /></p>}
+        {stolen > 0 && took > 0 && <p className="gbr-count">−{took} <Gem size={30} /></p>}
       </>}
 
       {stage === "after" && (

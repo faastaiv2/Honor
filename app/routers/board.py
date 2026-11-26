@@ -365,16 +365,30 @@ def _theme_of(m: Member) -> str:
     return m.theme if m.theme in THEME_KEYS else "bronze"
 
 
+RAID_GEMS = {-1: (15, 35), -2: (35, 75), -3: (75, 99)}  # gems the goblins steal at each level of the Pillar of Shame
+
+
 def _goblin_raid(db: Session, m: Member, tier, p) -> None:
-    """Falling onto the Pillar of Shame: goblins raid and steal 5 to 10 gems (never more than the member has).
-    Once per fall; the raid is shown on the member's next visit (raid_owed)."""
-    if tier.key != "low" or m.seen_rank == "low" or m.seen_rank not in _RANK_ORDER:
+    """Falling onto the Pillar of Shame: goblins raid. Each level deeper (−I, −II, −III) brings a new, bigger raid
+    (never more gems than the member has). Shown on the member's next visit (raid_owed)."""
+    if p.level >= 0 or tier.key != "low":
+        if m.raid_depth:  # climbed back off the Pillar: the next fall starts fresh
+            m.raid_depth = 0
+            db.commit()
         return
-    cfg = get_settings_row(db)
+    if m.seen_rank not in _RANK_ORDER:  # never seen before (a new member): no raid for where they start
+        m.raid_depth = p.level
+        db.commit()
+        return
+    if p.level >= (m.raid_depth or 0):
+        return  # not deeper than the last raid
+    lo, hi = RAID_GEMS.get(max(p.level, -3), (75, 99))
     balance = gems_earned(p) + gems_claimed(db, m.id) + achievement_gems(db, m.id)[0] - gems_spent(db, m.id)
-    take = max(0, min(balance, random.randint(5, 10)))
+    take = max(0, min(balance, random.randint(lo, hi)))
     m.gems_stolen = (m.gems_stolen or 0) + take
-    m.raid_owed = take
+    owed = m.raid_owed if m.raid_owed is not None and m.raid_owed >= 0 else 0
+    m.raid_owed = owed + take  # two falls before the next visit: one raid with both
+    m.raid_depth = p.level
     db.commit()
 
 
