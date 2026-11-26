@@ -13,7 +13,8 @@ export default class Guard extends Component<{ name: string; children: ReactNode
         <h2>⚠️ “{this.props.name}” could not be shown</h2>
         <p className="note">Please send a screenshot of this box so it can be fixed.</p>
         <pre>{`${e.name}: ${e.message}\n${(e.stack ?? "").split("\n").slice(1, 5).join("\n")}`}</pre>
-        <button onClick={() => this.setState({ error: null })}>Try again</button>
+        <button onClick={() => (/dynamically imported module|Importing a module script failed|error loading dynamically/i.test(e.message)
+          ? window.location.reload() : this.setState({ error: null }))}>Try again</button>
       </section>
     );
   }

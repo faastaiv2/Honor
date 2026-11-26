@@ -1,5 +1,5 @@
 import FirstRun from "./pages/FirstRun";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api, type TodayInfo } from "./api";
 import { useAuth } from "./auth";
@@ -10,16 +10,27 @@ import Guard from "./lib/Guard";
 import SignIn from "./pages/SignIn";
 import Welcome from "./pages/Welcome";
 import Today from "./pages/Today";
+/** Load a page when first opened; if its file is gone (a new version was published), reload to the new version. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Page = { default: ComponentType<any> };
+function lazyPage(load: () => Promise<Page>) {
+  return lazy((): Promise<Page> => load().catch((err) => {
+    const reload = (window as unknown as { __honorReload?: () => boolean }).__honorReload;
+    if (reload?.()) return new Promise<Page>(() => undefined); // the page is reloading
+    throw err;
+  }));
+}
+
 // Pages a member doesn't need straight away load when first opened (a smaller first download).
-const Events = lazy(() => import("./pages/Events"));
-const AdminHome = lazy(() => import("./pages/AdminHome"));
-const Achievements = lazy(() => import("./pages/Achievements"));
-const Admin = lazy(() => import("./pages/Admin"));
-const HistoryPage = lazy(() => import("./pages/History"));
-const Animations = lazy(() => import("./pages/Animations"));
-const ProfilePage = lazy(() => import("./pages/Profile"));
-const Benefits = lazy(() => import("./pages/Benefits"));
-const Tasks = lazy(() => import("./pages/Tasks"));
+const Events = lazyPage(() => import("./pages/Events"));
+const AdminHome = lazyPage(() => import("./pages/AdminHome"));
+const Achievements = lazyPage(() => import("./pages/Achievements"));
+const Admin = lazyPage(() => import("./pages/Admin"));
+const HistoryPage = lazyPage(() => import("./pages/History"));
+const Animations = lazyPage(() => import("./pages/Animations"));
+const ProfilePage = lazyPage(() => import("./pages/Profile"));
+const Benefits = lazyPage(() => import("./pages/Benefits"));
+const Tasks = lazyPage(() => import("./pages/Tasks"));
 
 
 export default function App() {
