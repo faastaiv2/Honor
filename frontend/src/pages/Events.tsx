@@ -414,7 +414,6 @@ export default function Events() {
           <li><b>Wait for the tournament to open.</b> {hero ? <>It opens {hero.day === data.today ? "today" : fmt(hero.day, { weekday: "long", day: "numeric", month: "short" })}{allDay(hero) ? "" : `, ${hours(hero)}`}.</> : "Usually on Saturdays."}</li>
           <li><b>Tap “Enter the tournament”</b>, take a photo of your art (or choose one), give it a name, and send it.{(hero?.fee ?? 0) > 0 ? <> Entering costs <b>{hero!.fee} gems</b>.</> : " It's free."}</li>
           <li><b>One picture each.</b> You can replace it until the tournament closes.</li>
-          <li><b>Your parents pick the winners:</b> 🥇 +{prizes["1"]}, 🥈 +{prizes["2"]}, 🥉 +{prizes["3"]} gems, and a medal in Achievements.</li>
         </ol>
         <p className="note">Be honest: only send art you made yourself. 🤝</p>
       </details>
