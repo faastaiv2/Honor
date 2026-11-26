@@ -187,13 +187,14 @@ ANIMALS_NOW_COMMON = ["lion", "tiger", "eagle", "wolf", "fox", "owl", "bear", "c
 RARITIES = ["common", "rare", "epic", "legendary"]
 SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     # Common
-    ("lion", "Lion", 100, "common"), ("tiger", "Tiger", 100, "common"), ("eagle", "Eagle", 100, "common"),
-    ("wolf", "Wolf", 100, "common"), ("fox", "Fox", 100, "common"), ("owl", "Owl", 100, "common"),
-    ("bear", "Bear", 100, "common"), ("cat", "Cat", 100, "common"), ("turtle", "Turtle", 100, "common"),
-    ("dolphin", "Dolphin", 100, "common"),
-    ("squire", "Squire", 100, "common"), ("flowergirl", "Flower Girl", 100, "common"), ("archer", "Archer", 100, "common"),
-    ("bunny", "Bunny", 100, "common"), ("hamster", "Hamster", 100, "common"), ("frog", "Frog", 120, "common"),
-    ("duckling", "Duckling", 150, "common"), ("puppy", "Puppy", 150, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
+    ("cat", "Cat", 0, "common"),  # free
+    ("lion", "Lion", 0, "common"), ("eagle", "Eagle", 0, "common"), ("owl", "Owl", 0, "common"),
+    ("bear", "Bear", 0, "common"),  # unlocked by achievements (PICTURE_UNLOCKS)
+    ("tiger", "Tiger", 100, "common"), ("wolf", "Wolf", 100, "common"), ("fox", "Fox", 100, "common"),
+    ("turtle", "Turtle", 100, "common"), ("dolphin", "Dolphin", 100, "common"),
+    ("squire", "Squire", 0, "common"), ("flowergirl", "Flower Girl", 100, "common"), ("archer", "Archer", 100, "common"),
+    ("bunny", "Bunny", 0, "common"), ("hamster", "Hamster", 100, "common"), ("frog", "Frog", 120, "common"),
+    ("duckling", "Duckling", 0, "common"), ("puppy", "Puppy", 0, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
     ("koala", "Koala", 240, "common"),
     # Rare
     ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("shieldmaiden", "Shieldmaiden", 250, "rare"),
@@ -217,6 +218,8 @@ FREE_AVATARS = [k for k, _ in FREE_PICTURES]
 SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c, _ in SHOP_PICTURES]
 _PICTURE_NAMES = {k: n for k, n in FREE_PICTURES} | {k: n for k, n, _, _ in SHOP_PICTURES}
 _PICTURE_RARITY = {k: r for k, _, _, r in SHOP_PICTURES}
+# Pictures earned by an achievement instead of gems: picture -> achievement key.
+PICTURE_UNLOCKS = {"squire": "oath", "eagle": "fajr30", "owl": "mulk30", "bear": "fit10", "lion": "streak7"}
 
 TIER_ORDER = [t.key for t in TIERS]
 FRAME_KEYS = {f[0] for f in FRAMES}
@@ -231,10 +234,14 @@ def shop_key(kind: str, key: str) -> str:
     return f"{kind}:{key}"
 
 
-def item_available(kind: str, key: str, current: Tier, owned: set[str]) -> bool:
-    """Free with the member's rank, or bought with gems."""
+def item_available(kind: str, key: str, current: Tier, owned: set[str], earned: set[str] | None = None) -> bool:
+    """Free with the member's rank, bought with gems, or (some pictures) earned with an achievement."""
     if kind == "avatar":
-        return key in FREE_AVATARS or shop_key("avatar", key) in owned
+        if shop_key("avatar", key) in owned or key in FREE_AVATARS:
+            return True
+        if key in PICTURE_UNLOCKS:
+            return PICTURE_UNLOCKS[key] in (earned or set())
+        return price_of("avatar", key) == 0
     table = FRAMES if kind == "frame" else THEMES
     need = next(x[2] for x in table if x[0] == key)
     return rank_reached(need, current) or shop_key(kind, key) in owned
@@ -249,12 +256,18 @@ def price_of(kind: str, key: str) -> int | None:
     return row[3] if row and row[2] is None else None
 
 
-def catalogue(kind: str, current: Tier, owned: set[str]) -> list[dict]:
+def catalogue(kind: str, current: Tier, owned: set[str], earned: set[str] | None = None) -> list[dict]:
     if kind == "avatar":
-        free = [{"key": a, "name": _PICTURE_NAMES[a], "available": True, "price": 0, "tier": None} for a in FREE_AVATARS]
-        return free + [{"key": a, "name": _PICTURE_NAMES[a], "available": shop_key("avatar", a) in owned, "price": c,
-                        "tier": None, "rarity": _PICTURE_RARITY[a]}
-                       for a, c in SHOP_AVATARS]
+        from app.achievements import BY_KEY as ACH
+        out = []
+        for a, c in SHOP_AVATARS:
+            item = {"key": a, "name": _PICTURE_NAMES[a], "available": item_available("avatar", a, current, owned, earned),
+                    "price": c, "tier": None, "rarity": _PICTURE_RARITY[a]}
+            if a in PICTURE_UNLOCKS:
+                ach = ACH[PICTURE_UNLOCKS[a]]
+                item["unlock"] = {"key": ach.key, "name": ach.name, "text": ach.text}
+            out.append(item)
+        return out
     table = FRAMES if kind == "frame" else THEMES
     return [{"key": k, "name": n, "available": item_available(kind, k, current, owned), "price": c,
              "tier": tier_dict(BY_KEY[need]) if need else None} for k, n, need, c in table]

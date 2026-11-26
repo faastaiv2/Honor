@@ -90,10 +90,13 @@ BY_KEY = {a.key: a for a in ACHIEVEMENTS}
 
 
 def evaluate(f: Facts, claimed: set[str]) -> list[dict]:
+    from app.tiers import PICTURE_UNLOCKS, _PICTURE_NAMES
+    pictures = {ach: pic for pic, ach in PICTURE_UNLOCKS.items()}
     out = []
     for a in ACHIEVEMENTS:
         have = a.measure(f)
         out.append({"key": a.key, "name": a.name, "text": a.text, "group": a.group, "icon": a.icon, "tier": a.tier,
                     "gems": a.gems, "goal": a.goal, "progress": min(have, a.goal), "unlocked": have >= a.goal,
-                    "claimed": a.key in claimed})
+                    "claimed": a.key in claimed,
+                    **({"picture": {"key": pictures[a.key], "name": _PICTURE_NAMES[pictures[a.key]]}} if a.key in pictures else {})})
     return out

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Fragment, useEffect, useState } from "react";
 import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
@@ -54,7 +55,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   // Pictures: free ones first, then the shop by rarity (common, rare, epic, legendary), cheapest first in each.
   const rank = (it: ShopItem) => (it.rarity ? RARITY.findIndex((r) => r.key === it.rarity) + 1 : 0);
   const items = tab === "frame" ? p.frames : tab === "theme" ? p.themes
-    : [...p.avatars].sort((a, b) => rank(a) - rank(b) || a.price - b.price);
+    : [...p.avatars].sort((a, b) => rank(a) - rank(b) || a.price - b.price || Number(!!a.unlock) - Number(!!b.unlock));
   const shamed = !!p.member.shamed; // on the Pillar of Shame: picture and frame are locked
   const current = tab === "frame" ? (p.member.own_frame ?? p.member.frame) || "plain" : tab === "theme" ? p.member.theme || "bronze" : (p.member.own_avatar ?? p.member.avatar);
   const lockedLook = shamed && tab !== "theme";
@@ -103,7 +104,8 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
             const firstOther = tab === "avatar" && !!head && head.key === "common";  // Plain (free) leads the Common pictures
             const inUse = current === it.key;
             const locked = !it.available;
-            const forSale = locked && it.price > 0;
+            const forSale = locked && it.price > 0 && !it.unlock;
+            const byAchievement = locked && !!it.unlock;
             return (<Fragment key={it.key}>
               {head && (
                 <div className={`shop-rarity r-${head.key}`}>
@@ -118,7 +120,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
                 </button>
               )}
               <div className={`shop-item${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}${it.rarity ? ` r-${it.rarity}` : ""}`}>
-                {it.rarity && <span className={`shop-tag r-${it.rarity}`}>{it.rarity}</span>}
+                {it.rarity && <span className={`shop-tag r-${it.rarity}${it.price === 0 && !it.unlock ? " free" : ""}${it.unlock ? " ach" : ""}`}>{it.unlock ? "achievement" : it.price === 0 ? "free" : it.rarity}</span>}
                 <button type="button" className="shop-face" aria-label={forSale ? `Preview ${it.name}` : it.name} disabled={!forSale}
                   onClick={() => forSale && (tab === "theme" ? setTrying(trying?.key === it.key ? null : it) : setPeek({ kind: tab, item: it }))}>
                   {tab === "frame" ? <Avatar avatar={p.member.avatar} color={t.color} frame={it.key} size={54} />
@@ -137,6 +139,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
                   : forSale ? (p.gems.balance >= it.price
                     ? <button className="shop-act buy" onClick={() => buy(tab, it)}><Gem /> {it.price}</button>
                     : <span className="shop-price"><span><Gem /> {it.price}</span><small>{it.price - p.gems.balance} more to go</small></span>)
+                  : byAchievement ? <Link className="shop-ach" to="/achievements" title={it.unlock!.text}>🏅 {it.unlock!.name}</Link>
                   : <span className="shop-lock">🔒 <RankIcon rank={it.tier?.key} /> {it.tier?.name}</span>}
               </div>
             </Fragment>);

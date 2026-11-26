@@ -1,3 +1,4 @@
+import Avatar from "../lib/Avatar";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type Achievement, type Achievements as AchievementsData } from "../api";
 import Gem from "../lib/Gem";
@@ -16,6 +17,7 @@ function Card({ a, onClaim }: { a: Achievement; onClaim: (a: Achievement) => voi
       <div className="ach-body">
         <div className="ach-top"><b>{a.name}</b><span className={`ach-tier t-${a.tier}`}>{TIER_NAME[a.tier]}</span></div>
         <p>{a.text}</p>
+        {a.picture && <p className="ach-pic"><span className="ach-pic-face"><Avatar avatar={a.picture.key} color="#8a5a2b" size={26} /></span> Unlocks the <b>{a.picture.name}</b> picture</p>}
         {!a.unlocked && a.goal > 1 && (
           <div className="ach-prog"><div className="ach-bar"><i style={{ width: `${pct}%` }} /></div><small>{a.progress}/{a.goal}</small></div>
         )}

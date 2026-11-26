@@ -16,7 +16,7 @@ from app.progress import Progress, gems_earned
 from app.routers.events import placings, unseen_win
 from app.services import (achievement_gems, active_members, clock_for, chests_opened, load_periods, can_start_quest, claimed_on, gems_claimed, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
-from app.tiers import (shown_look, CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
+from app.tiers import (PICTURE_UNLOCKS, shown_look, CAP_WITHOUT_LEGENDARY, DAILY_CLAIM, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
                        FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
                        tier_for)
 
@@ -454,6 +454,8 @@ def _profile(db: Session, m: Member) -> dict:
     nxt = p.best_level + 1
     reward = 0 if p.legendary or nxt > CAP_WITHOUT_LEGENDARY else GEMS_PER_LEVEL + (
         RANK_GEMS[tier_for(nxt, False).key] if tier_for(nxt, False).min == nxt else 0)
+    achs = _achievements(db, m, p)
+    earned = {a["key"] for a in achs if a["unlocked"]}
     look = shown_look(m.avatar, m.frame, tier.key)
     raid = {"stolen": m.raid_owed} if m.raid_owed is not None and m.raid_owed >= 0 else None
     takers = db.execute(select(Member.name, GemTake.gems).join(Member, Member.id == GemTake.taker_id)
@@ -467,13 +469,13 @@ def _profile(db: Session, m: Member) -> dict:
                      "today": p.today_tasks_gems, "from_tasks": p.gems_tasks, "from_levels": p.gems_levels},
             "next_level_reward": {"level": roman(nxt), "gems": reward} if reward else None,
             "frames": catalogue("frame", tier, owned), "themes": catalogue("theme", tier, owned),
-            "avatars": catalogue("avatar", tier, owned), "celebrate": celebrate,
+            "avatars": catalogue("avatar", tier, owned, earned), "celebrate": celebrate,
             "daily": {"gems": daily_gems, "claimed_today": claimed_today,
                       "available": daily_gems > 0 and p.streak > 0 and not claimed_today},
             "week_days": _week_days(db, cfg, m, today),
             "event_win": unseen_win(db, m.id),
             "oath": m.oath_at is not None, "oath_note": m.oath_note or "", "toured": bool(m.toured),
-            "achievements_ready": sum(1 for a in _achievements(db, m, p) if a["unlocked"] and not a["claimed"])}
+            "achievements_ready": sum(1 for a in achs if a["unlocked"] and not a["claimed"])}
 
 
 @router.get("/profile")
@@ -548,6 +550,8 @@ def save_profile(body: ProfileIn, v: Viewer = Depends(current_viewer), db: Sessi
         raise HTTPException(403, "🔒 Your picture and frame are locked while you're on the Pillar of Shame. "
                                  "Finish all your tasks to climb back to Member")
     owned = owned_items(db, m.id)
+    prog = progress_for(db, cfg, [m], today_for(cfg))[m.id]
+    earned = {a["key"] for a in _achievements(db, m, prog) if a["unlocked"]}
     for kind, value, keys in (("avatar", body.avatar, None), ("frame", body.frame, FRAME_KEYS), ("theme", body.theme, THEME_KEYS)):
         if value is None or value == "":
             if value == "":
@@ -557,7 +561,7 @@ def save_profile(body: ProfileIn, v: Viewer = Depends(current_viewer), db: Sessi
             raise HTTPException(400, "Choose one of the pictures shown")
         if keys is not None and value not in keys:
             raise HTTPException(400, f"Choose one of the {kind}s shown")
-        if not item_available(kind, value, tier, owned):
+        if not item_available(kind, value, tier, owned, earned):
             raise HTTPException(403, "Unlock it first: climb to its rank or buy it in the shop")
         setattr(m, kind, value)
     db.commit()
@@ -573,6 +577,10 @@ def buy(body: BuyIn, v: Viewer = Depends(current_viewer), db: Session = Depends(
     price = price_of(body.kind, body.key)
     if price is None:
         raise HTTPException(400, "That item is not sold in the shop")
+    if body.kind == "avatar" and body.key in PICTURE_UNLOCKS:
+        raise HTTPException(400, "This picture can't be bought: earn its achievement to unlock it")
+    if price == 0:
+        raise HTTPException(400, "It's free: just tap Use")
     if shop_key(body.kind, body.key) in owned_items(db, m.id):
         raise HTTPException(400, "You already have it")
     cfg = get_settings_row(db)

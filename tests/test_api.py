@@ -879,3 +879,16 @@ def test_dalilul_khairat_has_the_days_video_link(client, family):
                    for t in g["tasks"] if t["key"] == "dalail")
         assert dal["link"] == "https://example.com/v"
         assert client.patch("/api/admin/tasks/dalail", headers=ha, json={"links": ["javascript:x"]}).status_code == 422
+
+
+def test_free_and_achievement_pictures(client, family):
+    h = auth(client, family["A"])
+    pics = {x["key"]: x for x in client.get("/api/board/profile", headers=h).json()["avatars"]}
+    assert pics["bunny"]["available"] and pics["bunny"]["price"] == 0
+    assert not pics["squire"]["available"] and pics["squire"]["unlock"]["name"] == "I Swear"
+    assert client.put("/api/board/profile", headers=h, json={"avatar": "squire"}).status_code == 403
+    assert client.post("/api/board/shop/buy", headers=h, json={"kind": "avatar", "key": "squire"}).status_code == 400
+    client.post("/api/board/oath", headers=h, json={"words": "I SWEAR"})
+    assert client.put("/api/board/profile", headers=h, json={"avatar": "squire"}).status_code == 200
+    assert client.put("/api/board/profile", headers=h, json={"avatar": "bunny"}).status_code == 200
+    assert not pics["eagle"]["available"] and pics["eagle"]["unlock"]["key"] == "fajr30"

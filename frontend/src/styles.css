@@ -1998,3 +1998,8 @@ label.task { container-type: inline-size; }
 label.task > span.task-tags.task-tags { container-type: normal; }
 @container (max-width: 420px) { label.task > span.task-tags.task-tags { flex: 1 1 100%; justify-content: flex-start; padding-inline-start: 40px; } }
 label.task.done .task-tags, label.task.done .task-tags span { text-decoration: none; color: inherit; }
+.shop-tag.free { background: #2f9a5a; }
+.shop-tag.ach { background: linear-gradient(90deg, #d99a10, #b06a00); }
+.shop-ach { font-size: 12px; font-weight: 800; padding: 4px 8px; border-radius: 999px; background: #fff3d0; color: #7a4a00; text-decoration: none; text-align: center; line-height: 1.2; }
+.ach-pic { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; font-size: 13px; font-weight: 700; color: var(--mute); }
+.ach-pic-face { display: inline-grid; }
