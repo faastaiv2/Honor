@@ -672,6 +672,79 @@ const PICS: Record<string, Pic> = {
     <path d="M44 64 Q50 68 56 63" stroke="#2a1a10" strokeWidth="2.2" fill="none" strokeLinecap="round" />
     <Cheeks y={61} dx={14} />
   </> },
+  spartanlegend: { bg: ["#7a1a1a", "#1a0404"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff6c8" /><stop offset=".35" stopColor="#ffd24a" /><stop offset=".7" stopColor="#d99a10" /><stop offset="1" stopColor="#6a3a00" /></linearGradient>
+      <linearGradient id={`${id}c`} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#7a0a1a" /><stop offset=".5" stopColor="#ff3a4a" /><stop offset="1" stopColor="#7a0a1a" /></linearGradient>
+      <radialGradient id={`${id}h`}><stop offset="0" stopColor="#ffd24a" stopOpacity=".75" /><stop offset="1" stopColor="#ff6a00" stopOpacity="0" /></radialGradient>
+      <radialGradient id={`${id}e`}><stop offset="0" stopColor="#fff8d0" /><stop offset=".5" stopColor="#ffb020" /><stop offset="1" stopColor="#ff3a00" stopOpacity="0" /></radialGradient>
+    </defs>
+    <g opacity=".5" className="pa-spin" style={{ transformOrigin: "50px 44px" }}>{Array.from({ length: 16 }, (_, i) => <path key={i} d="M50 44 L47 -10 H53 Z" fill="#ffd24a" transform={`rotate(${i * 22.5} 50 44)`} opacity={i % 2 ? .5 : 1} />)}</g>
+    <circle className="pa-pulse" cx="50" cy="46" r="34" fill={`url(#${id}h)`} />
+    {/* round shield behind with the lambda */}
+    <circle cx="20" cy="70" r="20" fill={`url(#${id}g)`} stroke="#6a3a00" strokeWidth="1.6" />
+    <circle cx="20" cy="70" r="15" fill="#a8141e" stroke="#ffd24a" strokeWidth="1.4" />
+    <path d="M12 80 L20 60 L28 80" stroke="#ffd24a" strokeWidth="3" fill="none" strokeLinejoin="round" />
+    {/* spear */}
+    <path d="M86 100 L86 20" stroke="#7a4a1a" strokeWidth="3" />
+    <path d="M86 8 L90 22 L86 26 L82 22Z" fill={`url(#${id}g)`} stroke="#6a3a00" strokeWidth=".8" />
+    {/* cape and breastplate */}
+    <path d="M14 100 Q20 76 34 74 L50 92 L66 74 Q80 76 86 100Z" fill="#b0141e" />
+    <path d="M24 100 Q26 82 36 78 Q50 74 64 78 Q74 82 76 100Z" fill={`url(#${id}g)`} stroke="#6a3a00" strokeWidth="1.2" />
+    <path d="M40 86 Q50 82 60 86 M42 94 Q50 90 58 94" stroke="#6a3a00" strokeWidth="1.4" fill="none" />
+    {/* crest (sways) */}
+    <g className="pa-sway" style={{ transformOrigin: "50px 30px" }}>
+      <path d="M12 36 Q50 -20 88 36 L76 36 Q50 0 24 36Z" fill={`url(#${id}c)`} stroke="#5a0510" strokeWidth="1.2" strokeLinejoin="round" />
+      {Array.from({ length: 15 }, (_, i) => {
+        const a = Math.PI * (0.08 + (0.84 * i) / 14), x1 = 50 - Math.cos(a) * 30, y1 = 38 - Math.sin(a) * 30, x2 = 50 - Math.cos(a) * 42, y2 = 38 - Math.sin(a) * 44;
+        return <path key={i} d={`M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}`} stroke="#ff9aa4" strokeWidth="1" opacity=".75" />;
+      })}
+    </g>
+    {/* golden Corinthian helmet */}
+    <path d="M28 50 Q28 22 50 20 Q72 22 72 50 L70 74 Q62 80 56 76 L56 58 L44 58 L44 76 Q38 80 30 74 Z" fill={`url(#${id}g)`} stroke="#6a3a00" strokeWidth="1.8" />
+    <path d="M33 44 Q41 40 47 44 L47 58 H44 L44 48 Q38 46 33 48 Z M67 44 Q59 40 53 44 L53 58 H56 L56 48 Q62 46 67 48 Z" fill="#1a0604" />
+    <ellipse className="pa-glow" cx="40" cy="46" rx="5" ry="2.4" fill={`url(#${id}e)`} /><ellipse className="pa-glow" cx="60" cy="46" rx="5" ry="2.4" fill={`url(#${id}e)`} />
+    <path d="M47 44 H53 V60 H47 Z" fill={`url(#${id}g)`} stroke="#6a3a00" strokeWidth="1" />
+    <path d="M34 30 Q42 24 50 23" stroke="#fff6c8" strokeWidth="2.4" fill="none" opacity=".85" strokeLinecap="round" />
+    <path d="M30 36 Q50 30 70 36" stroke="#6a3a00" strokeWidth="1.2" fill="none" />
+    <path d="M36 66 l-3 6 M64 66 l3 6" stroke="#fff6c8" strokeWidth="1.2" opacity=".7" />
+    {[[10, 20, 3.4], [92, 44, 3], [14, 46, 2.4], [70, 6, 2.6]].map(([x, y, r], i) => <path key={i} className="fx-twinkle" style={{ animationDelay: `${i * .4}s` }} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#fff6c8" />)}
+  </> },
+  catlegend: { bg: ["#4a1a7a", "#0e0420"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff6c8" /><stop offset=".4" stopColor="#ffd24a" /><stop offset="1" stopColor="#9a6a00" /></linearGradient>
+      <linearGradient id={`${id}f`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffffff" /><stop offset=".6" stopColor="#f0eaff" /><stop offset="1" stopColor="#c8b8e8" /></linearGradient>
+      <radialGradient id={`${id}h`}><stop offset="0" stopColor="#e0c8ff" stopOpacity=".85" /><stop offset="1" stopColor="#8a4ae0" stopOpacity="0" /></radialGradient>
+      <radialGradient id={`${id}e`}><stop offset="0" stopColor="#eaffd0" /><stop offset=".5" stopColor="#3ae07a" /><stop offset="1" stopColor="#0a7a3a" /></radialGradient>
+    </defs>
+    <g opacity=".45" className="pa-spin" style={{ transformOrigin: "50px 48px" }}>{Array.from({ length: 12 }, (_, i) => <path key={i} d="M50 48 L47 -8 H53 Z" fill="#e0c8ff" transform={`rotate(${i * 30} 50 48)`} />)}</g>
+    <circle className="pa-pulse" cx="50" cy="50" r="36" fill={`url(#${id}h)`} />
+    {/* royal cape */}
+    <path d="M10 100 Q14 74 32 72 L50 88 L68 72 Q86 74 90 100Z" fill="#6a1ab0" />
+    <path d="M14 100 Q18 80 32 76 M86 100 Q82 80 68 76" stroke="#ffd24a" strokeWidth="2" fill="none" />
+    {[[24, 92], [76, 92], [34, 84], [66, 84]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.4" fill="#fff" />)}
+    <path d="M30 100 Q34 82 50 80 Q66 82 70 100Z" fill={`url(#${id}f)`} />
+    {/* jewelled collar */}
+    <path d="M34 76 Q50 84 66 76" stroke={`url(#${id}g)`} strokeWidth="4" fill="none" strokeLinecap="round" />
+    <circle className="pa-glow" cx="50" cy="81" r="3.4" fill="#2fd07a" stroke="#fff" strokeWidth="1" />
+    {/* head */}
+    <path d="M25 46 L24 16 L44 32Z M75 46 L76 16 L56 32Z" fill={`url(#${id}f)`} stroke="#b8a8d8" strokeWidth="1" />
+    <path d="M28 40 L28 24 L40 33Z M72 40 L72 24 L60 33Z" fill="#ffc8e0" />
+    <ellipse cx="50" cy="52" rx="27" ry="25" fill={`url(#${id}f)`} stroke="#c8b8e8" strokeWidth="1.2" />
+    <path d="M50 30 v7 M44 31 l2 6 M56 31 l-2 6" stroke="#ffd24a" strokeWidth="2.2" strokeLinecap="round" />
+    {/* glowing emerald eyes */}
+    <g className="pa-glow"><ellipse cx="39" cy="50" rx="6" ry="5.4" fill={`url(#${id}e)`} /><ellipse cx="61" cy="50" rx="6" ry="5.4" fill={`url(#${id}e)`} /></g>
+    <ellipse cx="39" cy="50" rx="1.6" ry="4.4" fill="#06200e" /><ellipse cx="61" cy="50" rx="1.6" ry="4.4" fill="#06200e" />
+    <circle cx="40.6" cy="48" r="1.2" fill="#fff" /><circle cx="62.6" cy="48" r="1.2" fill="#fff" />
+    <path d="M47 58 h6 l-3 3z" fill="#ff8ab0" />
+    <path d="M50 61 q-3 3 -6 1 M50 61 q3 3 6 1" stroke="#8a7aa8" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    <path d="M30 56 h-13 M30 60 l-12 3 M70 56 h13 M70 60 l12 3" stroke="#ffd24a" strokeWidth="1.1" strokeLinecap="round" opacity=".9" />
+    {/* crown */}
+    <path d="M34 26 L32 12 L40 19 L50 7 L60 19 L68 12 L66 26 Q50 22 34 26Z" fill={`url(#${id}g)`} stroke="#7a5000" strokeWidth="1.2" strokeLinejoin="round" />
+    <circle className="pa-glow" cx="50" cy="18" r="2.6" fill="#e3214a" stroke="#fff" strokeWidth=".8" />
+    <circle cx="40" cy="22" r="1.5" fill="#2f7bff" /><circle cx="60" cy="22" r="1.5" fill="#2fd07a" />
+    {[[12, 22, 3.4], [88, 30, 3], [16, 64, 2.4], [86, 66, 2.8]].map(([x, y, r], i) => <path key={i} className="fx-twinkle" style={{ animationDelay: `${i * .45}s` }} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#fff" />)}
+  </> },
   lantern: { bg: ["#2a3a6b", "#0f1838"], draw: (id) => <>
     <defs><radialGradient id={`${id}l`}><stop offset="0" stopColor="#fff6c0" /><stop offset=".6" stopColor="#ffc23a" /><stop offset="1" stopColor="#ff8a00" stopOpacity="0" /></radialGradient></defs>
     {[[18, 20], [80, 26], [26, 80], [84, 76], [70, 12]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.4" fill="#fff" />)}
