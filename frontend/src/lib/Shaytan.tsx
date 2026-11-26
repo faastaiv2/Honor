@@ -1,0 +1,128 @@
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import Gem from "./Gem";
+
+/**
+ * Deploy Shaytan: dark clouds roll in, lightning, and Shaytan rises out of them with a sack of gems.
+ * He offers gems to skip the day's tasks. Yes: he grows huge in a ring of fire, laughs (there are no gems,
+ * his promises are empty) and vanishes into his clouds. No: he shrinks and is blown away.
+ */
+
+/** Shaytan himself: an original cartoon imp. View box 0 0 200 220. */
+function Devil() {
+  return (
+    <svg viewBox="0 0 200 220" className="sh-devil" aria-hidden="true">
+      <defs>
+        <radialGradient id="sh-skin" cx="45%" cy="35%" r="70%"><stop offset="0" stopColor="#ff5a4a" /><stop offset=".6" stopColor="#c81e1e" /><stop offset="1" stopColor="#7a0a10" /></radialGradient>
+        <linearGradient id="sh-horn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#3a2a2a" /><stop offset="1" stopColor="#d8c8a8" /></linearGradient>
+        <radialGradient id="sh-eye"><stop offset="0" stopColor="#fff8a0" /><stop offset=".6" stopColor="#ffd000" /><stop offset="1" stopColor="#ff8a00" /></radialGradient>
+        <linearGradient id="sh-cape" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2a0a20" /><stop offset="1" stopColor="#0a0008" /></linearGradient>
+      </defs>
+      {/* tail */}
+      <path className="sh-tail" d="M140 190 Q186 186 180 150 Q176 128 190 120" stroke="#b01818" strokeWidth="6" fill="none" strokeLinecap="round" />
+      <path d="M186 112 L198 118 L188 128 Z" fill="#b01818" />
+      {/* cape and body */}
+      <path d="M40 220 Q44 150 70 136 L100 150 L130 136 Q156 150 160 220Z" fill="url(#sh-cape)" />
+      <path d="M70 136 L100 172 L130 136 Q116 130 100 132 Q84 130 70 136Z" fill="url(#sh-skin)" />
+      <path d="M60 140 Q36 120 50 96 L62 104 Q54 118 70 132Z M140 140 Q164 120 150 96 L138 104 Q146 118 130 132Z" fill="#5a0a20" />
+      {/* the sack of gems he offers */}
+      <g className="sh-sack">
+        <path d="M128 176 Q120 150 138 146 L162 146 Q180 150 172 176 Q170 196 150 196 Q130 196 128 176Z" fill="#8a5a2b" stroke="#4a2c10" strokeWidth="2" />
+        <path d="M136 148 Q150 140 164 148" stroke="#d4a017" strokeWidth="3" fill="none" />
+        <path d="M142 140 l6 -8 6 8 -6 8z M154 136 l5 -6 5 6 -5 6z M136 136 l4 -5 4 5 -4 5z" fill="#5cc4ff" stroke="#1670cc" strokeWidth="1" />
+        <circle cx="146" cy="130" r="2" fill="#fff" className="fx-twinkle" />
+      </g>
+      {/* horns */}
+      <path d="M62 52 Q48 24 58 6 Q66 30 80 40Z M138 52 Q152 24 142 6 Q134 30 120 40Z" fill="url(#sh-horn)" stroke="#2a1a1a" strokeWidth="1.5" />
+      {/* pointed ears */}
+      <path d="M52 74 L30 60 L52 92Z M148 74 L170 60 L148 92Z" fill="url(#sh-skin)" stroke="#6a0a10" strokeWidth="1.5" />
+      {/* head */}
+      <path d="M100 32 C70 32 50 52 50 80 C50 104 66 124 84 130 L100 142 L116 130 C134 124 150 104 150 80 C150 52 130 32 100 32Z" fill="url(#sh-skin)" stroke="#6a0a10" strokeWidth="2" />
+      {/* goatee */}
+      <path d="M90 128 Q100 160 110 128 Q100 136 90 128Z" fill="#2a0a0a" />
+      {/* sly eyebrows and glowing eyes */}
+      <path d="M64 66 L92 76 M136 66 L108 76" stroke="#2a0a0a" strokeWidth="5" strokeLinecap="round" />
+      <g className="sh-eyes">
+        <path d="M68 82 Q80 72 92 84 Q80 90 68 82Z" fill="url(#sh-eye)" />
+        <path d="M132 82 Q120 72 108 84 Q120 90 132 82Z" fill="url(#sh-eye)" />
+        <ellipse cx="81" cy="82" rx="1.8" ry="5" fill="#1a0000" /><ellipse cx="119" cy="82" rx="1.8" ry="5" fill="#1a0000" />
+      </g>
+      {/* nose and a wicked grin */}
+      <path d="M96 96 Q100 104 104 96" stroke="#6a0a10" strokeWidth="2" fill="none" />
+      <path className="sh-grin" d="M72 106 Q100 132 128 106 Q100 118 72 106Z" fill="#2a0000" />
+      <path d="M78 108 l4 6 4 -5 4 6 4 -5 4 6 4 -5 4 6 4 -5 4 6 4 -6" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Clouds({ closing }: { closing: boolean }) {
+  return (
+    <div className={`sh-clouds${closing ? " closing" : ""}`} aria-hidden="true">
+      {Array.from({ length: 9 }, (_, i) => (
+        <span key={i} className={`sh-cloud c${i}`} style={{ ["--i" as string]: i }} />
+      ))}
+    </div>
+  );
+}
+
+type Stage = "clouds" | "rise" | "offer" | "grow" | "flee" | "leave";
+
+export default function ShaytanScene({ name, offer, onAnswer, onDone, preview = false }: {
+  name: string; offer: number; onAnswer?: (accept: boolean) => Promise<void> | void; onDone: () => void; preview?: boolean;
+}) {
+  const [stage, setStage] = useState<Stage>("clouds");
+  useEffect(() => {
+    const t = [window.setTimeout(() => setStage("rise"), 1500), window.setTimeout(() => setStage("offer"), 2900)];
+    return () => t.forEach(clearTimeout);
+  }, []);
+  async function answer(accept: boolean) {
+    setStage(accept ? "grow" : "flee");
+    if (!preview) await onAnswer?.(accept);
+    window.setTimeout(() => setStage("leave"), accept ? 3600 : 2600);
+    window.setTimeout(onDone, accept ? 5000 : 3800);
+  }
+  const fire = stage === "grow" || (stage === "leave" && true);
+  return createPortal(
+    <div className={`sh sh-${stage}`} role="dialog" aria-modal="true" aria-label="Shaytan appears">
+      <div className="sh-flash" aria-hidden="true" />
+      <Clouds closing={stage === "leave"} />
+      <div className="sh-stage">
+        {fire && <div className="sh-fire" aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
+        <div className="sh-body"><Devil /></div>
+        {stage === "flee" && <div className="sh-poof" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
+      </div>
+      <div className="sh-talk">
+        {stage === "offer" && <>
+          <p className="sh-bubble">Psst… <b>{name}</b>! Skip your tasks today, and I'll give you <b>{offer} <Gem /></b>. Deal?</p>
+          <div className="sh-choices">
+            <button className="sh-yes" onClick={() => answer(true)}>😈 Yes, deal!</button>
+            <button className="sh-no" onClick={() => answer(false)}>🛡️ No! Aʿūdhu billāh</button>
+          </div>
+        </>}
+        {stage === "grow" && <p className="sh-bubble evil">HA HA HA! There are no gems, {name}. My promises are empty!</p>}
+        {stage === "flee" && <p className="sh-bubble good">Aʿūdhu billāhi min ash-shayṭān ir-rajīm. He's gone! Well done, {name} 🌟</p>}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** The admin cut Honor after a deal with Shaytan: the member sees how much and why. */
+export function ShaytanCut({ levels, onDone }: { levels: number; onDone: () => void }) {
+  return createPortal(
+    <div className="sh sh-verdict" role="dialog" aria-modal="true" aria-label="Honor cut">
+      <div className="sh-verdict-card">
+        <div className="sh-crack" aria-hidden="true">
+          <svg viewBox="0 0 100 110"><path d="M50 4 L90 20 V54 C90 80 72 98 50 106 C28 98 10 80 10 54 V20Z" fill="#6a6f78" stroke="#2a2e35" strokeWidth="3" />
+            <path className="sh-crack-line" d="M50 8 L44 34 L56 50 L42 70 L52 88 L48 104" stroke="#1a1d22" strokeWidth="3.5" fill="none" strokeLinejoin="round" /></svg>
+        </div>
+        <p className="sh-verdict-kicker">Honor cut</p>
+        <b className="sh-verdict-num">−{levels}</b>
+        <p>You made a deal with <b>Shaytan</b> and agreed to skip your tasks. His gems were never real, but the Honor you lost is.</p>
+        <p className="sh-verdict-note">Finish every task to climb back up. You can do it!</p>
+        <button className="primary" onClick={onDone}>I understand</button>
+      </div>
+    </div>,
+    document.body,
+  );
+}

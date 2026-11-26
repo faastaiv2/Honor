@@ -485,6 +485,11 @@ def _weekly_map(db: Session, m: Member, tier, p, today: date) -> dict:
                     for i, g in enumerate(WEEKLY_MAP)]}
 
 
+def _shaytan_for(db: Session, member_id: str):
+    from app.routers.tests import for_member
+    return for_member(db, member_id)
+
+
 def _profile(db: Session, m: Member) -> dict:
     cfg = get_settings_row(db)
     p = progress_for(db, cfg, [m], today_for(cfg))[m.id]
@@ -522,6 +527,7 @@ def _profile(db: Session, m: Member) -> dict:
             "week_days": _week_days(db, cfg, m, today),
             "event_win": unseen_win(db, m.id),
             "godfather": {"is": bool(m.godfather), "seen": bool(m.godfather_seen)},
+            "shaytan": _shaytan_for(db, m.id),
             "oath": m.oath_at is not None, "oath_note": m.oath_note or "", "toured": bool(m.toured),
             "achievements_ready": sum(1 for a in achs if a["unlocked"] and not a["claimed"]),
             "achievements_new": [{k: a[k] for k in ("key", "name", "icon", "tier", "gems")} for a in achs if a["unlocked"] and not a["claimed"]]}

@@ -264,3 +264,22 @@ class GobiLaunch(Base):
     day: Mapped[date] = mapped_column(Date)
     gems: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Temptation(Base):
+    """A test the admin sends: Shaytan appears to a member and offers gems to skip the day's tasks.
+    The member says yes or no; then the admin can cut Honor (shown to the member with the reason),
+    post it to Community, or give a reward for refusing (also shown)."""
+    __tablename__ = "temptations"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    offer: Mapped[int] = mapped_column(Integer, default=50)
+    answer: Mapped[str] = mapped_column(String(8), default="")  # "", "yes" or "no"
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cut: Mapped[int] = mapped_column(Integer, default=0)  # Honor taken away afterwards
+    cut_seen: Mapped[bool] = mapped_column(Boolean, default=True)
+    reward: Mapped[int] = mapped_column(Integer, default=0)  # gems given for refusing
+    reward_seen: Mapped[bool] = mapped_column(Boolean, default=True)
+    posted: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_by: Mapped[str] = mapped_column(String(120), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

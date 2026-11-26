@@ -1123,3 +1123,34 @@ def test_launch_gobi_at_the_pillar_once_a_day(client, family, db):
         assert not any(r["can_gobi"] for r in rows)
         assert client.get("/api/board/profile", headers=hl).json()["gobi_today"] == ["Bravo"]
         assert client.post(f"/api/board/gobi/{family['A'].id}", headers=auth(client, family["S"])).status_code == 400  # not on the Pillar
+
+
+def test_deploy_shaytan_and_what_follows(client, family, db):
+    h, ha, hb = auth(client, family["A"]), auth(client, admin=True), auth(client, family["B"])
+    assert client.post("/api/tests/shaytan", headers=h, json={"member_id": family["A"].id}).status_code == 403
+    t = client.post("/api/tests/shaytan", headers=ha, json={"member_id": family["A"].id}).json()
+    assert client.post("/api/tests/shaytan", headers=ha, json={"member_id": family["A"].id}).status_code == 400  # one at a time
+    a, b = at_today()
+    with a, b:
+        prof = client.get("/api/board/profile", headers=h).json()
+        assert prof["shaytan"] == {"id": t["id"], "show": "offer", "offer": 50}
+        assert client.post(f"/api/tests/{t['id']}/answer", headers=hb, json={"accept": True}).status_code == 403
+        before = prof["level"]
+        assert client.post(f"/api/tests/{t['id']}/answer", headers=h, json={"accept": True}).json() == {"answer": "yes"}
+        assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == prof["gems"]["balance"]  # no gems: he lied
+        assert client.post(f"/api/tests/{t['id']}/reward", headers=ha, json={"gems": 10}).status_code == 400
+        assert client.post(f"/api/tests/{t['id']}/cut", headers=ha, json={"levels": 2}).json()["cut"] == 2
+        prof = client.get("/api/board/profile", headers=h).json()
+        assert prof["level"] == before - 2 and prof["shaytan"] == {"id": t["id"], "show": "cut", "levels": 2}
+        client.post(f"/api/tests/{t['id']}/seen", headers=h, json={"what": "cut"})
+        assert client.get("/api/board/profile", headers=h).json()["shaytan"] is None
+        client.post(f"/api/tests/{t['id']}/post", headers=ha)
+        assert any(x["kind"] == "shaytan" for x in client.get("/api/news", headers=hb).json()["items"])
+        # Bravo refuses and gets a reward
+        t2 = client.post("/api/tests/shaytan", headers=ha, json={"member_id": family["B"].id, "offer": 100}).json()
+        client.post(f"/api/tests/{t2['id']}/answer", headers=hb, json={"accept": False})
+        g = client.get("/api/board/profile", headers=hb).json()["gems"]["balance"]
+        client.post(f"/api/tests/{t2['id']}/reward", headers=ha, json={"gems": 30})
+        prof = client.get("/api/board/profile", headers=hb).json()
+        assert prof["gems"]["balance"] == g + 30 and prof["shaytan"]["show"] == "reward"
+        assert [x["answer"] for x in client.get("/api/tests", headers=ha).json()] == ["no", "yes"]

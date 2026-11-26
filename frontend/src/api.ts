@@ -37,7 +37,7 @@ export interface BoardRow extends Status {
 }
 export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary"; unlock?: { key: string; name: string; text: string; tier?: string; icon?: string }; special?: "godfather" }
 export interface Profile extends Status {
-  raid?: { stolen: number } | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[];
+  raid?: { stolen: number } | null; shaytan?: ShaytanShow | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[];
   member: { id: string; name: string; avatar: string; frame: string; theme: string; shamed?: boolean; own_avatar?: string; own_frame?: string };
   week_delta: number; streak: number;
   gems: { balance: number; earned: number; spent: number; claimed: number; today: number; from_tasks: number; from_levels: number };
@@ -80,6 +80,9 @@ export interface News {
   likes: number; liked: boolean; likers: string[];
 }
 export interface NewsIn { title: string; body: string; emoji: string; pinned: boolean }
+export interface ShaytanTest { id: string; member: { id: string; name: string; avatar: string }; offer: number; answer: "" | "yes" | "no";
+  answered_at: string | null; cut: number; reward: number; posted: boolean; created_at: string }
+export type ShaytanShow = { id: string; show: "offer"; offer: number } | { id: string; show: "cut"; levels: number } | { id: string; show: "reward"; gems: number };
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 
 export class ApiError extends Error {
@@ -186,6 +189,14 @@ export const api = {
   takeGems: (victimId: string) => request<{ taken: number; from: string; profile: Profile }>(`/board/take/${encodeURIComponent(victimId)}`, send("POST", {})),
   godfatherSeen: () => request<{ ok: boolean }>("/board/profile/godfather-seen", send("POST", {})),
   setAdminTheme: (theme: "white" | "dark") => request<{ theme: string }>("/admin/theme", send("PUT", { theme })),
+  tests: () => request<ShaytanTest[]>("/tests"),
+  deployShaytan: (member_id: string, offer: number) => request<ShaytanTest>("/tests/shaytan", send("POST", { member_id, offer })),
+  cancelTest: (id: string) => request<void>(`/tests/${id}`, { method: "DELETE" }),
+  cutTest: (id: string, levels: number) => request<ShaytanTest>(`/tests/${id}/cut`, send("POST", { levels })),
+  rewardTest: (id: string, gems: number) => request<ShaytanTest>(`/tests/${id}/reward`, send("POST", { gems })),
+  postTest: (id: string) => request<ShaytanTest>(`/tests/${id}/post`, send("POST", {})),
+  answerShaytan: (id: string, accept: boolean) => request<{ answer: string }>(`/tests/${id}/answer`, send("POST", { accept })),
+  shaytanSeen: (id: string, what: "cut" | "reward") => request<{ ok: boolean }>(`/tests/${id}/seen`, send("POST", { what })),
   adminGems: () => request<Record<string, number>>("/admin/gems"),
   changeGems: (id: string, body: { delta?: number; balance?: number; note?: string }) =>
     request<{ balance: number; delta: number }>(`/admin/members/${id}/gems`, send("POST", body)),

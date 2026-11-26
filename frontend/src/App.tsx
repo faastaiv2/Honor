@@ -33,6 +33,7 @@ const ProfilePage = lazyPage(() => import("./pages/Profile"));
 const Benefits = lazyPage(() => import("./pages/Benefits"));
 const Tasks = lazyPage(() => import("./pages/Tasks"));
 const NewsPage = lazyPage(() => import("./pages/News"));
+const TestsPage = lazyPage(() => import("./pages/Tests"));
 
 
 export default function App() {
@@ -94,6 +95,7 @@ export default function App() {
             <NavLink to="/benefits">Benefits</NavLink>
             {viewer.is_admin && <NavLink to="/tasks">Tasks</NavLink>}
             {viewer.is_admin && <NavLink to="/animations">Animations</NavLink>}
+            {viewer.is_admin && <NavLink to="/tests">Tests</NavLink>}
             {viewer.is_admin && <NavLink to="/admin" end>Members</NavLink>}
             <span className="who"><span>{viewer.name}</span>
               {viewer.is_admin && info && <button className="theme-toggle" aria-label={info.viewer.theme === "dark" ? "Switch to the white theme" : "Switch to the dark theme"}
@@ -126,6 +128,7 @@ export default function App() {
             <Route path="/achievements" element={viewer.is_admin ? <Navigate to="/" /> : <Achievements />} />
             <Route path="/rules" element={<Navigate to="/benefits" />} />
             <Route path="/admin" element={viewer.is_admin ? <Admin info={info} /> : <Navigate to="/" />} />
+            <Route path="/tests" element={viewer.is_admin ? <TestsPage /> : <Navigate to="/" />} />
             <Route path="/tasks" element={viewer.is_admin ? <Tasks /> : <Navigate to="/" />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

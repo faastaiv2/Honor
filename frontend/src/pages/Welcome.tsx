@@ -14,6 +14,7 @@ import GoblinRaid from "../lib/GoblinRaid";
 import GodfatherReveal from "../lib/GodfatherReveal";
 import AchievementPop, { type NewAchievement } from "../lib/AchievementPop";
 import WeeklyMap, { MapButton } from "../lib/WeeklyMap";
+import ShaytanScene, { ShaytanCut } from "../lib/Shaytan";
 
 /** A gem-shaped badge in the rank's colour with the level inside. */
 export function RankBadge({ color, label, size = 56 }: { color: string; label: string; size?: number }) {
@@ -134,6 +135,12 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       setP(np);
       // Fell onto the Pillar of Shame: the goblins come.
       if (np.raid && !raidShown.current) { raidShown.current = true; setRaid(np.raid.stolen); }
+      // A reward for refusing Shaytan: the gem rain, with the reason.
+      if (np.shaytan?.show === "reward") {
+        const s = np.shaytan;
+        api.shaytanSeen(s.id, "reward").catch(() => undefined);
+        setReward({ amount: s.gems, from: Math.max(0, np.gems.balance - s.gems), title: "🛡️ You refused Shaytan's offer!", chest: false });
+      }
       // Named a Godfather by the admin: their show, once.
       if (np.godfather?.is && !np.godfather.seen && !gfShown.current) { gfShown.current = true; setGodfather(true); }
       // A newly earned achievement: a small pop-up with its sound, once per achievement on this device.
@@ -241,6 +248,13 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
 
       {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} jewel={reward.jewel} sound={reward.win ? "event-win" : undefined}
         onDone={() => { if (reward.win) api.winSeen(reward.win).catch(() => undefined); setReward(null); }} />}
+      {p?.shaytan?.show === "offer" && !godfather && raid === null && !rankUp && !reward && (() => { const s = p.shaytan!; return (
+        <ShaytanScene name={p.member.name} offer={s.show === "offer" ? s.offer : 50}
+          onAnswer={async (accept) => { await api.answerShaytan(s.id, accept).catch(() => undefined); }}
+          onDone={() => { api.profile().then(setP).catch(() => undefined); notifyChanged(); }} />); })()}
+      {p?.shaytan?.show === "cut" && !rankUp && !reward && (() => { const s = p.shaytan!; return (
+        <ShaytanCut levels={s.show === "cut" ? s.levels : 1}
+          onDone={() => { api.shaytanSeen(s.id, "cut").then(() => api.profile()).then(setP).catch(() => undefined); notifyChanged(); }} />); })()}
       {newAch.length > 0 && !godfather && raid === null && !rankUp && !reward && <AchievementPop items={newAch} onDone={() => setNewAch([])} />}
       {godfather && p && <GodfatherReveal name={p.member.name} avatar={p.member.avatar}
         onCollect={async () => { await api.claimAchievement("godfather").catch(() => undefined); setP(await api.profile()); notifyChanged(); }}
