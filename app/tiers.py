@@ -212,12 +212,12 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("warriorprincess", "Warrior Princess", 500, "epic"), ("crystalfox", "Crystal Fox", 600, "epic"),
     ("thundertiger", "Thunder Tiger", 650, "epic"), ("pharaohcat", "Pharaoh Cat", 750, "epic"),
     ("phoenix", "Phoenix", 0, "epic"), ("dragon", "Dragon", 0, "epic"), ("kinglion", "Lion King", 800, "epic"),
-    ("cosmiccat", "Cosmic cat", 900, "epic"), ("unicornepic", "Epic Unicorn", 750, "epic"),
+    ("cosmiccat", "Cosmic cat", 900, "epic"), ("knightepic", "Epic Knight", 800, "epic"), ("unicornepic", "Epic Unicorn", 750, "epic"),
     # Legendary
     ("dragonknight", "Dragon Knight", 1000, "legendary"), ("crystalqueen", "Crystal Queen", 1000, "legendary"),
     ("astrolegend", "Legendary Astronaut", 1500, "legendary"),
     ("goldeneagle", "Golden Eagle", 1500, "legendary"),
-    ("catlegend", "Legendary Cat", 1200, "legendary"), ("spartanlegend", "Legendary Spartan", 1500, "legendary"), ("knightepic", "Epic Knight", 1000, "legendary"),
+    ("catlegend", "Legendary Cat", 1200, "legendary"), ("spartanlegend", "Legendary Spartan", 1500, "legendary"),
     ("knightlegend", "Legendary Knight", 1500, "legendary"), ("nightpanther", "Legendary Night Panther", 1500, "legendary"),
 ]
 FREE_AVATARS = [k for k, _ in FREE_PICTURES]
