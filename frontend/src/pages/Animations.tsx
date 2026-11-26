@@ -3,6 +3,7 @@ import { api, ApiError, type MusicInfo, type SoundKey, type Tier, type TodayInfo
 import GemReward from "../lib/GemReward";
 import GoblinRaid from "../lib/GoblinRaid";
 import GodfatherReveal from "../lib/GodfatherReveal";
+import ShaytanScene from "../lib/Shaytan";
 import RankIcon from "../lib/RankIcon";
 import { playMusic, playSound, resetSounds, stopMusic } from "../lib/sounds";
 import { useToast } from "../lib/events";
@@ -33,7 +34,7 @@ const MOMENT: Partial<Record<SoundKey, string>> = {
   achievement: "the reward appears", "event-win": "the prize chest appears",
 };
 
-type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" } | { kind: "godfather" };
+type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" } | { kind: "godfather" } | { kind: "shaytan" };
 
 /** One sound slot: upload, test, start point, volume, remove. */
 function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
@@ -181,6 +182,17 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         () => setPreview({ kind: "goblins" }),
         slot("goblins", "Raid music", "Plays through the raid, fading in and out"))}
 
+      {card("😈", "Deploy Shaytan", "A test from the Tests tab: storm clouds, then Shaytan rises with a sack of gems and offers them to skip the day's tasks (50, then 100, then 500). Upload his voice for each line.",
+        () => setPreview({ kind: "shaytan" }),
+        <>{slot("shaytan-arrive", "Clouds and thunder", "As the storm rolls in")}
+          {slot("shaytan-offer1", "Offer 1 (voice)", "“Psst… skip your tasks today, and I'll give you 50 gems. Deal?”")}
+          {slot("shaytan-offer2", "Offer 2 (voice)", "“Hmm… you're tough. Fine! 100 gems…”")}
+          {slot("shaytan-offer3", "Final offer (voice)", "“Okay, okay! My FINAL offer… 500 gems!”")}
+          {slot("shaytan-grumble", "Grumble (voice)", "“Grrr… we'll see about that!” as he sinks back after a no")}
+          {slot("shaytan-laugh", "Evil laugh (voice)", "They said yes: “HA HA HA! There are no gems!” in the fire")}
+          {slot("shaytan-flee", "Blown away", "The third no: he spins away in smoke")}
+          {slot("shaytan-cut", "Honor cut", "The Honor-cut screen after a deal")}</>)}
+
       {card("🎩", "Godfather", "When you make a member a Godfather: their picture gets the Godfather frame in gold, with the 313-gem achievement.",
         () => setPreview({ kind: "godfather" }),
         slot("godfather", "Godfather", "Plays as the screen goes dark and the gold ring draws itself"))}
@@ -198,6 +210,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
       {card("🎨", "Art tournament win", "A 1st, 2nd or 3rd place: a golden chest with the prize.", () => setPreview({ kind: "win" }),
         slot("event-win", "Win", "Plays when the prize chest appears"))}
 
+      {preview?.kind === "shaytan" && <ShaytanScene name="Preview" offer={50} preview onDone={() => setPreview(null)} />}
       {preview?.kind === "godfather" && <GodfatherReveal name="Preview" preview onDone={() => setPreview(null)} />}
       {preview?.kind === "goblins" && <GoblinRaid stolen={7} from={120} preview onDone={() => setPreview(null)} />}
       {preview?.kind === "quest" && <QuestFilm name="Preview" preview onClose={() => setPreview(null)} />}

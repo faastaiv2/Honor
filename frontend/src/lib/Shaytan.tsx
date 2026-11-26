@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Gem from "./Gem";
+import { playSound } from "./sounds";
+import type { SoundKey } from "../api";
 
 /**
  * Deploy Shaytan: dark clouds roll in, lightning, and Shaytan rises out of them with a sack of gems.
@@ -25,13 +27,6 @@ function Devil() {
       <path d="M40 220 Q44 150 70 136 L100 150 L130 136 Q156 150 160 220Z" fill="url(#sh-cape)" />
       <path d="M70 136 L100 172 L130 136 Q116 130 100 132 Q84 130 70 136Z" fill="url(#sh-skin)" />
       <path d="M60 140 Q36 120 50 96 L62 104 Q54 118 70 132Z M140 140 Q164 120 150 96 L138 104 Q146 118 130 132Z" fill="#5a0a20" />
-      {/* the sack of gems he offers */}
-      <g className="sh-sack">
-        <path d="M128 176 Q120 150 138 146 L162 146 Q180 150 172 176 Q170 196 150 196 Q130 196 128 176Z" fill="#8a5a2b" stroke="#4a2c10" strokeWidth="2" />
-        <path d="M136 148 Q150 140 164 148" stroke="#d4a017" strokeWidth="3" fill="none" />
-        <path d="M142 140 l6 -8 6 8 -6 8z M154 136 l5 -6 5 6 -5 6z M136 136 l4 -5 4 5 -4 5z" fill="#5cc4ff" stroke="#1670cc" strokeWidth="1" />
-        <circle cx="146" cy="130" r="2" fill="#fff" className="fx-twinkle" />
-      </g>
       {/* horns */}
       <path d="M62 52 Q48 24 58 6 Q66 30 80 40Z M138 52 Q152 24 142 6 Q134 30 120 40Z" fill="url(#sh-horn)" stroke="#2a1a1a" strokeWidth="1.5" />
       {/* pointed ears */}
@@ -51,6 +46,15 @@ function Devil() {
       <path d="M96 96 Q100 104 104 96" stroke="#6a0a10" strokeWidth="2" fill="none" />
       <path className="sh-grin" d="M72 106 Q100 132 128 106 Q100 118 72 106Z" fill="#2a0000" />
       <path d="M78 108 l4 6 4 -5 4 6 4 -5 4 6 4 -5 4 6 4 -5 4 6 4 -6" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round" />
+      {/* the sack of gems he offers */}
+      <g transform="translate(14 -16)"><g className="sh-sack">
+        <path d="M128 176 Q120 150 138 146 L162 146 Q180 150 172 176 Q170 196 150 196 Q130 196 128 176Z" fill="#8a5a2b" stroke="#4a2c10" strokeWidth="2" />
+        <path d="M136 148 Q150 140 164 148" stroke="#d4a017" strokeWidth="3" fill="none" />
+        <path d="M142 140 l6 -8 6 8 -6 8z M154 136 l5 -6 5 6 -5 6z M136 136 l4 -5 4 5 -4 5z" fill="#5cc4ff" stroke="#1670cc" strokeWidth="1" />
+        <circle cx="146" cy="130" r="2" fill="#fff" className="fx-twinkle" />
+        <ellipse cx="131" cy="156" rx="8" ry="9" fill="url(#sh-skin)" stroke="#6a0a10" strokeWidth="1.5" />
+        <path d="M127 151 q5 2 8 7 M126 156 q5 2 8 6" stroke="#6a0a10" strokeWidth="1.1" fill="none" />
+      </g></g>
     </svg>
   );
 }
@@ -81,9 +85,16 @@ export default function ShaytanScene({ name, offer, ladder, onAnswer, onDone, pr
   const [stage, setStage] = useState<Stage>("clouds");
   const [round, setRound] = useState(0);
   useEffect(() => {
+    void playSound("shaytan-arrive");
     const t = [window.setTimeout(() => setStage("rise"), 1500), window.setTimeout(() => setStage("offer"), 2900)];
     return () => t.forEach(clearTimeout);
   }, []);
+  // His voice: each offer, the grumble, the laugh, the escape.
+  useEffect(() => {
+    const say: Partial<Record<Stage, SoundKey>> = { sink: "shaytan-grumble", grow: "shaytan-laugh", flee: "shaytan-flee" };
+    const key = stage === "offer" ? (["shaytan-offer1", "shaytan-offer2", "shaytan-offer3"] as SoundKey[])[Math.min(round, 2)] : say[stage];
+    if (key) void playSound(key);
+  }, [stage, round]);
   async function answer(accept: boolean) {
     if (!accept && round < steps.length - 1) {
       // "No": he grumbles, sinks back into his clouds, and comes back with a bigger sack.
@@ -127,6 +138,7 @@ export default function ShaytanScene({ name, offer, ladder, onAnswer, onDone, pr
 
 /** The admin cut Honor after a deal with Shaytan: the member sees how much and why. */
 export function ShaytanCut({ levels, onDone }: { levels: number; onDone: () => void }) {
+  useEffect(() => { void playSound("shaytan-cut"); }, []);
   return createPortal(
     <div className="sh sh-verdict" role="dialog" aria-modal="true" aria-label="Honor cut">
       <div className="sh-verdict-card">

@@ -28,6 +28,14 @@ KEYS = {
     "event-win",     # winning a place in an art tournament
     "goblins",       # the goblin raid when a member falls onto the Pillar of Shame
     "godfather",     # a member is named a Godfather
+    "shaytan-arrive",  # Deploy Shaytan: storm clouds and thunder as he comes
+    "shaytan-offer1",  # his first offer (a voice: "Psst… skip your tasks today…")
+    "shaytan-offer2",  # his second, bigger offer
+    "shaytan-offer3",  # his final offer
+    "shaytan-grumble", # "Grrr…" as he sinks back after a no
+    "shaytan-laugh",   # the member said yes: he laughs in the fire
+    "shaytan-flee",    # the third no: he is blown away
+    "shaytan-cut",     # the Honor-cut screen after a deal
 } | {f"rankup-music-{r}" for r in ("bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond",
                                    "obsidian", "legendary")}  # music for one rank's show (else the general rank-up music)
 MAX_BYTES = 4_300_000  # the host accepts uploads up to about 4.5 MB
