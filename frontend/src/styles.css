@@ -1964,3 +1964,26 @@ label.task > span:not(.gem-pop) { flex: 1 1 0; min-width: 0; }
 .tk-links-grid label span { width: 32px; flex: none; }
 .tk-links-grid input { flex: 1; min-width: 0; }
 .tk-links-acts { display: flex; gap: 14px; margin-top: 8px; }
+
+/* ---- Legendary pictures keep moving ---- */
+.pic .fx-twinkle, .pic .fx-flicker, .pic .fx-pulse, .pic .pa-pulse, .pic .pa-glow, .pic .pa-sway { transform-box: fill-box; transform-origin: center; }
+.pic .fx-twinkle { animation: fx-twinkle 2.2s ease-in-out infinite; }
+.pic .fx-twinkle:nth-of-type(2n) { animation-delay: .7s; } .pic .fx-twinkle:nth-of-type(3n) { animation-delay: 1.3s; }
+.pic .fx-flicker { animation: fx-flicker .35s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+.pic .pa-spin { transform-box: view-box; animation: pa-spin 24s linear infinite; }
+.pic .pa-orbit { transform-box: view-box; animation: pa-spin 16s linear infinite; }
+@keyframes pa-spin { to { rotate: 360deg; } }
+.pic .pa-pulse { animation: pa-pulse 2.6s ease-in-out infinite; }
+@keyframes pa-pulse { 50% { opacity: .55; scale: 1.08; } }
+.pic .pa-glow { animation: pa-glow 1.8s ease-in-out infinite; }
+@keyframes pa-glow { 50% { opacity: .45; } }
+.pic .pa-sway { transform-origin: 0% 100%; animation: pa-sway 2.4s ease-in-out infinite alternate; }
+@keyframes pa-sway { from { rotate: -5deg; } to { rotate: 5deg; } }
+.pic .pa-bob { animation: pa-bob 3.2s ease-in-out infinite; }
+@keyframes pa-bob { 50% { translate: 0 -2.5px; } }
+.pic .pa-flap-l, .pic .pa-flap-r { transform-box: view-box; animation: pa-flap 1.6s ease-in-out infinite; }
+.pic .pa-flap-l { transform-origin: 26px 58px; } .pic .pa-flap-r { transform-origin: 74px 58px; animation-name: pa-flap-r; }
+@keyframes pa-flap { 50% { rotate: -9deg; } }
+@keyframes pa-flap-r { 50% { rotate: 9deg; } }
+.pic .pa-wing { transform-box: view-box; transform-origin: 44px 52px; animation: pa-flap 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .pic * { animation: none !important; } }

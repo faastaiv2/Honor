@@ -147,7 +147,7 @@ const PICS: Record<string, Pic> = {
       <linearGradient id={`${id}t`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#a8b4d0" /></linearGradient>
       <radialGradient id={`${id}v`}><stop offset="0" stopColor="#ffffff" /><stop offset=".4" stopColor="#d08aff" /><stop offset="1" stopColor="#8a2ae0" stopOpacity="0" /></radialGradient>
     </defs>
-    <g opacity=".4">{Array.from({ length: 12 }, (_, i) => <path key={i} d="M50 42 L48 -8 H52 Z" fill="#c8d4ff" transform={`rotate(${i * 30} 50 42)`} />)}</g>
+    <g opacity=".4" className="pa-spin" style={{ transformOrigin: "50px 42px" }}>{Array.from({ length: 12 }, (_, i) => <path key={i} d="M50 42 L48 -8 H52 Z" fill="#c8d4ff" transform={`rotate(${i * 30} 50 42)`} />)}</g>
     <path d="M6 100 Q8 70 26 72 L50 96 L74 72 Q92 70 94 100 Z" fill="#5a1f9a" stroke="#2a0a50" strokeWidth="1" />
     <path d="M12 100 Q14 80 30 76 Q50 72 70 76 Q86 80 88 100 Z" fill={`url(#${id}d)`} stroke="#14082a" strokeWidth="1.2" />
     <path d="M14 86 Q22 74 34 76 Q30 84 32 92 Q22 88 14 92 Z M86 86 Q78 74 66 76 Q70 84 68 92 Q78 88 86 92 Z" fill={`url(#${id}d)`} stroke={`url(#${id}t)`} strokeWidth="1.4" />
@@ -158,10 +158,10 @@ const PICS: Record<string, Pic> = {
     <path d="M50 21 V77" stroke="#c8b8ff" strokeWidth="1.4" opacity=".7" />
     <path d="M34 30 Q42 24 50 23" stroke="#fff" strokeWidth="2" fill="none" opacity=".6" strokeLinecap="round" />
     <path d="M31 44 Q50 40 69 44 L68 52 Q50 48 32 52 Z" fill="#06020e" />
-    <ellipse cx="50" cy="47" rx="17" ry="4" fill={`url(#${id}v)`} />
+    <ellipse className="pa-glow" cx="50" cy="47" rx="17" ry="4" fill={`url(#${id}v)`} />
     <path d="M39 47 h5 M56 47 h5" stroke="#f6e8ff" strokeWidth="2" strokeLinecap="round" />
     {[58, 63, 68].map((y) => <path key={y} d={`M40 ${y} H60`} stroke="#c8b8ff" strokeWidth="1.4" strokeLinecap="round" opacity=".8" />)}
-    {[[16, 30, 3], [84, 60, 2.6]].map(([x, y, r]) => <path key={`${x}`} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#e6dcff" />)}
+    {[[16, 30, 3], [84, 60, 2.6]].map(([x, y, r]) => <path key={`${x}`} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#e6dcff" className="fx-twinkle" />)}
   </> },
   knightlegend: { bg: ["#6a3fb0", "#140828"], draw: (id) => <>
     <defs>
@@ -172,23 +172,23 @@ const PICS: Record<string, Pic> = {
       <radialGradient id={`${id}v`}><stop offset="0" stopColor="#ffffff" /><stop offset=".4" stopColor="#7fe8ff" /><stop offset="1" stopColor="#1a8ad8" stopOpacity="0" /></radialGradient>
     </defs>
     {/* rays and halo */}
-    <g opacity=".55">{Array.from({ length: 16 }, (_, i) => <path key={i} d="M50 40 L47 -10 H53 Z" fill="#ffd24a" transform={`rotate(${i * 22.5} 50 40)`} opacity={i % 2 ? 0.5 : 1} />)}</g>
-    <circle cx="50" cy="40" r="30" fill={`url(#${id}h)`} />
+    <g opacity=".55" className="pa-spin" style={{ transformOrigin: "50px 40px" }}>{Array.from({ length: 16 }, (_, i) => <path key={i} d="M50 40 L47 -10 H53 Z" fill="#ffd24a" transform={`rotate(${i * 22.5} 50 40)`} opacity={i % 2 ? 0.5 : 1} />)}</g>
+    <circle className="pa-pulse" cx="50" cy="40" r="30" fill={`url(#${id}h)`} />
     {/* pauldrons and breastplate */}
     <path d="M10 100 Q12 78 30 74 Q50 70 70 74 Q88 78 90 100 Z" fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth="1.2" />
     <path d="M14 86 Q22 74 34 76 Q30 84 32 92 Q22 88 14 92 Z M86 86 Q78 74 66 76 Q70 84 68 92 Q78 88 86 92 Z" fill={`url(#${id}gv)`} stroke="#6a4200" strokeWidth="1" />
     <path d="M40 80 H60 L62 88 Q50 100 38 88 Z" fill="#5a2fc0" stroke="#fff2b8" strokeWidth="1.4" />
     <path d="M50 82 l1.6 3.4 3.7.5 -2.7 2.6 .7 3.7 -3.3 -1.8 -3.3 1.8 .7 -3.7 -2.7 -2.6 3.7 -.5z" fill="#ffd24a" />
     {/* plume */}
-    <path d="M52 14 C66 2 86 6 90 20 C82 14 72 14 66 20 C76 18 84 24 84 32 C76 26 66 26 60 30 Z" fill={`url(#${id}p)`} stroke="#6a0a1a" strokeWidth=".8" />
-    <path d="M58 22 C68 14 78 14 84 18 M60 28 C68 22 76 24 80 28" stroke="#ffb0b8" strokeWidth="1" fill="none" opacity=".7" />
+    <g className="pa-sway"><path d="M52 14 C66 2 86 6 90 20 C82 14 72 14 66 20 C76 18 84 24 84 32 C76 26 66 26 60 30 Z" fill={`url(#${id}p)`} stroke="#6a0a1a" strokeWidth=".8" />
+    <path d="M58 22 C68 14 78 14 84 18 M60 28 C68 22 76 24 80 28" stroke="#ffb0b8" strokeWidth="1" fill="none" opacity=".7" /></g>
     {/* great helm */}
     <path d="M28 50 Q28 22 50 20 Q72 22 72 50 V70 Q62 78 50 78 Q38 78 28 70 Z" fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth="1.6" />
     <path d="M50 21 V77" stroke="#fff6c8" strokeWidth="1.6" opacity=".7" />
     <path d="M34 30 Q42 24 50 23" stroke="#fff" strokeWidth="2.4" fill="none" opacity=".7" strokeLinecap="round" />
     {/* glowing visor */}
     <path d="M31 44 Q50 40 69 44 L68 52 Q50 48 32 52 Z" fill="#160a28" />
-    <ellipse cx="50" cy="47" rx="17" ry="4" fill={`url(#${id}v)`} />
+    <ellipse className="pa-glow" cx="50" cy="47" rx="17" ry="4" fill={`url(#${id}v)`} />
     <path d="M38 47 h6 M56 47 h6" stroke="#e6fbff" strokeWidth="2" strokeLinecap="round" />
     {/* breaths and rivets */}
     {[58, 63, 68].map((y) => <path key={y} d={`M40 ${y} H60`} stroke="#6a4200" strokeWidth="1.6" strokeLinecap="round" />)}
@@ -198,7 +198,7 @@ const PICS: Record<string, Pic> = {
     <circle cx="50" cy="16" r="2.4" fill="#e3214a" stroke="#fff" strokeWidth=".8" />
     <circle cx="41" cy="18" r="1.5" fill="#2f7bff" /><circle cx="59" cy="18" r="1.5" fill="#22c27e" />
     {/* sparkles */}
-    {[[16, 22, 4], [84, 52, 3.4], [20, 62, 2.6]].map(([x, y, r]) => <path key={`${x}`} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#fff6c8" />)}
+    {[[16, 22, 4], [84, 52, 3.4], [20, 62, 2.6]].map(([x, y, r]) => <path key={`${x}`} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#fff6c8" className="fx-twinkle" />)}
   </> },
   // ---------- Armour suits (shop) ----------
   squire: { bg: ["#e6f2d8", "#7fae5a"], draw: (id) => <>
@@ -300,13 +300,13 @@ const PICS: Record<string, Pic> = {
       <radialGradient id={`${id}v`}><stop offset="0" stopColor="#fff8d0" /><stop offset=".4" stopColor="#ffb020" /><stop offset="1" stopColor="#ff3a00" stopOpacity="0" /></radialGradient>
       <radialGradient id={`${id}h`}><stop offset="0" stopColor="#ff7a1a" stopOpacity=".85" /><stop offset="1" stopColor="#ff2a00" stopOpacity="0" /></radialGradient>
     </defs>
-    <circle cx="50" cy="44" r="44" fill={`url(#${id}h)`} />
+    <circle className="pa-pulse" cx="50" cy="44" r="44" fill={`url(#${id}h)`} />
     {[[18, 96, 14], [32, 98, 10], [70, 98, 11], [84, 96, 15]].map(([x, y, h]) => (
-      <path key={`${x}`} d={`M${x - 6} ${y} Q${x - 6} ${y - h * .6} ${x} ${y - h} Q${x + 1} ${y - h * .5} ${x + 6} ${y} Z`} fill="#ffb020" opacity=".85" />
+      <path key={`${x}`} d={`M${x - 6} ${y} Q${x - 6} ${y - h * .6} ${x} ${y - h} Q${x + 1} ${y - h * .5} ${x + 6} ${y} Z`} fill="#ffb020" opacity=".85" className="fx-flicker" />
     ))}
     {/* wings */}
-    <path d="M24 60 C10 50 2 30 4 12 C10 22 16 24 22 24 C16 30 18 36 24 38 C20 42 22 48 28 50 Z" fill={`url(#${id}r)`} stroke="#2a0404" strokeWidth="1" />
-    <path d="M76 60 C90 50 98 30 96 12 C90 22 84 24 78 24 C84 30 82 36 76 38 C80 42 78 48 72 50 Z" fill={`url(#${id}r)`} stroke="#2a0404" strokeWidth="1" />
+    <path className="pa-flap-l" d="M24 60 C10 50 2 30 4 12 C10 22 16 24 22 24 C16 30 18 36 24 38 C20 42 22 48 28 50 Z" fill={`url(#${id}r)`} stroke="#2a0404" strokeWidth="1" />
+    <path className="pa-flap-r" d="M76 60 C90 50 98 30 96 12 C90 22 84 24 78 24 C84 30 82 36 76 38 C80 42 78 48 72 50 Z" fill={`url(#${id}r)`} stroke="#2a0404" strokeWidth="1" />
     <path d="M10 100 Q12 78 30 74 Q50 70 70 74 Q88 78 90 100 Z" fill={`url(#${id}d)`} stroke="#000" strokeWidth="1.2" />
     {[[30, 84], [42, 82], [58, 82], [70, 84], [36, 92], [50, 90], [64, 92]].map(([x, y]) => <path key={`${x}${y}`} d={`M${x - 5} ${y} Q${x} ${y + 6} ${x + 5} ${y}`} stroke="#c81a1a" strokeWidth="1.4" fill="none" />)}
     <path d="M44 78 H56 L58 86 Q50 96 42 86 Z" fill="#160a0a" stroke={`url(#${id}g)`} strokeWidth="1.2" />
@@ -318,10 +318,10 @@ const PICS: Record<string, Pic> = {
     <path d="M50 18 L46 30 L50 40 L54 30 Z" fill={`url(#${id}g)`} />
     <path d="M34 30 Q40 24 46 22" stroke="#c8c0d0" strokeWidth="2" fill="none" opacity=".6" strokeLinecap="round" />
     <path d="M30 44 L46 48 L44 54 L32 52 Z M70 44 L54 48 L56 54 L68 52 Z" fill="#0a0404" />
-    <path d="M32 47 L45 50 M68 47 L55 50" stroke={`url(#${id}v)`} strokeWidth="4" strokeLinecap="round" />
+    <path className="pa-glow" d="M32 47 L45 50 M68 47 L55 50" stroke={`url(#${id}v)`} strokeWidth="4" strokeLinecap="round" />
     <path d="M34 48 L44 50.5 M66 48 L56 50.5" stroke="#fff4c0" strokeWidth="1.4" strokeLinecap="round" />
     {[[40, 62], [50, 64], [60, 62], [44, 70], [56, 70]].map(([x, y]) => <path key={`${x}${y}`} d={`M${x} ${y - 3} L${x + 2} ${y + 3} H${x - 2} Z`} fill={`url(#${id}g)`} />)}
-    {[[14, 66, 2.4], [86, 20, 2], [90, 70, 2.6], [10, 34, 1.8]].map(([x, y, r]) => <circle key={`${x}`} cx={x} cy={y} r={r} fill="#ffcf5a" />)}
+    {[[14, 66, 2.4], [86, 20, 2], [90, 70, 2.6], [10, 34, 1.8]].map(([x, y, r]) => <circle key={`${x}`} cx={x} cy={y} r={r} fill="#ffcf5a" className="fx-twinkle" />)}
   </> },
   // ---------- Girls (shop) ----------
   flowergirl: { bg: ["#ffe6f0", "#ff9ac0"], draw: (id) => <>
@@ -408,8 +408,8 @@ const PICS: Record<string, Pic> = {
       <linearGradient id={`${id}d`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#d8c8ff" /><stop offset=".5" stopColor="#8a5ae0" /><stop offset="1" stopColor="#3a1a80" /></linearGradient>
       <radialGradient id={`${id}h`}><stop offset="0" stopColor="#e6f8ff" stopOpacity=".9" /><stop offset="1" stopColor="#8ad8ff" stopOpacity="0" /></radialGradient>
     </defs>
-    <g opacity=".55">{Array.from({ length: 16 }, (_, i) => <path key={i} d="M50 40 L47 -10 H53 Z" fill="#c8f0ff" transform={`rotate(${i * 22.5} 50 40)`} opacity={i % 2 ? 0.5 : 1} />)}</g>
-    <circle cx="50" cy="42" r="32" fill={`url(#${id}h)`} />
+    <g opacity=".55" className="pa-spin" style={{ transformOrigin: "50px 40px" }}>{Array.from({ length: 16 }, (_, i) => <path key={i} d="M50 40 L47 -10 H53 Z" fill="#c8f0ff" transform={`rotate(${i * 22.5} 50 40)`} opacity={i % 2 ? 0.5 : 1} />)}</g>
+    <circle className="pa-pulse" cx="50" cy="42" r="32" fill={`url(#${id}h)`} />
     <path d="M10 100 Q14 74 32 72 Q50 70 68 72 Q86 74 90 100 Z" fill={`url(#${id}d)`} stroke="#2a0a60" strokeWidth="1" />
     <path d="M22 78 Q50 66 78 78 L76 84 Q50 74 24 84 Z" fill={`url(#${id}g)`} stroke="#fff" strokeWidth=".6" />
     <path d="M44 78 L50 92 L56 78 L50 82 Z" fill="#c8f0ff" stroke="#fff" strokeWidth=".8" />
@@ -420,9 +420,9 @@ const PICS: Record<string, Pic> = {
     <Eyes y={56} dx={8} r={3.8} color="#3a2a8a" /><path d="M38.6 54.4 l-3 -1.4 M38.9 53 l-2.4 -2.2 M61.4 54.4 l3 -1.4 M61.1 53 l2.4 -2.2" stroke="#2a1a50" strokeWidth="1.4" strokeLinecap="round" />
     <Smile y={65} w={5} /><Cheeks y={62} dx={12} color="#ff8ad0" />
     <path d="M30 34 L26 12 L36 26 L40 6 L46 24 L50 0 L54 24 L60 6 L64 26 L74 12 L70 34 Q50 28 30 34 Z" fill={`url(#${id}g)`} stroke="#fff" strokeWidth="1" strokeLinejoin="round" />
-    <path d="M50 22 L53 27 L50 32 L47 27 Z" fill="#ff5ab0" stroke="#fff" strokeWidth=".8" />
+    <path className="pa-glow" d="M50 22 L53 27 L50 32 L47 27 Z" fill="#ff5ab0" stroke="#fff" strokeWidth=".8" />
     <circle cx="38" cy="29" r="1.8" fill="#7ad8ff" /><circle cx="62" cy="29" r="1.8" fill="#7ad8ff" />
-    {[[14, 24, 4], [86, 56, 3.4], [16, 66, 2.6], [84, 18, 3]].map(([x, y, r]) => <path key={`${x}`} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#fff" />)}
+    {[[14, 24, 4], [86, 56, 3.4], [16, 66, 2.6], [84, 18, 3]].map(([x, y, r]) => <path key={`${x}`} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#fff" className="fx-twinkle" />)}
   </> },
   // ---------- More friends (shop) ----------
   bunny: { bg: ["#fff0f6", "#ffb3d1"], draw: () => <>
@@ -578,8 +578,9 @@ const PICS: Record<string, Pic> = {
       <radialGradient id={`${id}h`}><stop offset="0" stopColor="#ffd24a" stopOpacity=".7" /><stop offset="1" stopColor="#ffd24a" stopOpacity="0" /></radialGradient>
     </defs>
     {[[12, 14], [88, 10], [80, 52], [8, 58], [26, 6], [94, 84], [6, 88]].map(([x, y], i) => <circle key={i} className="fx-twinkle" style={{ animationDelay: `${i * .3}s` }} cx={x} cy={y} r="1.4" fill="#fff" />)}
-    <circle cx="86" cy="26" r="7" fill="#ff8a5a" /><ellipse cx="86" cy="26" rx="12" ry="2.8" fill="none" stroke="#ffd0b0" strokeWidth="1.2" />
-    <circle cx="50" cy="48" r="40" fill={`url(#${id}h)`} />
+    <g className="pa-orbit" style={{ transformOrigin: "50px 46px" }}><circle cx="86" cy="26" r="7" fill="#ff8a5a" /><ellipse cx="86" cy="26" rx="12" ry="2.8" fill="none" stroke="#ffd0b0" strokeWidth="1.2" /></g>
+    <circle className="pa-pulse" cx="50" cy="48" r="40" fill={`url(#${id}h)`} />
+    <g className="pa-bob">
     <path d="M10 100 Q12 78 30 74 Q50 70 70 74 Q88 78 90 100Z" fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth="1.2" />
     <rect x="38" y="80" width="24" height="12" rx="3" fill="#2a1a5a" stroke="#ffd24a" strokeWidth="1" />
     <circle cx="44" cy="86" r="2" fill="#ff5a8a" /><circle cx="50" cy="86" r="2" fill="#7ad8ff" /><circle cx="56" cy="86" r="2" fill="#7aff8a" />
@@ -589,6 +590,7 @@ const PICS: Record<string, Pic> = {
     <path d="M33 40 Q40 34 48 35" stroke="#fff" strokeWidth="3" fill="none" opacity=".7" strokeLinecap="round" />
     <circle cx="21" cy="46" r="5.5" fill={`url(#${id}g)`} stroke="#6a4200" /><circle cx="79" cy="46" r="5.5" fill={`url(#${id}g)`} stroke="#6a4200" />
     <path d="M50 17 l2 4 4.4 .6 -3.2 3 .8 4.4 -4 -2.2 -4 2.2 .8 -4.4 -3.2 -3 4.4 -.6z" fill="#fff6c8" stroke="#a06a00" strokeWidth=".6" />
+    </g>
   </> },
   wolflegend: { bg: ["#1a2a5a", "#04081a"], draw: (id) => <>
     <defs>
@@ -597,7 +599,7 @@ const PICS: Record<string, Pic> = {
       <radialGradient id={`${id}e`}><stop offset="0" stopColor="#ffffff" /><stop offset=".5" stopColor="#7ae8ff" /><stop offset="1" stopColor="#1a8ad8" stopOpacity="0" /></radialGradient>
     </defs>
     <path d="M0 22 Q30 6 60 18 T100 12" stroke={`url(#${id}a)`} strokeWidth="10" fill="none" className="fx-pulse" />
-    <circle cx="80" cy="22" r="11" fill="#fff8e0" /><circle cx="84" cy="19" r="10" fill="#1a2a5a" />
+    <circle className="pa-pulse" cx="80" cy="22" r="11" fill="#fff8e0" /><circle cx="84" cy="19" r="10" fill="#1a2a5a" />
     {[[14, 40], [26, 12], [92, 46], [8, 64]].map(([x, y], i) => <circle key={i} className="fx-twinkle" style={{ animationDelay: `${i * .4}s` }} cx={x} cy={y} r="1.3" fill="#fff" />)}
     <path d="M12 100 Q16 74 34 70 L50 84 L66 70 Q84 74 88 100Z" fill={`url(#${id}f)`} stroke="#3a4a6a" strokeWidth="1" />
     <path d="M28 46 L22 14 L42 32Z M72 46 L78 14 L58 32Z" fill={`url(#${id}f)`} stroke="#3a4a6a" strokeWidth="1.2" />
@@ -605,7 +607,7 @@ const PICS: Record<string, Pic> = {
     <path d="M24 48 Q26 28 50 26 Q74 28 76 48 L68 66 L58 82 Q50 86 42 82 L32 66Z" fill={`url(#${id}f)`} stroke="#3a4a6a" strokeWidth="1.2" />
     <path d="M38 62 Q50 56 62 62 L56 80 Q50 84 44 80Z" fill="#fff" />
     <path d="M24 50 l-6 6 l8 -1 M76 50 l6 6 l-8 -1" fill="#e8eef8" stroke="#3a4a6a" strokeWidth="1" />
-    <ellipse cx="39" cy="48" rx="7" ry="4" fill={`url(#${id}e)`} /><ellipse cx="61" cy="48" rx="7" ry="4" fill={`url(#${id}e)`} />
+    <g className="pa-glow"><ellipse cx="39" cy="48" rx="7" ry="4" fill={`url(#${id}e)`} /><ellipse cx="61" cy="48" rx="7" ry="4" fill={`url(#${id}e)`} /></g>
     <path d="M35 48 h8 M57 48 h8" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
     <path d="M33 42 l10 3 M67 42 l-10 3" stroke="#3a4a6a" strokeWidth="2" strokeLinecap="round" />
     <ellipse cx="50" cy="66" rx="5" ry="3.4" fill="#1a2030" />
@@ -616,18 +618,18 @@ const PICS: Record<string, Pic> = {
       <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff6c8" /><stop offset=".35" stopColor="#ffd24a" /><stop offset=".7" stopColor="#d99a10" /><stop offset="1" stopColor="#7a4a00" /></linearGradient>
       <radialGradient id={`${id}h`}><stop offset="0" stopColor="#fff2b8" stopOpacity=".8" /><stop offset="1" stopColor="#ffd24a" stopOpacity="0" /></radialGradient>
     </defs>
-    <circle cx="50" cy="44" r="44" fill={`url(#${id}h)`} />
+    <circle className="pa-pulse" cx="50" cy="44" r="44" fill={`url(#${id}h)`} />
     {/* a ring of stars above */}
     {Array.from({ length: 9 }, (_, i) => {
       const a = (-160 + i * 17.5) * Math.PI / 180, x = 50 + Math.cos(a) * 40, y = 46 + Math.sin(a) * 40;
-      return <path key={i} d={`M${x} ${y - 3} l.9 2.1 2.2 .2 -1.7 1.4 .5 2.2 -1.9 -1.2 -1.9 1.2 .5 -2.2 -1.7 -1.4 2.2 -.2z`} fill="#fff" />;
+      return <path key={i} className="fx-twinkle" style={{ animationDelay: `${i * 0.25}s` }} d={`M${x} ${y - 3} l.9 2.1 2.2 .2 -1.7 1.4 .5 2.2 -1.9 -1.2 -1.9 1.2 .5 -2.2 -1.7 -1.4 2.2 -.2z`} fill="#fff" />;
     })}
     {/* spread wings, feathers fanning out */}
     {[1, -1].map((s) => (
-      <g key={s} transform={s < 0 ? "translate(100 0) scale(-1 1)" : undefined}>
+      <g key={s} transform={s < 0 ? "translate(100 0) scale(-1 1)" : undefined}><g className="pa-wing">
         {Array.from({ length: 7 }, (_, i) => <path key={i} d={`M44 50 L${6 + i * 3} ${18 + i * 8} L${12 + i * 3} ${22 + i * 8}Z`} fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth=".7" />)}
         <path d="M44 44 Q28 38 18 26 Q22 48 42 58Z" fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth="1" />
-      </g>
+      </g></g>
     ))}
     {/* shield on the chest */}
     <path d="M38 50 H62 V66 Q62 78 50 84 Q38 78 38 66Z" fill="#fff" stroke="#6a4200" strokeWidth="1.4" />
