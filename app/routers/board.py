@@ -552,7 +552,7 @@ def _achievements(db: Session, m: Member, p: Progress) -> list[dict]:
     _, got = achievement_gems(db, m.id)
     purchases = len(owned_items(db, m.id))
     facts = Facts(p=p, gems_earned=gems_earned(p) + gems_claimed(db, m.id), purchases=purchases, chests=chests_opened(db, m.id),
-                  quests=len(m.quest_starts or []), **dict(zip(("first", "second", "third"), placings(db, m.id).values())))
+                  quests=len(m.quest_starts or []), oath=1 if m.oath_at else 0, **dict(zip(("first", "second", "third"), placings(db, m.id).values())))
     return evaluate_achievements(facts, got)
 
 

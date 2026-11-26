@@ -20,6 +20,7 @@ class Facts:
     first: int = 0  # art tournaments won (1st place)
     second: int = 0
     third: int = 0
+    oath: int = 0  # 1 once the member has sworn the Oath of Honor ("I SWEAR")
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,9 @@ def _rank(key: str) -> Callable[[Facts], int]:
 
 
 ACHIEVEMENTS: list[Achievement] = [
+    # Honor
+    Achievement("oath", "I Swear", "Swear the Oath of Honor: mark tasks only after you do them", "Honor", "shield", "bronze", 1,
+                lambda f: f.oath, reward=5),
     # Streaks
     Achievement("spark", "First Spark", "Finish every task for one day", "Streaks", "flame", "bronze", 1, lambda f: f.p.perfect_days),
     Achievement("streak3", "On Fire", "Keep a 3-day streak", "Streaks", "flame", "bronze", 3, lambda f: f.p.best_streak),

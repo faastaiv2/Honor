@@ -827,3 +827,14 @@ def test_goblin_raid_steals_gems_once_on_falling(client, family, db):
     client.post("/api/board/profile/raid-seen", headers=h)
     fall(1)  # climbing to −II: no raid
     assert client.get("/api/board/profile", headers=h).json()["raid"] is None
+
+
+def test_swearing_the_oath_unlocks_the_i_swear_achievement(client, family):
+    h = auth(client, family["A"])
+    item = lambda: next(x for x in client.get("/api/board/achievements", headers=h).json()["items"] if x["key"] == "oath")
+    assert not item()["unlocked"] and item()["gems"] == 5
+    client.post("/api/board/oath", headers=h, json={"words": "I SWEAR"})
+    assert item()["unlocked"]
+    before = client.get("/api/board/profile", headers=h).json()["gems"]["balance"]
+    client.post("/api/board/achievements/oath/claim", headers=h)
+    assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before + 5
