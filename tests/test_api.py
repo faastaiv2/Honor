@@ -892,3 +892,39 @@ def test_free_and_achievement_pictures(client, family):
     assert client.put("/api/board/profile", headers=h, json={"avatar": "squire"}).status_code == 200
     assert client.put("/api/board/profile", headers=h, json={"avatar": "bunny"}).status_code == 200
     assert not pics["eagle"]["available"] and pics["eagle"]["unlock"]["key"] == "fajr30"
+
+
+def test_ticking_a_video_task_before_watching_means_swearing_again(client, family, db, watch_rule):
+    h = auth(client, family["A"])
+    a, b = at_today()
+    with a, b:
+        client.post("/api/board/oath", headers=h, json={"words": "I swear"})
+        r = put_day(client, h, family["A"], TODAY, ["gate", "dalail"])
+        assert r.status_code == 409 and r.json()["detail"].startswith("too_early")
+        assert "Dalilul Khairat" in r.json()["detail"]
+        assert client.get("/api/board/profile", headers=h).json()["oath"] is False
+        client.post("/api/board/oath", headers=h, json={"words": "I swear"})
+        w = client.post("/api/board/watched", headers=h,
+                        json={"member_id": family["A"].id, "date": TODAY.isoformat(), "task": "dalail"})
+        assert w.status_code == 200
+        dal = next(t for g in client.get(f"/api/board/day?member_id={family['A'].id}", headers=h).json()["groups"]
+                   for t in g["tasks"] if t["key"] == "dalail")
+        assert dal["watched"] is True
+        assert put_day(client, h, family["A"], TODAY, ["gate", "dalail"]).status_code == 200
+        assert client.post("/api/board/watched", headers=auth(client, family["B"]),
+                           json={"member_id": family["A"].id, "date": TODAY.isoformat(), "task": "dalail"}).status_code == 403
+
+
+def test_announcements(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    assert client.post("/api/news", headers=h, json={"title": "x"}).status_code == 403
+    r = client.post("/api/news", headers=ha, json={"title": "Trip on Sunday", "body": "Zoo!", "emoji": "🦁"})
+    assert r.status_code == 201
+    pin = client.post("/api/news", headers=ha, json={"title": "Rules", "pinned": True}).json()
+    got = client.get("/api/news", headers=h).json()
+    assert got["unread"] == 2 and got["items"][0]["title"] == "Rules"
+    client.post("/api/news/seen", headers=h)
+    assert client.get("/api/news", headers=h).json()["unread"] == 0
+    assert client.patch(f"/api/news/{pin['id']}", headers=ha, json={"pinned": False}).json()["pinned"] is False
+    assert client.delete(f"/api/news/{pin['id']}", headers=ha).status_code == 204
+    assert [i["title"] for i in client.get("/api/news", headers=ha).json()["items"]] == ["Trip on Sunday"]

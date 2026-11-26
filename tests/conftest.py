@@ -68,3 +68,16 @@ def _afternoon(monkeypatch):
     """Tests run as if it's 1 PM, so time-of-day rules (Asr from 12:00) don't depend on when they run."""
     import app.routers.board as board_mod
     monkeypatch.setattr(board_mod, "clock_for", lambda cfg: "13:00")
+
+
+@pytest.fixture(autouse=True)
+def _no_watch_rule(request, monkeypatch):
+    """Most tests tick every task at once; the "watch the video first" rule has its own tests."""
+    if "watch_rule" not in request.fixturenames:
+        from app.routers import board
+        monkeypatch.setattr(board, "WATCH_RULE", False)
+
+
+@pytest.fixture()
+def watch_rule():
+    return True

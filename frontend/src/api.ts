@@ -22,7 +22,7 @@ export interface TodayInfo {
   tiers: Tier[]; avatars: string[]; viewer: Viewer; task_count: number;
   gems: { per_task: number; full_day: number; per_level: number; per_rank: Record<string, number> };
 }
-export interface TaskItem { key: string; label: string; done: boolean; fitness?: boolean; late?: boolean; next_day?: boolean; counted_today?: boolean; excused?: string | null; not_before?: string; link?: string }
+export interface TaskItem { key: string; label: string; done: boolean; fitness?: boolean; late?: boolean; next_day?: boolean; counted_today?: boolean; excused?: string | null; not_before?: string; link?: string; watched?: boolean }
 export interface DayView {
   member: { id: string; name: string }; date: string; today: string; weekend: boolean;
   pledge: TaskItem | null; groups: { name: string; tasks: TaskItem[] }[];
@@ -73,6 +73,8 @@ export interface EventsInfo {
 }
 export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number>; members: string[] }
 export interface Period extends PeriodIn { id: string }
+export interface News { id: string; title: string; body: string; emoji: string; pinned: boolean; author: string; created_at: string; new: boolean }
+export interface NewsIn { title: string; body: string; emoji: string; pinned: boolean }
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 
 export class ApiError extends Error {
@@ -138,6 +140,13 @@ export const api = {
   day: (memberId: string, date?: string) => request<DayView>(`/board/day?member_id=${encodeURIComponent(memberId)}${date ? `&date=${date}` : ""}`),
   saveDay: (member_id: string, date: string, tasks: string[], excuse: string, task_excuses?: Record<string, string>) =>
     request<DayView>("/board/day", send("PUT", { member_id, date, tasks, excuse, task_excuses })),
+  watched: (member_id: string, date: string, task: string) =>
+    request<{ watched: string[] }>("/board/watched", send("POST", { member_id, date, task })),
+  news: () => request<{ items: News[]; unread: number }>("/news"),
+  newsSeen: () => request<{ unread: number }>("/news/seen", send("POST", {})),
+  addNews: (body: NewsIn) => request<News>("/news", send("POST", body)),
+  editNews: (id: string, body: Partial<NewsIn>) => request<News>(`/news/${encodeURIComponent(id)}`, send("PATCH", body)),
+  deleteNews: (id: string) => request<void>(`/news/${encodeURIComponent(id)}`, { method: "DELETE" }),
   leaderboard: () => request<Board>("/board/leaderboard"),
   setAvatar: (avatar: string) => request<{ avatar: string }>("/board/avatar", send("PUT", { avatar })),
   profile: () => request<Profile>("/board/profile"),

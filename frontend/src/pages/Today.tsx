@@ -221,7 +221,14 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
         <span className="task-tags">
           {t.late && <i className="late">made up</i>}
           {t.not_before && <i className="from" title={`Can be ticked from ${t.not_before}`}>🕛 from {t.not_before}</i>}
-          {t.link && <a className="watch" href={t.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>▶ Watch</a>}
+          {t.link && <a className={`watch${t.watched ? " seen" : ""}`} href={t.link} target="_blank" rel="noopener noreferrer"
+            title={t.watched ? "Watched ✓" : "Open the video first, then tick it"}
+            onClick={(e) => { e.stopPropagation(); if (view && !t.watched) {
+              const v = view;
+              setView({ ...v, groups: v.groups.map((g) => ({ ...g, tasks: g.tasks.map((x) => x.key === t.key ? { ...x, watched: true } : x) })) });
+              api.watched(v.member.id, v.date, t.key).catch(() => undefined);
+            } }}>
+            {t.watched ? "✓ Watched" : "▶ Watch"}</a>}
           {t.next_day && <i className={`night${t.counted_today ? " ok" : ""}`} title="Read at night: it counts for the next day">
             🌙 for tomorrow · {t.counted_today ? "last night's counted ✓" : "not read last night"}</i>}
           {extra}

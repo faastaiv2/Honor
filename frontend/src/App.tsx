@@ -31,6 +31,7 @@ const Animations = lazyPage(() => import("./pages/Animations"));
 const ProfilePage = lazyPage(() => import("./pages/Profile"));
 const Benefits = lazyPage(() => import("./pages/Benefits"));
 const Tasks = lazyPage(() => import("./pages/Tasks"));
+const NewsPage = lazyPage(() => import("./pages/News"));
 
 
 export default function App() {
@@ -38,6 +39,13 @@ export default function App() {
   const [info, setInfo] = useState<TodayInfo | null>(null);
   const changes = useChangeCounter();
   const { pathname } = useLocation();
+
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    if (!viewer || viewer.is_admin) { setUnread(0); return; }
+    if (pathname === "/news") { setUnread(0); return; }
+    api.news().then((n) => setUnread(n.unread)).catch(() => undefined);
+  }, [viewer, changes, pathname]);
 
   useEffect(() => {
     if (!viewer) { setInfo(null); return; }
@@ -74,6 +82,7 @@ export default function App() {
             <NavLink to="/" end>Today</NavLink>
             {!viewer.is_admin && <NavLink to="/leaderboard">Leaderboard</NavLink>}
             {!viewer.is_admin && <NavLink to="/achievements">Achievements</NavLink>}
+            <NavLink to="/news">News{unread > 0 && <span className="nbadge" aria-label={`${unread} new`}>{unread}</span>}</NavLink>
             <NavLink to="/events">Events</NavLink>
             {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Profile</NavLink>}
             <NavLink to="/benefits">Benefits</NavLink>
@@ -99,6 +108,7 @@ export default function App() {
             <Route path="/animations" element={viewer.is_admin ? <Animations info={info} /> : <Navigate to="/" />} />
             <Route path="/benefits" element={<Benefits info={info} />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/news" element={<NewsPage admin={viewer.is_admin} />} />
             <Route path="/achievements" element={viewer.is_admin ? <Navigate to="/" /> : <Achievements />} />
             <Route path="/rules" element={<Navigate to="/benefits" />} />
             <Route path="/admin" element={viewer.is_admin ? <Admin info={info} /> : <Navigate to="/" />} />

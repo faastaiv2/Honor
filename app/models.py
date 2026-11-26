@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, LargeBinary, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -46,6 +46,7 @@ class Member(Base):
     early_ticks: Mapped[int] = mapped_column(Integer, default=0)  # tries to tick a task before its time
     gems_stolen: Mapped[int] = mapped_column(Integer, default=0)  # taken by goblins on falls to the Pillar of Shame
     raid_owed: Mapped[int] = mapped_column(Integer, default=-1)  # gems taken in a raid not yet shown (-1 = none)
+    news_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # last read announcements
     raid_depth: Mapped[int] = mapped_column(Integer, default=0)  # the deepest level raided on this fall (0 = not on the Pillar)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
@@ -63,6 +64,7 @@ class DayLog(Base):
     late: Mapped[dict] = mapped_column(JSON, default=dict)  # task -> day it was made up (ticked after the day)
     task_excuses: Mapped[dict] = mapped_column(JSON, default=dict)  # task -> reason it was excused that day
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # when every task got done
+    watched: Mapped[list] = mapped_column(JSON, default=list)  # tasks whose video (▶ Watch) was opened that day
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
     updated_by: Mapped[str] = mapped_column(String(120), default="")
 
@@ -208,4 +210,16 @@ class GemTake(Base):
     victim_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
     day: Mapped[date] = mapped_column(Date)
     gems: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Announcement(Base):
+    """News from the parents, shown on the Announcements tab."""
+    __tablename__ = "announcements"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    title: Mapped[str] = mapped_column(String(120))
+    body: Mapped[str] = mapped_column(Text, default="")
+    emoji: Mapped[str] = mapped_column(String(8), default="📣")
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    author: Mapped[str] = mapped_column(String(80), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

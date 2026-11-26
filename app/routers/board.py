@@ -147,6 +147,7 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
             item["not_before"] = _ampm(t.not_before)
         if t.link_on(d):
             item["link"] = t.link_on(d)
+            item["watched"] = t.key in set(log.watched or []) if log else False
         if t.next_day:  # ticked tonight for tomorrow; today got last night's
             item |= {"next_day": True, "counted_today": t.key in counted}
         groups.setdefault(t.group, []).append(item)
@@ -216,6 +217,15 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
         # Some tasks can't be done before a time of day (Asr Sunnat from 12:00). Ticking one early breaks the oath.
         now = clock_for(cfg)
         early = [t for t in specs if t.not_before and t.key in tasks - before and now < t.not_before]
+        watched = set(log.watched or []) if log else set()
+        unwatched = [t for t in specs if WATCH_RULE and t.link_on(body.date) and t.key in tasks - before and t.key not in watched]
+        if unwatched and not early:
+            t = unwatched[0]
+            m.oath_at = None
+            m.oath_note = f"You ticked “{t.label_on(today)}” without opening its video first (▶ Watch)."[:160]
+            m.early_ticks = (m.early_ticks or 0) + 1
+            db.commit()
+            raise HTTPException(409, f"too_early: {m.oath_note}")
         if early:
             t = early[0]
             m.oath_at = None
@@ -512,6 +522,31 @@ def take_gems(victim_id: str, v: Viewer = Depends(current_viewer), db: Session =
     db.add(GemTake(taker_id=v.id, victim_id=victim.id, day=today, gems=take))
     db.commit()
     return {"taken": take, "from": victim.name, "profile": _profile(db, db.get(Member, v.id))}
+
+
+WATCH_RULE = True  # a task with a video must have ▶ Watch opened before it is ticked
+
+
+class WatchIn(BaseModel):
+    member_id: str
+    date: date
+    task: str = Field(max_length=24)
+
+
+@router.post("/watched")
+def watched(body: WatchIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """A member opened a task's video (▶ Watch): now they may tick that task today."""
+    if not v.is_admin and v.id != body.member_id:
+        raise HTTPException(403, "Only for yourself")
+    m = _member_or_404(db, body.member_id)
+    log = db.scalar(select(DayLog).where(DayLog.member_id == m.id, DayLog.day == body.date))
+    if not log:
+        log = DayLog(member_id=m.id, day=body.date, tasks=[], excuse="", late={}, task_excuses={}, watched=[])
+        db.add(log)
+    if body.task not in (log.watched or []):
+        log.watched = [*(log.watched or []), body.task]
+    db.commit()
+    return {"watched": log.watched}
 
 
 @router.post("/profile/raid-seen")

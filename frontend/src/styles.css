@@ -2009,3 +2009,34 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .pic .pa-drift { animation: pa-drift 9s ease-in-out infinite alternate; }
 @keyframes pa-drift { to { translate: 4px 0; } }
 @media (prefers-reduced-motion: reduce) { .pic .pa-zap { opacity: 1; } }
+
+/* Announcements */
+.tabs a { position: relative; }
+.nbadge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-inline-start: 6px; border-radius: 999px;
+  background: #e0242f; color: #fff; font-size: 11px; font-weight: 900; line-height: 1; vertical-align: 1px; box-shadow: 0 0 0 2px rgba(0,0,0,.15); animation: nb-pop .4s ease-out; }
+@keyframes nb-pop { from { transform: scale(0); } 70% { transform: scale(1.25); } }
+.news { display: grid; gap: 14px; }
+.news-head h2 { margin-bottom: 4px; }
+.news-form { display: grid; gap: 10px; margin-top: 12px; }
+.news-form textarea { resize: vertical; font: inherit; }
+.news-emojis { display: flex; flex-wrap: wrap; gap: 6px; }
+.news-emojis button { width: 40px; height: 40px; padding: 0; font-size: 20px; border-radius: 12px; }
+.news-emojis button.on { outline: 3px solid var(--accent, #d4a017); outline-offset: 1px; }
+.news-pin { display: flex; gap: 8px; align-items: center; font-weight: 700; }
+.news-form .row { display: flex; gap: 8px; }
+.news-item { display: flex; gap: 14px; align-items: flex-start; }
+.news-item.pinned { border-left: 5px solid #d4a017; }
+.news-item.fresh { box-shadow: 0 0 0 2px #e0242f33, 0 6px 18px #e0242f22; }
+.news-icon { flex: none; width: 52px; height: 52px; display: grid; place-items: center; font-size: 28px; border-radius: 16px;
+  background: linear-gradient(160deg, #fff6d8, #f1d98a); box-shadow: inset 0 -3px 0 #0001; }
+.news-main { flex: 1; min-width: 0; }
+.news-main h3 { margin: 2px 0 6px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.news-body { margin: 0 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.news-new, .news-pinned { font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 999px; }
+.news-new { background: #e0242f; color: #fff; }
+.news-pinned { background: #f6e7b0; color: #6b4e00; }
+.news-tools { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.news-tools button { padding: 4px 12px; font-size: 13px; }
+.news-empty { text-align: center; }
+.news-empty span { font-size: 40px; }
+.task .watch.seen { background: linear-gradient(180deg, #3cbf6a, #1f8a47); box-shadow: 0 2px 0 #0f5a2b; }
