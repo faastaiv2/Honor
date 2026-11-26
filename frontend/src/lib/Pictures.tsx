@@ -424,6 +424,225 @@ const PICS: Record<string, Pic> = {
     <circle cx="38" cy="29" r="1.8" fill="#7ad8ff" /><circle cx="62" cy="29" r="1.8" fill="#7ad8ff" />
     {[[14, 24, 4], [86, 56, 3.4], [16, 66, 2.6], [84, 18, 3]].map(([x, y, r]) => <path key={`${x}`} d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#fff" />)}
   </> },
+  // ---------- More friends (shop) ----------
+  bunny: { bg: ["#fff0f6", "#ffb3d1"], draw: () => <>
+    <Body fill="#fff" />
+    <path d="M34 34 C26 10 30 0 38 2 C46 6 46 22 44 34Z M66 34 C74 10 70 0 62 2 C54 6 54 22 56 34Z" fill="#fff" stroke="#f0d8e4" strokeWidth="1.4" />
+    <path d="M37 30 C33 14 35 7 39 8 C43 10 43 20 42 30Z M63 30 C67 14 65 7 61 8 C57 10 57 20 58 30Z" fill="#ffc2da" />
+    <ellipse cx="50" cy="54" rx="26" ry="24" fill="#fff" stroke="#f0d8e4" strokeWidth="1.4" />
+    <Eyes y={50} dx={10} r={4.4} color="#5a2a40" />
+    <path d="M47 58 h6 l-3 3z" fill="#ff7aa8" />
+    <path d="M50 61 v3 M50 64 q-3 2 -5 0 M50 64 q3 2 5 0" stroke="#c07090" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <path d="M46 66 h3 v4 h-3z M51 66 h3 v4 h-3z" fill="#fff" stroke="#e0c8d4" strokeWidth=".8" />
+    <Cheeks y={60} dx={17} color="#ff8ab8" />
+  </> },
+  hamster: { bg: ["#fff3dc", "#ffc070"], draw: () => <>
+    <Body fill="#f0a860" />
+    <circle cx="28" cy="32" r="8" fill="#e09050" /><circle cx="72" cy="32" r="8" fill="#e09050" />
+    <circle cx="28" cy="32" r="4" fill="#ffb8b0" /><circle cx="72" cy="32" r="4" fill="#ffb8b0" />
+    <ellipse cx="50" cy="55" rx="30" ry="26" fill="#f4b070" />
+    <ellipse cx="50" cy="64" rx="22" ry="16" fill="#fff4e4" />
+    <ellipse cx="30" cy="62" rx="9" ry="8" fill="#fff4e4" /><ellipse cx="70" cy="62" rx="9" ry="8" fill="#fff4e4" />
+    <Eyes y={50} dx={11} r={4} />
+    <ellipse cx="50" cy="58" rx="3" ry="2.2" fill="#ff7a90" />
+    <Smile y={62} w={4} />
+    <Cheeks y={62} dx={21} color="#ff9a8a" />
+  </> },
+  puppy: { bg: ["#e6f4ff", "#7ab8f0"], draw: () => <>
+    <Body fill="#d9a066" />
+    <ellipse cx="50" cy="52" rx="26" ry="25" fill="#e8b47a" />
+    <path d="M26 36 C12 38 12 64 22 70 C28 62 30 48 32 40Z M74 36 C88 38 88 64 78 70 C72 62 70 48 68 40Z" fill="#8a5a30" />
+    <ellipse cx="60" cy="44" rx="9" ry="8" fill="#fff2e0" />
+    <ellipse cx="50" cy="63" rx="15" ry="11" fill="#fff2e0" />
+    <Eyes y={48} dx={10} r={4.2} />
+    <ellipse cx="50" cy="58" rx="5" ry="3.6" fill="#3a2010" />
+    <path d="M50 61 v3 M45 65 q5 4 10 0" stroke="#3a2010" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    <path d="M48 66 q2 7 4 0" fill="#ff7a8a" />
+    <Cheeks y={60} dx={18} />
+  </> },
+  duckling: { bg: ["#e6f8ff", "#7fd0f0"], draw: () => <>
+    <path d="M10 94 Q50 80 90 94 V100 H10Z" fill="#5ab8e0" opacity=".6" />
+    <Body fill="#ffd84a" y={84} />
+    <circle cx="50" cy="50" r="26" fill="#ffe066" />
+    <path d="M46 24 q4 -10 8 -2 q2 -8 6 0" stroke="#ffd040" strokeWidth="4" fill="none" strokeLinecap="round" />
+    <Eyes y={46} dx={10} r={4} />
+    <path d="M38 58 Q50 50 62 58 Q50 70 38 58Z" fill="#ff9a2a" stroke="#d06a10" strokeWidth="1" />
+    <path d="M40 58 H60" stroke="#d06a10" strokeWidth="1" />
+    <Cheeks y={56} dx={17} color="#ff9a8a" />
+  </> },
+  frog: { bg: ["#eaffdc", "#7ad05a"], draw: () => <>
+    <Body fill="#5ab848" />
+    <circle cx="34" cy="34" r="12" fill="#6cc85a" /><circle cx="66" cy="34" r="12" fill="#6cc85a" />
+    <ellipse cx="50" cy="56" rx="32" ry="22" fill="#6cc85a" />
+    <circle cx="34" cy="33" r="7.5" fill="#fff" /><circle cx="66" cy="33" r="7.5" fill="#fff" />
+    <circle cx="35" cy="34" r="4" fill="#1a2a10" /><circle cx="67" cy="34" r="4" fill="#1a2a10" />
+    <circle cx="36.4" cy="32.6" r="1.4" fill="#fff" /><circle cx="68.4" cy="32.6" r="1.4" fill="#fff" />
+    <path d="M28 58 Q50 76 72 58" stroke="#2a5a1a" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+    <path d="M46 46 h1 M53 46 h1" stroke="#2a5a1a" strokeWidth="2" strokeLinecap="round" />
+    <Cheeks y={60} dx={24} color="#ff8a8a" />
+  </> },
+  pirate: { bg: ["#e6f4ff", "#3a7ab0"], draw: () => <>
+    <path d="M0 88 Q25 80 50 88 T100 88 V100 H0Z" fill="#2a5a8a" />
+    <Body fill="#c8283a" />
+    <path d="M36 84 L50 96 L64 84" stroke="#fff" strokeWidth="3" fill="none" />
+    <ellipse cx="50" cy="54" rx="22" ry="22" fill="#f2c9a0" />
+    <path d="M24 38 Q50 6 76 38 Q50 30 24 38Z" fill="#1a1a24" stroke="#000" strokeWidth="1" />
+    <path d="M22 40 Q50 28 78 40" stroke="#e0b030" strokeWidth="2" fill="none" />
+    <circle cx="50" cy="26" r="4.2" fill="#fff" /><path d="M47 30 l6 4 M53 30 l-6 4" stroke="#fff" strokeWidth="1.2" />
+    <circle cx="42" cy="52" r="3.6" fill="#2a1a10" /><circle cx="43.2" cy="50.8" r="1.2" fill="#fff" />
+    <ellipse cx="59" cy="52" rx="6" ry="5" fill="#1a1a24" /><path d="M30 46 L66 50 M64 50 L74 42" stroke="#1a1a24" strokeWidth="1.6" />
+    <path d="M40 64 Q50 70 60 64" stroke="#2a1a10" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    <circle cx="27" cy="60" r="2.6" fill="none" stroke="#e0b030" strokeWidth="1.6" />
+    <Cheeks y={62} dx={15} />
+  </> },
+  firefighter: { bg: ["#fff0e0", "#ff7a3a"], draw: () => <>
+    <Body fill="#2a3a5a" />
+    <path d="M30 86 H70 M30 94 H70" stroke="#ffe14a" strokeWidth="3" />
+    <ellipse cx="50" cy="56" rx="22" ry="22" fill="#f2c9a0" />
+    <path d="M22 44 Q22 16 50 14 Q78 16 78 44 Z" fill="#d6283a" stroke="#8a0a1a" strokeWidth="1.4" />
+    <path d="M14 46 Q50 36 86 46 Q86 52 80 52 Q50 44 20 52 Q14 52 14 46Z" fill="#b01a2a" />
+    <path d="M50 15 V40" stroke="#8a0a1a" strokeWidth="2" />
+    <path d="M44 22 h12 v12 l-6 4 l-6 -4z" fill="#ffd34a" stroke="#a07a10" strokeWidth="1" />
+    <Eyes y={57} dx={9} r={3.8} />
+    <Smile y={66} w={5} />
+    <Cheeks y={64} dx={14} />
+  </> },
+  chef: { bg: ["#fff8ee", "#ffb070"], draw: () => <>
+    <Body fill="#fff" />
+    <path d="M40 82 L50 92 L60 82" fill="#e0283a" />
+    <circle cx="44" cy="88" r="1.6" fill="#c8c8c8" /><circle cx="56" cy="88" r="1.6" fill="#c8c8c8" />
+    <ellipse cx="50" cy="58" rx="22" ry="21" fill="#f2c9a0" />
+    <path d="M30 40 C18 34 22 14 36 18 C38 4 62 4 64 18 C78 14 82 34 70 40 Z" fill="#fff" stroke="#e0e0e8" strokeWidth="1.4" />
+    <rect x="30" y="36" width="40" height="8" rx="2" fill="#f4f4f8" stroke="#e0e0e8" />
+    <Eyes y={57} dx={9} r={3.6} />
+    <path d="M40 66 Q45 62 50 66 Q55 62 60 66" stroke="#5a3010" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+    <Smile y={70} w={4} />
+    <Cheeks y={64} dx={15} />
+  </> },
+  snowleopard: { bg: ["#eef6ff", "#8aa8d0"], draw: () => <>
+    <Body fill="#dfe4ea" />
+    <path d="M26 38 L26 20 L42 30Z M74 38 L74 20 L58 30Z" fill="#dfe4ea" stroke="#8a96a4" strokeWidth="1" />
+    <ellipse cx="50" cy="54" rx="28" ry="25" fill="#eef1f5" />
+    {[[32, 38], [40, 32], [60, 32], [68, 38], [28, 54], [72, 54], [36, 68], [64, 68], [50, 30]].map(([x, y], i) =>
+      <circle key={i} cx={x} cy={y} r="3" fill="none" stroke="#6a7484" strokeWidth="1.6" strokeDasharray="4 2" />)}
+    <Eyes y={50} dx={11} r={4.2} color="#2a7ab0" />
+    <path d="M46 58 h8 l-4 4z" fill="#ff9aac" />
+    <path d="M50 62 q-4 4 -8 1 M50 62 q4 4 8 1" stroke="#4a5462" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    <Cheeks y={61} dx={18} color="#ffb0c0" />
+  </> },
+  thundertiger: { bg: ["#2a2a6a", "#0a0a24"], draw: (id) => <>
+    <defs><linearGradient id={`${id}t`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffd24a" /><stop offset="1" stopColor="#ff8a1a" /></linearGradient></defs>
+    <path d="M14 10 L22 26 L16 26 L26 44 M86 8 L78 24 L84 24 L74 42" stroke="#7ad8ff" strokeWidth="2.4" fill="none" strokeLinejoin="round" className="fx-flicker" />
+    <Body fill="#f0a030" />
+    <path d="M24 40 L24 18 L42 30Z M76 40 L76 18 L58 30Z" fill={`url(#${id}t)`} stroke="#3a1a00" strokeWidth="1" />
+    <ellipse cx="50" cy="54" rx="29" ry="26" fill={`url(#${id}t)`} />
+    <path d="M50 28 l-4 10 l6 0 l-4 10" stroke="#7ad8ff" strokeWidth="2.6" fill="none" strokeLinejoin="round" />
+    <path d="M24 50 l9 2 M24 58 l9 0 M76 50 l-9 2 M76 58 l-9 0 M34 34 l5 6 M66 34 l-5 6" stroke="#2a1000" strokeWidth="2.6" strokeLinecap="round" />
+    <ellipse cx="50" cy="64" rx="14" ry="10" fill="#fff4e0" />
+    <Eyes y={50} dx={11} r={4.4} color="#1a6ab0" />
+    <path d="M46 60 h8 l-4 4z" fill="#3a1a00" />
+    <path d="M50 64 q-4 4 -8 1 M50 64 q4 4 8 1" stroke="#3a1a00" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+  </> },
+  crystalfox: { bg: ["#e8f6ff", "#6ab0e8"], draw: (id) => <>
+    <defs><linearGradient id={`${id}c`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffffff" /><stop offset=".5" stopColor="#bfe6ff" /><stop offset="1" stopColor="#7ab8f0" /></linearGradient></defs>
+    {[[16, 22, 3], [84, 18, 2.6], [12, 70, 2.2], [88, 66, 3]].map(([x, y, r], i) => <path key={i} className="fx-twinkle" d={`M${x} ${y - r} L${x + r * .3} ${y - r * .3} L${x + r} ${y} L${x + r * .3} ${y + r * .3} L${x} ${y + r} L${x - r * .3} ${y + r * .3} L${x - r} ${y} L${x - r * .3} ${y - r * .3} Z`} fill="#fff" />)}
+    <Body fill={`url(#${id}c)`} />
+    <path d="M22 44 L18 12 L42 32Z M78 44 L82 12 L58 32Z" fill={`url(#${id}c)`} stroke="#5a9ad0" strokeWidth="1.2" />
+    <path d="M24 38 L22 20 L36 32Z M76 38 L78 20 L64 32Z" fill="#8ad0ff" />
+    <path d="M22 46 Q24 30 50 28 Q76 30 78 46 L62 74 Q50 80 38 74 Z" fill={`url(#${id}c)`} stroke="#5a9ad0" strokeWidth="1.2" />
+    <path d="M50 28 V78 M36 40 L50 52 L64 40 M30 50 L50 66 L70 50" stroke="#fff" strokeWidth="1" opacity=".7" fill="none" />
+    <path d="M38 68 Q50 62 62 68 L54 78 Q50 80 46 78Z" fill="#fff" />
+    <Eyes y={50} dx={11} r={4} color="#2a5ab0" />
+    <circle cx="50" cy="70" r="3" fill="#2a4a7a" />
+  </> },
+  pharaohcat: { bg: ["#ffe8b0", "#d09020"], draw: (id) => <>
+    <defs><linearGradient id={`${id}g`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff2a8" /><stop offset=".6" stopColor="#f0b820" /><stop offset="1" stopColor="#9a6a00" /></linearGradient></defs>
+    <path d="M10 100 L50 30 L90 100Z" fill="#e8c070" opacity=".5" />
+    <Body fill="#2a2a3a" />
+    <path d="M26 60 Q22 30 50 26 Q78 30 74 60 L80 90 H20Z" fill="#1a4ab0" />
+    {[34, 44, 54, 64].map((x) => <path key={x} d={`M${x} 30 L${x - 4} 90`} stroke={`url(#${id}g)`} strokeWidth="4" />)}
+    <path d="M30 40 L28 18 L42 30Z M70 40 L72 18 L58 30Z" fill="#3a3a4a" />
+    <ellipse cx="50" cy="50" rx="20" ry="20" fill="#3a3a4a" />
+    <path d="M34 28 Q50 20 66 28 L64 34 Q50 28 36 34Z" fill={`url(#${id}g)`} stroke="#7a5000" strokeWidth=".8" />
+    <path d="M50 22 l3 6 h-6z" fill="#1a4ab0" />
+    <ellipse cx="42" cy="48" rx="4.6" ry="4" fill="#7ad840" /><ellipse cx="58" cy="48" rx="4.6" ry="4" fill="#7ad840" />
+    <ellipse cx="42" cy="48" rx="1.4" ry="3.4" fill="#000" /><ellipse cx="58" cy="48" rx="1.4" ry="3.4" fill="#000" />
+    <path d="M36 48 h-6 M64 48 h6" stroke="#000" strokeWidth="2" strokeLinecap="round" />
+    <path d="M47 56 h6 l-3 3z" fill="#ff8aa8" />
+    <path d="M40 66 Q50 74 60 66 L58 72 Q50 78 42 72Z" fill={`url(#${id}g)`} />
+  </> },
+  astrolegend: { bg: ["#3a1a6a", "#06020f"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff6c8" /><stop offset=".4" stopColor="#ffd24a" /><stop offset=".75" stopColor="#d99a10" /><stop offset="1" stopColor="#7a4a00" /></linearGradient>
+      <radialGradient id={`${id}v`} cx="35%" cy="30%"><stop offset="0" stopColor="#ff8ad8" /><stop offset=".4" stopColor="#7a4ae0" /><stop offset=".8" stopColor="#1a0a4a" /><stop offset="1" stopColor="#06020f" /></radialGradient>
+      <radialGradient id={`${id}h`}><stop offset="0" stopColor="#ffd24a" stopOpacity=".7" /><stop offset="1" stopColor="#ffd24a" stopOpacity="0" /></radialGradient>
+    </defs>
+    {[[12, 14], [88, 10], [80, 52], [8, 58], [26, 6], [94, 84], [6, 88]].map(([x, y], i) => <circle key={i} className="fx-twinkle" style={{ animationDelay: `${i * .3}s` }} cx={x} cy={y} r="1.4" fill="#fff" />)}
+    <circle cx="86" cy="26" r="7" fill="#ff8a5a" /><ellipse cx="86" cy="26" rx="12" ry="2.8" fill="none" stroke="#ffd0b0" strokeWidth="1.2" />
+    <circle cx="50" cy="48" r="40" fill={`url(#${id}h)`} />
+    <path d="M10 100 Q12 78 30 74 Q50 70 70 74 Q88 78 90 100Z" fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth="1.2" />
+    <rect x="38" y="80" width="24" height="12" rx="3" fill="#2a1a5a" stroke="#ffd24a" strokeWidth="1" />
+    <circle cx="44" cy="86" r="2" fill="#ff5a8a" /><circle cx="50" cy="86" r="2" fill="#7ad8ff" /><circle cx="56" cy="86" r="2" fill="#7aff8a" />
+    <circle cx="50" cy="46" r="29" fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth="1.6" />
+    <rect x="27" y="31" width="46" height="31" rx="15.5" fill={`url(#${id}v)`} stroke="#6a4200" strokeWidth="1.2" />
+    {[[38, 40, 1.4], [60, 38, 1], [52, 52, 1.2], [44, 56, .9], [64, 50, 1.1]].map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} fill="#fff" />)}
+    <path d="M33 40 Q40 34 48 35" stroke="#fff" strokeWidth="3" fill="none" opacity=".7" strokeLinecap="round" />
+    <circle cx="21" cy="46" r="5.5" fill={`url(#${id}g)`} stroke="#6a4200" /><circle cx="79" cy="46" r="5.5" fill={`url(#${id}g)`} stroke="#6a4200" />
+    <path d="M50 17 l2 4 4.4 .6 -3.2 3 .8 4.4 -4 -2.2 -4 2.2 .8 -4.4 -3.2 -3 4.4 -.6z" fill="#fff6c8" stroke="#a06a00" strokeWidth=".6" />
+  </> },
+  wolflegend: { bg: ["#1a2a5a", "#04081a"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}f`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffffff" /><stop offset=".45" stopColor="#c8d4e8" /><stop offset="1" stopColor="#6a7a9a" /></linearGradient>
+      <linearGradient id={`${id}a`} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#3affb0" stopOpacity="0" /><stop offset=".5" stopColor="#3affb0" stopOpacity=".6" /><stop offset="1" stopColor="#8a6aff" stopOpacity="0" /></linearGradient>
+      <radialGradient id={`${id}e`}><stop offset="0" stopColor="#ffffff" /><stop offset=".5" stopColor="#7ae8ff" /><stop offset="1" stopColor="#1a8ad8" stopOpacity="0" /></radialGradient>
+    </defs>
+    <path d="M0 22 Q30 6 60 18 T100 12" stroke={`url(#${id}a)`} strokeWidth="10" fill="none" className="fx-pulse" />
+    <circle cx="80" cy="22" r="11" fill="#fff8e0" /><circle cx="84" cy="19" r="10" fill="#1a2a5a" />
+    {[[14, 40], [26, 12], [92, 46], [8, 64]].map(([x, y], i) => <circle key={i} className="fx-twinkle" style={{ animationDelay: `${i * .4}s` }} cx={x} cy={y} r="1.3" fill="#fff" />)}
+    <path d="M12 100 Q16 74 34 70 L50 84 L66 70 Q84 74 88 100Z" fill={`url(#${id}f)`} stroke="#3a4a6a" strokeWidth="1" />
+    <path d="M28 46 L22 14 L42 32Z M72 46 L78 14 L58 32Z" fill={`url(#${id}f)`} stroke="#3a4a6a" strokeWidth="1.2" />
+    <path d="M30 40 L27 22 L38 33Z M70 40 L73 22 L62 33Z" fill="#8a9aba" />
+    <path d="M24 48 Q26 28 50 26 Q74 28 76 48 L68 66 L58 82 Q50 86 42 82 L32 66Z" fill={`url(#${id}f)`} stroke="#3a4a6a" strokeWidth="1.2" />
+    <path d="M38 62 Q50 56 62 62 L56 80 Q50 84 44 80Z" fill="#fff" />
+    <path d="M24 50 l-6 6 l8 -1 M76 50 l6 6 l-8 -1" fill="#e8eef8" stroke="#3a4a6a" strokeWidth="1" />
+    <ellipse cx="39" cy="48" rx="7" ry="4" fill={`url(#${id}e)`} /><ellipse cx="61" cy="48" rx="7" ry="4" fill={`url(#${id}e)`} />
+    <path d="M35 48 h8 M57 48 h8" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+    <path d="M33 42 l10 3 M67 42 l-10 3" stroke="#3a4a6a" strokeWidth="2" strokeLinecap="round" />
+    <ellipse cx="50" cy="66" rx="5" ry="3.4" fill="#1a2030" />
+    <path d="M50 69 v4 M45 75 q5 3 10 0" stroke="#3a4a6a" strokeWidth="1.4" fill="none" />
+  </> },
+  goldeneagle: { bg: ["#1a3a8a", "#06123a"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff6c8" /><stop offset=".35" stopColor="#ffd24a" /><stop offset=".7" stopColor="#d99a10" /><stop offset="1" stopColor="#7a4a00" /></linearGradient>
+      <radialGradient id={`${id}h`}><stop offset="0" stopColor="#fff2b8" stopOpacity=".8" /><stop offset="1" stopColor="#ffd24a" stopOpacity="0" /></radialGradient>
+    </defs>
+    <circle cx="50" cy="44" r="44" fill={`url(#${id}h)`} />
+    {/* a ring of stars above */}
+    {Array.from({ length: 9 }, (_, i) => {
+      const a = (-160 + i * 17.5) * Math.PI / 180, x = 50 + Math.cos(a) * 40, y = 46 + Math.sin(a) * 40;
+      return <path key={i} d={`M${x} ${y - 3} l.9 2.1 2.2 .2 -1.7 1.4 .5 2.2 -1.9 -1.2 -1.9 1.2 .5 -2.2 -1.7 -1.4 2.2 -.2z`} fill="#fff" />;
+    })}
+    {/* spread wings, feathers fanning out */}
+    {[1, -1].map((s) => (
+      <g key={s} transform={s < 0 ? "translate(100 0) scale(-1 1)" : undefined}>
+        {Array.from({ length: 7 }, (_, i) => <path key={i} d={`M44 50 L${6 + i * 3} ${18 + i * 8} L${12 + i * 3} ${22 + i * 8}Z`} fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth=".7" />)}
+        <path d="M44 44 Q28 38 18 26 Q22 48 42 58Z" fill={`url(#${id}g)`} stroke="#6a4200" strokeWidth="1" />
+      </g>
+    ))}
+    {/* shield on the chest */}
+    <path d="M38 50 H62 V66 Q62 78 50 84 Q38 78 38 66Z" fill="#fff" stroke="#6a4200" strokeWidth="1.4" />
+    <path d="M38 50 H62 V57 H38Z" fill="#1f3f9a" />
+    {[42, 47, 52, 57].map((x) => <path key={x} d={`M${x} 57 V${x < 48 ? 78 : 80}`} stroke="#c8283a" strokeWidth="2.4" />)}
+    {/* head */}
+    <path d="M44 46 Q44 26 52 24 Q62 24 62 34 Q62 40 56 44 Z" fill="#fff" stroke="#c8c8c8" strokeWidth="1" />
+    <path d="M60 30 Q70 32 66 38 Q63 36 59 37Z" fill="#ffb020" stroke="#a06a00" strokeWidth="1" />
+    <circle cx="55" cy="31" r="1.8" fill="#2a1a10" />
+    {/* olive branch and arrows in the talons */}
+    <path d="M30 80 Q38 76 42 82" stroke="#3a7a2a" strokeWidth="1.6" fill="none" />
+    {[[31, 79], [35, 77], [39, 78]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx="2.6" ry="1.2" fill="#5aa83a" transform={`rotate(-30 ${x} ${y})`} />)}
+    <path d="M58 82 L72 74 M60 84 L74 78 M60 80 L72 70" stroke="#7a4a1a" strokeWidth="1.4" />
+    <path d="M72 74 l3 -2 -1 3z M74 78 l3 -1 -2 3z M72 70 l3 -2 -1 3z" fill="#9aa3b0" />
+  </> },
   lantern: { bg: ["#2a3a6b", "#0f1838"], draw: (id) => <>
     <defs><radialGradient id={`${id}l`}><stop offset="0" stopColor="#fff6c0" /><stop offset=".6" stopColor="#ffc23a" /><stop offset="1" stopColor="#ff8a00" stopOpacity="0" /></radialGradient></defs>
     {[[18, 20], [80, 26], [26, 80], [84, 76], [70, 12]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.4" fill="#fff" />)}

@@ -61,3 +61,10 @@ def auth(client, member=None, admin=False):
         r = client.post("/api/auth/member", json={"member_id": member.id, "pin": "1234"})
     assert r.status_code == 200, r.text
     return {"Authorization": "Bearer " + r.json()["token"]}
+
+
+@pytest.fixture(autouse=True)
+def _afternoon(monkeypatch):
+    """Tests run as if it's 1 PM, so time-of-day rules (Asr from 12:00) don't depend on when they run."""
+    import app.routers.board as board_mod
+    monkeypatch.setattr(board_mod, "clock_for", lambda cfg: "13:00")

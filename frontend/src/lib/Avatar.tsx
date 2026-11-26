@@ -211,6 +211,78 @@ const ART: Record<string, Art> = {
       <Twinkles pts={[[-36, -44, 5], [44, -24, 4], [30, 46, 5], [-48, 22, 4]]} fill="#fff" />
     </>,
   },
+  // ---- Newer frames: richer animations ----
+  blossom: {
+    ring: ["#c2185b", "#ffd1e3", "#f06292", "#fff0f6", "#ad1457"], glow: "#ff8ab8",
+    back: () => <>
+      <g className="fx-spin-slow">{Array.from({ length: 12 }, (_, i) => (
+        <g key={i} transform={`rotate(${i * 30}) translate(0 ${-(R + 7)})`}>
+          {[0, 72, 144, 216, 288].map((a) => <ellipse key={a} cy="-3" rx="2.4" ry="3.6" fill={i % 2 ? "#ffc1d9" : "#fff0f6"} transform={`rotate(${a})`} />)}
+          <circle r="1.4" fill="#ffd24a" />
+        </g>
+      ))}</g>
+      {[[-30, -52], [10, -58], [40, -50], [-50, -20], [52, -10]].map(([x, y], i) => (
+        <ellipse key={i} className="fx-fall" style={{ animationDelay: `${i * 0.9}s` }} cx={x} cy={y} rx="2.6" ry="1.6" fill="#ff9ac2" />
+      ))}
+    </>,
+  },
+  waves: {
+    ring: ["#0b3a7a", "#7fe3ff", "#1a8ad8", "#e0faff", "#0a4a8a"], glow: "#3ac8ff",
+    back: () => <>
+      <g className="fx-spin"><path d={Array.from({ length: 24 }, (_, i) => {
+        const [x, y] = polar(R + 6 + (i % 2 ? 3 : -1), i * 15);
+        return `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+      }).join(" ") + "Z"} fill="none" stroke="#7fe3ff" strokeWidth="2.4" strokeLinejoin="round" opacity=".9" /></g>
+      {[[-22, 40], [0, 44], [24, 40], [-36, 30], [36, 30]].map(([x, y], i) => (
+        <circle key={i} className="fx-rise" style={{ animationDelay: `${i * 0.7}s` }} cx={x} cy={y} r={1.6 + (i % 3)} fill="none" stroke="#e0faff" strokeWidth="1" />
+      ))}
+    </>,
+  },
+  aurora: {
+    ring: ["#10305a", "#3affb0", "#2a8aff", "#c88aff", "#10305a"], glow: "#3affb0",
+    back: () => <>
+      <g className="fx-hue">
+        <path d={`M${-R - 10} -10 Q-30 ${-R - 24} 0 ${-R - 12} T${R + 10} -10`} stroke="#3affb0" strokeWidth="6" fill="none" opacity=".55" strokeLinecap="round" />
+        <path d={`M${-R - 6} -2 Q-24 ${-R - 14} 4 ${-R - 4} T${R + 6} -2`} stroke="#8a6aff" strokeWidth="4" fill="none" opacity=".55" strokeLinecap="round" />
+      </g>
+      <Twinkles pts={[[-40, -40, 4], [38, -42, 3.4], [50, 20, 4], [-52, 18, 3]]} fill="#e0fff4" />
+    </>,
+  },
+  thunder: {
+    ring: ["#1a1f3a", "#9adfff", "#3a4a8a", "#e8f8ff", "#141a30"], glow: "#7ad8ff",
+    back: () => <>
+      {[-60, 20, 140, 220, 300].map((a, i) => (
+        <g key={a} transform={`rotate(${a})`}>
+          <path className="fx-zap" style={{ animationDelay: `${i * 0.37}s` }} d={`M0 ${-(R + 3)} l-4 -7 5 0 -4 -8`} stroke="#e8f8ff" strokeWidth="2.2" fill="none" strokeLinejoin="round" />
+        </g>
+      ))}
+      <g className="fx-spin-slow"><circle r={R + 8} fill="none" stroke="#7ad8ff" strokeWidth="1" strokeDasharray="1 7" opacity=".8" /></g>
+    </>,
+    front: () => <path d="M2 -52 l-6 9 h5 l-4 8 9 -11 h-5 l4 -6z" fill="#ffe14a" stroke="#a07a00" strokeWidth=".8" />,
+  },
+  royalgems: {
+    ring: GOLD, glow: "#ffd24a",
+    back: () => <g className="fx-spin"><path d={`M${R + 2} 0 A${R + 2} ${R + 2} 0 0 1 0 ${R + 2}`} stroke="#fff" strokeWidth="3" fill="none" opacity=".7" strokeLinecap="round" /></g>,
+    front: () => <>
+      {["#e3214a", "#2f7bff", "#22c27e", "#b05aff", "#e3214a", "#2f7bff", "#22c27e", "#b05aff"].map((c, i) => {
+        const [x, y] = polar(R, i * 45 - 90);
+        return <Gem key={i} x={x} y={y} s={i % 2 ? 3.2 : 4.2} fill={c} />;
+      })}
+      <Twinkles pts={[[-34, -34, 3.4], [34, 34, 3.4], [36, -36, 2.6]]} fill="#fff" />
+    </>,
+  },
+  orbit: {
+    ring: ["#0a0a2a", "#ffb347", "#2a1a5a", "#7fb0ff", "#0a0a2a"], glow: "#ffb347",
+    back: () => <>
+      <circle r={R + 9} fill="none" stroke="#ffffff33" strokeWidth=".8" />
+      <circle r={R + 15} fill="none" stroke="#ffffff22" strokeWidth=".8" />
+      <g className="fx-orbit-a"><circle cx={R + 9} cy="0" r="3.2" fill="#7fb0ff" /></g>
+      <g className="fx-orbit-b"><circle cx={-(R + 15)} cy="0" r="4.2" fill="#ff8a5a" /><ellipse cx={-(R + 15)} cy="0" rx="7" ry="1.6" fill="none" stroke="#ffd0b0" strokeWidth=".8" /></g>
+      <g className="fx-orbit-c"><circle cx="0" cy={R + 9} r="2.4" fill="#7aff8a" /></g>
+      <Twinkles pts={[[-50, -40, 3], [48, 44, 3], [-44, 46, 2.4]]} fill="#fff" />
+    </>,
+    front: () => <circle cx="0" cy={-R} r="5" fill="#ffd24a" stroke="#ff8a1a" strokeWidth="1.4" className="fx-pulse" />,
+  },
 };
 
 export const FRAME_ART_KEYS = Object.keys(ART);

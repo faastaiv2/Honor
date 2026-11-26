@@ -157,6 +157,12 @@ FRAMES: list[tuple[str, str, str | None, int]] = [
     ("rainbow", "Rainbow", None, 800),
     ("fire", "Fire", None, 1000),
     ("galaxy", "Galaxy", None, 1200),
+    ("blossom", "Cherry blossom", None, 500),
+    ("waves", "Ocean waves", None, 600),
+    ("aurora", "Aurora", None, 900),
+    ("thunder", "Thunderstorm", None, 1000),
+    ("royalgems", "Royal jewels", None, 1200),
+    ("orbit", "Solar system", None, 1500),
 ]
 THEMES: list[tuple[str, str, str | None, int]] = [
     ("bronze", "Bronze", "bronze", 0),
@@ -183,20 +189,26 @@ FREE_PICTURES: list[tuple[str, str]] = [
 RARITIES = ["common", "rare", "epic", "legendary"]
 SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     # Common
-    ("squire", "Squire", 100, "common"), ("flowergirl", "Flower Girl", 100, "common"), ("archer", "Archer", 100, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
+    ("squire", "Squire", 100, "common"), ("flowergirl", "Flower Girl", 100, "common"), ("archer", "Archer", 100, "common"),
+    ("bunny", "Bunny", 100, "common"), ("hamster", "Hamster", 100, "common"), ("frog", "Frog", 120, "common"),
+    ("duckling", "Duckling", 150, "common"), ("puppy", "Puppy", 150, "common"), ("panda", "Panda", 200, "common"), ("penguin", "Penguin", 200, "common"),
     ("koala", "Koala", 240, "common"),
     # Rare
     ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("shieldmaiden", "Shieldmaiden", 250, "rare"),
-    ("fairy", "Fairy", 250, "rare"), ("unicorn", "Unicorn", 300, "rare"),
+    ("fairy", "Fairy", 250, "rare"), ("chef", "Chef", 250, "rare"), ("pirate", "Pirate", 300, "rare"),
+    ("firefighter", "Firefighter", 300, "rare"), ("snowleopard", "Snow Leopard", 350, "rare"), ("unicorn", "Unicorn", 300, "rare"),
     ("dino", "Dino", 300, "rare"), ("astronaut", "Astronaut", 400, "rare"), ("robot", "Robot", 400, "rare"),
     ("ninja", "Ninja", 440, "rare"),
     # Epic
     ("knight", "Knight", 500, "epic"), ("spartan", "Spartan", 500, "epic"), ("frostknight", "Frost Knight", 500, "epic"),
-    ("warriorprincess", "Warrior Princess", 500, "epic"),
+    ("warriorprincess", "Warrior Princess", 500, "epic"), ("crystalfox", "Crystal Fox", 600, "epic"),
+    ("thundertiger", "Thunder Tiger", 650, "epic"), ("pharaohcat", "Pharaoh Cat", 750, "epic"),
     ("phoenix", "Phoenix", 600, "epic"), ("dragon", "Dragon", 700, "epic"), ("kinglion", "Lion King", 800, "epic"),
     ("cosmiccat", "Cosmic cat", 900, "epic"),
     # Legendary
-    ("dragonknight", "Dragon Knight", 1000, "legendary"), ("crystalqueen", "Crystal Queen", 1000, "legendary"), ("knightepic", "Epic Knight", 1000, "legendary"),
+    ("dragonknight", "Dragon Knight", 1000, "legendary"), ("crystalqueen", "Crystal Queen", 1000, "legendary"),
+    ("wolflegend", "Legendary Wolf", 1200, "legendary"), ("astrolegend", "Legendary Astronaut", 1500, "legendary"),
+    ("goldeneagle", "Golden Eagle", 1500, "legendary"), ("knightepic", "Epic Knight", 1000, "legendary"),
     ("knightlegend", "Legendary Knight", 1500, "legendary"),
 ]
 FREE_AVATARS = [k for k, _ in FREE_PICTURES]
