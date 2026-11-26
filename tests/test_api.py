@@ -838,3 +838,24 @@ def test_swearing_the_oath_unlocks_the_i_swear_achievement(client, family):
     before = client.get("/api/board/profile", headers=h).json()["gems"]["balance"]
     client.post("/api/board/achievements/oath/claim", headers=h)
     assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before + 5
+
+
+def test_members_take_five_gems_from_the_pillar_of_shame_once_a_day(client, family, db):
+    from app.models import Member as M
+    ha = auth(client, admin=True)
+    low = client.post("/api/admin/members", headers=ha, json={"name": "Lowly", "pin": "1234", "base_honor": -1}).json()
+    row = db.get(M, low["id"]); row.gems_stolen = -12; db.commit()  # Lowly has 12 gems
+    hl = {"Authorization": "Bearer " + client.post("/api/auth/member", json={"member_id": low["id"], "pin": "1234"}).json()["token"]}
+    ha_, hb = auth(client, family["A"]), auth(client, family["B"])
+    a0 = client.get("/api/board/profile", headers=ha_).json()["gems"]["balance"]
+    rows = client.get("/api/board/leaderboard", headers=ha_).json()["rows"]
+    assert next(r for r in rows if r["member"]["name"] == "Lowly")["can_take"] is True
+    assert not any(r["can_take"] for r in rows if r["member"]["name"] != "Lowly")
+    r = client.post(f"/api/board/take/{low['id']}", headers=ha_).json()
+    assert r["taken"] == 5 and r["profile"]["gems"]["balance"] == a0 + 5
+    assert client.post(f"/api/board/take/{low['id']}", headers=ha_).status_code == 400  # once a day
+    assert client.post(f"/api/board/take/{low['id']}", headers=hb).json()["taken"] == 5
+    me = client.get("/api/board/profile", headers=hl).json()
+    assert me["gems"]["balance"] == 2 and [t["name"] for t in me["taken_today"]] == ["Alpha", "Bravo"]
+    assert client.post(f"/api/board/take/{family['A'].id}", headers=hb).status_code == 400  # not on the Pillar
+    assert client.post(f"/api/board/take/{low['id']}", headers=hl).status_code == 400  # not yourself

@@ -196,3 +196,15 @@ class Media(Base):
     offset_ms: Mapped[int] = mapped_column(Integer, default=0)  # when in the animation: later (+) or earlier (-) than its usual moment
     volume: Mapped[int] = mapped_column(Integer, default=80)  # percent
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class GemTake(Base):
+    """A member took gems from someone on the Pillar of Shame (once a day per pair)."""
+    __tablename__ = "gem_takes"
+    __table_args__ = (UniqueConstraint("taker_id", "victim_id", "day", name="uq_take_pair_day"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    taker_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    victim_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date)
+    gems: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

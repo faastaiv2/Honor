@@ -101,7 +101,8 @@ def add_member(body: MemberIn, _: Viewer = Depends(require_admin), db: Session =
     code = body.code.strip() if body.code else _make_code(body.name.strip(), taken)
     m = Member(name=body.name.strip(), code=code, base_honor=body.base_honor, sort_order=last + 1,
                pin_hash=hash_secret(body.pin) if body.pin else None,
-               seen_rank=tier_for(body.base_honor, False).key)  # climbs from here on get their rank-up show
+               seen_rank=tier_for(body.base_honor, False).key,  # climbs from here on get their rank-up show
+               raid_depth=min(0, max(body.base_honor, -3)))  # starting on the Pillar of Shame isn't a fall: no raid
     db.add(m)
     db.commit()
     return _member_out(m)

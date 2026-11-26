@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import RankIcon from "../lib/RankIcon";
-import { api, type Board, type BoardRow, type Tier, type TodayInfo } from "../api";
+import { api, ApiError, type Board, type BoardRow, type Tier, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
 import { daysLeftLabel } from "../lib/board";
-import { useChangeCounter } from "../lib/events";
+import { notifyChanged, useChangeCounter, useToast } from "../lib/events";
 
 const ROMAN: [number, string][] = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
 const roman = (n: number): string => (n <= 0 ? (n === 0 ? "0" : "−" + roman(-n)) : ROMAN.reduce((s, [v, r]) => { while (n >= v) { s += r; n -= v; } return s; }, ""));
@@ -38,6 +38,17 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
   const floorRefs = useRef<(HTMLDivElement | null)[]>([]);
   const timer = useRef<number | undefined>(undefined);
   const changes = useChangeCounter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [toast, setToast] = useToast();
+  async function take(r: BoardRow) {
+    setBusy(r.member.id);
+    try {
+      const res = await api.takeGems(r.member.id);
+      setToast(`💎 +${res.taken} gems taken from ${res.from}!`);
+      notifyChanged();
+    } catch (e) { setToast(e instanceof ApiError ? e.message : "Could not take gems"); }
+    finally { setBusy(null); }
+  }
   useEffect(() => { api.leaderboard().then(setBoard).catch(() => undefined); }, [changes]);
 
   const floors = board && info ? floorsOf(board.rows, info.tiers) : [];
@@ -118,6 +129,8 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
                       <Avatar avatar={r.member.avatar} color={r.tier.color} frame={r.member.frame} size={46} />
                       <span className="p-name">{r.tier.key === "low" && <span className="p-chain" aria-hidden="true">⛓️</span>}{r.is_me ? "You" : r.member.name}{r.quest.active && <small><RankIcon rank="legendary" /> on the quest</small>}</span>
                       {r.is_me && found && <span className="you-bubble">That's you!</span>}
+                      {r.can_take && <button className="take-btn" disabled={busy === r.member.id} onClick={() => take(r)}>💎 Take 5</button>}
+                      {r.taken && <span className="take-done" title="You already took gems from them today">Taken ✓</span>}
                       <TickingLevel row={r} run={counting} />
                     </li>
                   ))}
@@ -127,6 +140,7 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
           ))}
         </div>
       )}
+      {toast && <div className="toast" role="status">{toast}</div>}
     </section>
   );
 }

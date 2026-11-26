@@ -133,10 +133,11 @@ def owned_items(db: Session, member_id: str) -> set[str]:
 def gems_claimed(db: Session, member_id: str) -> int:
     from sqlalchemy import func
 
-    from app.models import DailyClaim, EventEntry
+    from app.models import DailyClaim, EventEntry, GemTake
     chests = db.scalar(select(func.coalesce(func.sum(DailyClaim.gems), 0)).where(DailyClaim.member_id == member_id)) or 0
     prizes = db.scalar(select(func.coalesce(func.sum(EventEntry.gems), 0)).where(EventEntry.member_id == member_id)) or 0
-    return int(chests) + int(prizes)  # streak chests and tournament prizes
+    taken = db.scalar(select(func.coalesce(func.sum(GemTake.gems), 0)).where(GemTake.taker_id == member_id)) or 0
+    return int(chests) + int(prizes) + int(taken)  # streak chests, tournament prizes, gems taken from the Pillar of Shame
 
 
 def achievement_gems(db: Session, member_id: str) -> tuple[int, set[str]]:
@@ -165,8 +166,10 @@ def gems_spent(db: Session, member_id: str) -> int:
     shop = db.scalar(select(func.coalesce(func.sum(Purchase.price), 0)).where(Purchase.member_id == member_id)) or 0
     fees = db.scalar(select(func.coalesce(func.sum(EventEntry.fee_paid), 0)).where(EventEntry.member_id == member_id)) or 0
     from app.models import Member
+    from app.models import GemTake
     stolen = db.scalar(select(Member.gems_stolen).where(Member.id == member_id)) or 0
-    return int(shop) + int(fees) + int(stolen)  # shop items, tournament entry fees and goblin raids
+    lost = db.scalar(select(func.coalesce(func.sum(GemTake.gems), 0)).where(GemTake.victim_id == member_id)) or 0
+    return int(shop) + int(fees) + int(stolen) + int(lost)  # shop, entry fees, goblin raids, gems taken by others
 
 
 def gem_balance(db: Session, cfg: AppSettings, m: Member) -> int:

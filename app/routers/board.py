@@ -10,7 +10,7 @@ from app import scoring
 from app.db import get_db
 from app.deps import Viewer, current_viewer
 from app.makeup import check_week, remaining, week_start
-from app.models import AchievementClaim, DailyClaim, DayLog, Member, Purchase
+from app.models import GemTake, AchievementClaim, DailyClaim, DayLog, Member, Purchase
 from app.achievements import BY_KEY as ACHIEVEMENT_BY_KEY, Facts, evaluate as evaluate_achievements
 from app.progress import Progress, gems_earned
 from app.routers.events import placings, unseen_win
@@ -277,6 +277,8 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     yesterday = today - timedelta(days=1)
     logs = logs_between(db, yesterday, today)
     all_tasks, all_periods = load_tasks(db), load_periods(db)
+    taken_today = set(db.scalars(select(GemTake.victim_id).where(GemTake.taker_id == v.id, GemTake.day == today))) \
+        if v.kind == "member" else set()
     rows = []
     for m in members:
         specs = scoring.day_plan(all_tasks, scoring.for_member(all_periods, m.id), today)
@@ -287,7 +289,10 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
         skip = (log.task_excuses or {}) if log else {}
         s = scoring.score_day(today, counted, log.excuse if log else None, today, cfg.cut_misses, specs, skip)
         look = shown_look(m.avatar, m.frame, tier_of_progress(p).key)
-        row = {"member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1]},
+        shamed = tier_of_progress(p).key == "low"
+        row = {"can_take": v.kind == "member" and shamed and m.id != v.id and m.id not in taken_today,
+               "taken": shamed and m.id in taken_today,
+               "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1]},
                **_status(p), "today": _score_out(s), "week_delta": p.week_delta,
                "is_me": v.kind == "member" and v.id == m.id}
         if v.is_admin:  # parents see why a task was excused
@@ -449,7 +454,9 @@ def _profile(db: Session, m: Member) -> dict:
         RANK_GEMS[tier_for(nxt, False).key] if tier_for(nxt, False).min == nxt else 0)
     look = shown_look(m.avatar, m.frame, tier.key)
     raid = {"stolen": m.raid_owed} if m.raid_owed is not None and m.raid_owed >= 0 else None
-    return {"raid": raid, "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
+    takers = db.execute(select(Member.name, GemTake.gems).join(Member, Member.id == GemTake.taker_id)
+                        .where(GemTake.victim_id == m.id, GemTake.day == today_for(cfg)).order_by(GemTake.created_at)).all()
+    return {"raid": raid, "taken_today": [{"name": n, "gems": g} for n, g in takers], "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
                        "shamed": tier.key == "low", "own_avatar": m.avatar, "own_frame": m.frame},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
             "gems": {"balance": gems_earned(p) + claimed + from_achievements - spent,
@@ -472,6 +479,35 @@ def get_profile(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     if v.kind != "member":
         raise HTTPException(400, "Profiles are for members")
     return _profile(db, db.get(Member, v.id))
+
+
+TAKE_GEMS = 5  # gems a member can take from someone on the Pillar of Shame, once a day each
+
+
+@router.post("/take/{victim_id}")
+def take_gems(victim_id: str, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """Take 5 gems from someone on the Pillar of Shame (once a day from each person)."""
+    if v.kind != "member":
+        raise HTTPException(400, "Only members can take gems")
+    if victim_id == v.id:
+        raise HTTPException(400, "You can't take gems from yourself")
+    victim = db.get(Member, victim_id)
+    if not victim or not victim.active:
+        raise HTTPException(404, "Member not found")
+    cfg = get_settings_row(db)
+    today = today_for(cfg)
+    p = progress_for(db, cfg, [victim], today)[victim.id]
+    if tier_of_progress(p).key != "low":
+        raise HTTPException(400, f"{victim.name} isn't on the Pillar of Shame")
+    if db.scalar(select(GemTake.id).where(GemTake.taker_id == v.id, GemTake.victim_id == victim.id, GemTake.day == today)):
+        raise HTTPException(400, f"You already took gems from {victim.name} today. Try again tomorrow")
+    balance = gems_earned(p) + gems_claimed(db, victim.id) + achievement_gems(db, victim.id)[0] - gems_spent(db, victim.id)
+    take = max(0, min(TAKE_GEMS, balance))
+    if take == 0:
+        raise HTTPException(400, f"{victim.name} has no gems left to take")
+    db.add(GemTake(taker_id=v.id, victim_id=victim.id, day=today, gems=take))
+    db.commit()
+    return {"taken": take, "from": victim.name, "profile": _profile(db, db.get(Member, v.id))}
 
 
 @router.post("/profile/raid-seen")

@@ -168,6 +168,9 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
         <div className="wc-hello">
           <p className="wc-salam">As-salāmu ʿalaykum · {hello}</p>
           <h1>Welcome, {p.member.name}!</h1>
+          {!!p.taken_today?.length && (
+            <p className="wc-taken" role="status">💸 Taken from you today: {p.taken_today.map((x) => `${x.name} −${x.gems}`).join(" · ")}</p>
+          )}
           <div className="wc-titles">
             <p className="wc-title"><RankIcon rank={t.key} /> {t.key === "member" ? "Member" : t.key === "low" ? "On the Pillar of Shame" : `${t.name} member`}</p>
             {place && (
