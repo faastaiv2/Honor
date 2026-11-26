@@ -203,7 +203,7 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("viking", "Viking", 250, "rare"), ("samurai", "Samurai", 250, "rare"), ("shieldmaiden", "Shieldmaiden", 250, "rare"),
     ("fairy", "Fairy", 0, "rare"), ("swordsman", "Swordsman", 300, "rare"), ("chef", "Chef", 250, "rare"), ("pirate", "Pirate", 300, "rare"),
     ("firefighter", "Firefighter", 300, "rare"), ("snowleopard", "Snow Leopard", 350, "rare"), ("unicorn", "Unicorn", 300, "rare"),
-    ("dino", "Dino", 0, "rare"), ("astronaut", "Astronaut", 0, "rare"), ("robot", "Robot", 0, "rare"),
+    ("dino", "Dino", 0, "rare"), ("astronaut", "Astronaut", 400, "rare"), ("robot", "Robot", 0, "rare"),
     ("ninja", "Ninja", 440, "rare"), ("parrot", "Parrot", 250, "rare"), ("giraffe", "Giraffe", 250, "rare"),
     ("octopus", "Octopus", 300, "rare"), ("whale", "Whale", 300, "rare"), ("ballerina", "Ballerina", 250, "rare"),
     ("scientist", "Scientist", 300, "rare"), ("wizardkid", "Little Wizard", 350, "rare"), ("herokid", "Super Kid", 350, "rare"),
@@ -229,7 +229,7 @@ PICTURE_UNLOCKS = {
     # Common: easy, early achievements
     "squire": "oath", "bear": "spark", "eagle": "shop1", "owl": "streak3", "lion": "bonus10",
     # Rare: a bit of effort
-    "astronaut": "streak7", "dino": "days10", "robot": "fit10", "fairy": "chest7",
+    "dino": "days10", "robot": "fit10", "fairy": "chest7",
     # Epic: hard
     "phoenix": "streak30", "dragon": "days50",
 }
