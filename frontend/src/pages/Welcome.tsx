@@ -15,6 +15,7 @@ import GodfatherReveal from "../lib/GodfatherReveal";
 import AchievementPop, { type NewAchievement } from "../lib/AchievementPop";
 import WeeklyMap, { MapButton } from "../lib/WeeklyMap";
 import ShaytanScene, { ShaytanCut } from "../lib/Shaytan";
+import GobiSplat from "../lib/GobiSplat";
 
 /** A gem-shaped badge in the rank's colour with the level inside. */
 export function RankBadge({ color, label, size = 56 }: { color: string; label: string; size?: number }) {
@@ -88,6 +89,8 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
   const [godfather, setGodfather] = useState(false);
   const [newAch, setNewAch] = useState<NewAchievement[]>([]);
   const [mapOpen, setMapOpen] = useState(false);
+  const [splat, setSplat] = useState<string[]>([]);
+  const splatShown = useRef(false);
   const wantMap = useRef(false);
   useEffect(() => {  // finishing the day opens the map at today's stop
     const ask = () => { wantMap.current = true; };
@@ -135,6 +138,12 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       setP(np);
       // Fell onto the Pillar of Shame: the goblins come.
       if (np.raid && !raidShown.current) { raidShown.current = true; setRaid(np.raid.stolen); }
+      // Hit by a gobi: the cauliflower splats on the screen (10 seconds), once.
+      if (np.gobi_splat?.length && !splatShown.current) {
+        splatShown.current = true;
+        setSplat(np.gobi_splat);
+        api.gobiSeen().catch(() => undefined);
+      }
       // A reward for refusing Shaytan: the gem rain, with the reason.
       if (np.shaytan?.show === "reward") {
         const s = np.shaytan;
@@ -190,7 +199,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
           <p className="wc-salam">As-salāmu ʿalaykum · {hello}</p>
           <h1>Welcome, {p.member.name}!</h1>
           {!!p.gobi_today?.length && (
-            <p className="wc-taken gobi" role="status">🥦 Splat! {p.gobi_today.join(", ")} hit you with a gobi today</p>
+            <p className="wc-taken gobi-note" role="status">🥦 Splat! {p.gobi_today.join(", ")} hit you with a gobi today</p>
           )}
           {!!p.taken_today?.length && (
             <p className="wc-taken" role="status">💸 Taken from you today: {p.taken_today.map((x) => `${x.name} −${x.gems}`).join(" · ")}</p>
@@ -248,6 +257,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
 
       {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} jewel={reward.jewel} sound={reward.win ? "event-win" : undefined}
         onDone={() => { if (reward.win) api.winSeen(reward.win).catch(() => undefined); setReward(null); }} />}
+      {splat.length > 0 && <GobiSplat by={splat} onDone={() => setSplat([])} />}
       {p?.shaytan?.show === "offer" && !godfather && raid === null && !rankUp && !reward && (() => { const s = p.shaytan!; return (
         <ShaytanScene name={p.member.name} offer={s.show === "offer" ? s.offer : 50} ladder={s.show === "offer" ? s.ladder : undefined}
           onAnswer={async (accept, refusals) => { await api.answerShaytan(s.id, accept, refusals).catch(() => undefined); }}

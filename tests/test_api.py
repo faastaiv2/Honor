@@ -1122,6 +1122,9 @@ def test_launch_gobi_at_the_pillar_once_a_day(client, family, db):
         assert next(r for r in rows if r["member"]["id"] == low.id)["gobi_hit"]
         assert not any(r["can_gobi"] for r in rows)
         assert client.get("/api/board/profile", headers=hl).json()["gobi_today"] == ["Bravo"]
+        assert client.get("/api/board/profile", headers=hl).json()["gobi_splat"] == ["Bravo"]
+        client.post("/api/board/gobi-seen", headers=hl)
+        assert client.get("/api/board/profile", headers=hl).json()["gobi_splat"] == []
         assert client.post(f"/api/board/gobi/{family['A'].id}", headers=auth(client, family["S"])).status_code == 400  # not on the Pillar
 
 

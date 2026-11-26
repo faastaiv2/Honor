@@ -513,7 +513,10 @@ def _profile(db: Session, m: Member) -> dict:
                         .where(GemTake.victim_id == m.id, GemTake.day == today_for(cfg)).order_by(GemTake.created_at)).all()
     gobis = db.scalars(select(Member.name).join(GobiLaunch, Member.id == GobiLaunch.launcher_id)
                        .where(GobiLaunch.victim_id == m.id, GobiLaunch.day == today_for(cfg)).order_by(GobiLaunch.created_at)).all()
-    return {"raid": raid, "taken_today": [{"name": n, "gems": g} for n, g in takers], "gobi_today": list(gobis), "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
+    splats = db.scalars(select(Member.name).join(GobiLaunch, Member.id == GobiLaunch.launcher_id)
+                        .where(GobiLaunch.victim_id == m.id, GobiLaunch.seen.is_(False)).order_by(GobiLaunch.created_at)).all()
+    return {"raid": raid, "taken_today": [{"name": n, "gems": g} for n, g in takers], "gobi_today": list(gobis),
+            "gobi_splat": list(splats), "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
                        "shamed": tier.key == "low", "own_avatar": m.avatar, "own_frame": m.frame},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
             "gems": {"balance": gems_earned(p) + claimed + from_achievements - spent + gems_granted(db, m.id),
@@ -542,6 +545,16 @@ def get_profile(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
 
 TAKE_GEMS = 5  # (older) gems a member could take from someone on the Pillar of Shame
 GOBI_GEMS = 10  # hitting someone on the Pillar of Shame with a cauliflower: once a day
+
+
+@router.post("/gobi-seen")
+def gobi_seen(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """The person hit has watched the splat."""
+    if v.kind == "member":
+        for g in db.scalars(select(GobiLaunch).where(GobiLaunch.victim_id == v.id, GobiLaunch.seen.is_(False))):
+            g.seen = True
+        db.commit()
+    return {"ok": True}
 
 
 @router.post("/gobi/{victim_id}")

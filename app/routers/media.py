@@ -36,6 +36,7 @@ KEYS = {
     "shaytan-laugh",   # the member said yes: he laughs in the fire
     "shaytan-flee",    # the third no: he is blown away
     "shaytan-cut",     # the Honor-cut screen after a deal
+    "gobi-splat",      # a cauliflower splats on the screen of the person it hit
 } | {f"rankup-music-{r}" for r in ("bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond",
                                    "obsidian", "legendary")}  # music for one rank's show (else the general rank-up music)
 MAX_BYTES = 4_300_000  # the host accepts uploads up to about 4.5 MB

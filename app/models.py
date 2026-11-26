@@ -263,6 +263,7 @@ class GobiLaunch(Base):
     victim_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
     day: Mapped[date] = mapped_column(Date)
     gems: Mapped[int] = mapped_column(Integer)
+    seen: Mapped[bool] = mapped_column(Boolean, default=False)  # the person hit has seen the splat
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

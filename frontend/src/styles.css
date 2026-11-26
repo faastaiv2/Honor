@@ -2394,7 +2394,7 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .gobi-win b { display: block; font: 34px Marcellus, Georgia, serif; color: #2e7d32; }
 .gobi-win p { margin: 6px 0 12px; font-weight: 700; }
 .gobi-gems { display: inline-flex; align-items: center; gap: 4px; color: #1a5fb4; font-weight: 900; }
-.wc-taken.gobi { background: #e2f6dc; color: #1f6a20; }
+.wc-taken.gobi-note { background: #e2f6dc; color: #1f6a20; }
 @keyframes ach-pop { 0% { transform: scale(.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
 .gobi-box { position: relative; width: min(100vw, calc(100dvh * .6), 460px); }
 .gobi-stage { display: block; width: 100%; }
@@ -2533,3 +2533,27 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .sh-leave.sh-won { animation: sh-fade-out 1s ease-in forwards; }
 @keyframes sh-fade-out { to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .sh-won *, .sh-won { animation-duration: .01s !important; animation-delay: 0s !important; } }
+
+/* Gobi splat on the screen of the person hit */
+.gs { position: fixed; inset: 0; z-index: 66; display: grid; place-items: center; overflow: hidden; pointer-events: none; }
+.gs-fly { width: 80px; height: 80px; animation: gs-fly .85s cubic-bezier(.5,0,.9,.6) forwards; }
+@keyframes gs-fly { 0% { transform: translateY(30vh) scale(.15) rotate(0deg); } 100% { transform: translateY(0) scale(6) rotate(540deg); } }
+.gs-mush { position: absolute; inset: -10%; width: 120%; height: 120%; }
+.gs-blob { transform-origin: 200px 200px; animation: gs-splat .45s cubic-bezier(.2,1.6,.4,1) both; filter: drop-shadow(0 6px 10px #0003); }
+@keyframes gs-splat { 0% { transform: scale(.2, .1); } 60% { transform: scale(1.15, .9); } 100% { transform: none; } }
+.gs-floret { animation: gs-splat .5s cubic-bezier(.2,1.6,.4,1) both; transform-box: fill-box; transform-origin: center; }
+.gs-chunk { animation: gs-chunk .9s cubic-bezier(.2,.8,.3,1) forwards; }
+@keyframes gs-chunk { from { transform: none; opacity: 1; } to { transform: translate(var(--x), var(--y)); opacity: 0; } }
+.gs-drip { transform-box: fill-box; transform-origin: top; animation: gs-drip 5s ease-in both; }
+@keyframes gs-drip { 0% { transform: scaleY(.1); } 100% { transform: scaleY(3.4); } }
+.gs-text { position: relative; display: grid; justify-items: center; gap: 4px; padding: 14px 20px; border-radius: 20px; text-align: center;
+  background: #ffffffe8; box-shadow: 0 10px 30px #0004; animation: ach-pop .5s .25s cubic-bezier(.2,1.4,.4,1) both; }
+.gs-text b { font: 44px/1 Marcellus, Georgia, serif; color: #2e7d32; }
+.gs-text span { font-weight: 900; font-size: 18px; color: #1a3a10; }
+.gs-text small { font-weight: 700; color: #6a6a5a; }
+.gs-splat .gs-mush, .gs-fade .gs-mush { animation: gs-slide 9s linear forwards; }
+@keyframes gs-slide { to { transform: translateY(4%); } }
+.gs-fade { animation: gs-out 1.2s ease-in forwards; }
+@keyframes gs-out { to { opacity: 0; filter: blur(4px); } }
+@media (prefers-reduced-motion: reduce) { .gs *, .gs { animation-duration: .01s !important; } }
+:root .welcome-card .wc-taken.gobi-note { background: #e2f6dc; color: #1f6a20; }
