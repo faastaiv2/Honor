@@ -61,7 +61,7 @@ ACHIEVEMENTS: list[Achievement] = [
     # Perfect days
     Achievement("days10", "Dedicated", "Finish every task on 10 days", "Perfect days", "check", "bronze", 10, lambda f: f.p.perfect_days),
     Achievement("days50", "Devoted", "Finish every task on 50 days", "Perfect days", "check", "silver", 50, lambda f: f.p.perfect_days),
-    Achievement("days100", "Centurion", "Finish every task on 100 days", "Perfect days", "check", "gold", 100, lambda f: f.p.perfect_days),
+    Achievement("days100", "Centurion", "Finish every task on 100 days", "Perfect days", "check", "legend", 100, lambda f: f.p.perfect_days),
     Achievement("weekend5", "Weekend Warrior", "Finish every task on 5 weekend days", "Perfect days", "shield", "silver", 5, lambda f: f.p.weekend_days),
     # Worship
     Achievement("bonus10", "Dhikr Devotee", "Complete the bonus dhikr 10 times", "Worship", "star", "bronze", 10, lambda f: f.p.bonus_days),

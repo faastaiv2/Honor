@@ -4,6 +4,7 @@ import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import { api, ApiError, type Profile, type ShopItem, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
+import Medal from "../lib/Medal";
 import Brazier from "../lib/Brazier";
 import RarityBadge from "../lib/RarityBadge";
 import ThemePreview from "../lib/ThemePreview";
@@ -147,7 +148,8 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
                   : forSale ? (p.gems.balance >= it.price
                     ? <button className="shop-act buy" onClick={() => buy(tab, it)}><Gem /> {it.price}</button>
                     : <span className="shop-price"><span><Gem /> {it.price}</span><small>{it.price - p.gems.balance} more to go</small></span>)
-                  : byAchievement ? <Link className="shop-ach" to="/achievements" title={it.unlock!.text}>🏅 {it.unlock!.name}</Link>
+                  : byAchievement ? <Link className={`shop-ach t-${it.unlock!.tier ?? "bronze"}`} to={`/achievements?a=${encodeURIComponent(it.unlock!.key)}`} title={it.unlock!.text}>
+                      <Medal icon={it.unlock!.icon ?? "star"} tier={it.unlock!.tier ?? "bronze"} size={22} /><span><small>Earn</small><b>{it.unlock!.name}</b></span><i aria-hidden="true">›</i></Link>
                   : <span className="shop-lock">🔒 <RankIcon rank={it.tier?.key} /> {it.tier?.name}</span>}
               </div>
             </Fragment>);

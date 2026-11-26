@@ -9,17 +9,17 @@ import { notifyChanged, useToast } from "../lib/events";
 
 const TIER_NAME: Record<string, string> = { bronze: "Common", silver: "Rare", gold: "Epic", legend: "Legendary", godfather: "Godfather" };
 
-function Card({ a, onClaim }: { a: Achievement; onClaim: (a: Achievement) => void }) {
+function Card({ a, onClaim, focus = false }: { a: Achievement; onClaim: (a: Achievement) => void; focus?: boolean }) {
   const ready = a.unlocked && !a.claimed;
   const pct = Math.round((a.progress / a.goal) * 100);
   return (
-    <li className={`ach ${a.claimed ? "done" : ready ? "ready" : "locked"} t-${a.tier}`}>
+    <li id={`ach-${a.key}`} className={`ach ${a.claimed ? "done" : ready ? "ready" : "locked"} t-${a.tier}${focus ? " focus" : ""}`}>
       <Medal icon={a.icon} tier={a.tier} locked={!a.unlocked} size={64} />
       <div className="ach-body">
         <div className="ach-top"><b>{a.name}</b><span className={`ach-tier t-${a.tier}`}>{TIER_NAME[a.tier]}</span></div>
         <p>{a.text}</p>
-        {a.theme && <p className="ach-pic"><span className="ach-pic-face theme"><ThemePreview k={a.theme.key} /></span> Unlocks the <b>{a.theme.name}</b> theme</p>}
-        {a.picture && <p className="ach-pic"><span className="ach-pic-face"><Avatar avatar={a.picture.key} color="#8a5a2b" size={26} /></span> Unlocks the <b>{a.picture.name}</b> picture</p>}
+        {a.theme && <p className="ach-pic"><span className="ach-pic-face theme"><ThemePreview k={a.theme.key} /></span> <span>Unlocks the <b>{a.theme.name}</b> theme</span></p>}
+        {a.picture && <p className="ach-pic"><span className="ach-pic-face"><Avatar avatar={a.picture.key} color="#8a5a2b" size={26} /></span> <span>Unlocks the <b>{a.picture.name}</b> picture</span></p>}
         {!a.unlocked && a.goal > 1 && (
           <div className="ach-prog"><div className="ach-bar"><i style={{ width: `${pct}%` }} /></div><small>{a.progress}/{a.goal}</small></div>
         )}
@@ -39,6 +39,15 @@ export default function Achievements() {
   const [toast, setToast] = useToast();
   const [reward, setReward] = useState<{ amount: number; title: string } | null>(null);
   const [filter, setFilter] = useState<"all" | "ready" | "done" | "todo">("all");
+  // Opened from the shop (…/achievements?a=key): jump to that achievement and make it glow for a moment.
+  const [focus, setFocus] = useState<string | null>(() => new URLSearchParams(window.location.search).get("a"));
+  useEffect(() => {
+    if (!focus || !data) return;
+    const el = document.getElementById(`ach-${focus}`);
+    if (el) window.setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+    const t = window.setTimeout(() => setFocus(null), 4000);
+    return () => clearTimeout(t);
+  }, [focus, data]);
 
   const load = useCallback(() => { api.achievements().then(setData).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load")); }, []);
   useEffect(load, [load]);
@@ -92,7 +101,7 @@ export default function Achievements() {
       {groups.map((g) => (
         <section key={g} className="ach-group">
           <h2>{g}</h2>
-          <ul className="ach-grid">{shown.filter((a) => a.group === g).map((a) => <Card key={a.key} a={a} onClaim={claim} />)}</ul>
+          <ul className="ach-grid">{shown.filter((a) => a.group === g).map((a) => <Card key={a.key} a={a} focus={focus === a.key} onClaim={claim} />)}</ul>
         </section>
       ))}
       {reward && <GemReward amount={reward.amount} title={reward.title} sound="achievement" onDone={() => { setReward(null); setToast("Gems added to your wallet"); }} />}

@@ -35,7 +35,7 @@ export interface BoardRow extends Status {
   rank: number; member: { id: string; name: string; avatar: string; frame: string }; can_take?: boolean; taken?: boolean;
   today: Score; week_delta: number; is_me: boolean; excused_today?: { task: string; reason: string }[];
 }
-export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary"; unlock?: { key: string; name: string; text: string }; special?: "godfather" }
+export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary"; unlock?: { key: string; name: string; text: string; tier?: string; icon?: string }; special?: "godfather" }
 export interface Profile extends Status {
   raid?: { stolen: number } | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[];
   member: { id: string; name: string; avatar: string; frame: string; theme: string; shamed?: boolean; own_avatar?: string; own_frame?: string };

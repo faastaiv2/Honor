@@ -2322,3 +2322,49 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .ach-pic-face.theme .ru-theme { width: 40px; height: 30px; grid-template-rows: 12px 1fr; border-width: 1px; }
 .shop-tag.ach { background: #c98a00; }
 .shop-item { position: relative; }
+
+/* Shop: "Earn" an achievement chip, by the achievement's tier */
+.shop-ach { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px; text-decoration: none; text-align: left; line-height: 1.1;
+  background: linear-gradient(180deg, #fff6dc, #f6e2b0); color: #5a3a00; box-shadow: inset 0 0 0 1px #e6c87a, 0 2px 0 #d9b25a; transition: transform .15s; }
+.shop-ach:hover { transform: translateY(-1px); }
+.shop-ach svg { flex: none; }
+.shop-ach span { display: grid; }
+.shop-ach small { font-size: 9.5px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+.shop-ach b { font-size: 12.5px; }
+.shop-ach i { font-style: normal; font-weight: 900; opacity: .6; }
+.shop-ach.t-silver { background: linear-gradient(180deg, #eef6ff, #d4e6fa); color: #1a3a6a; box-shadow: inset 0 0 0 1px #a8c8ee, 0 2px 0 #8ab0dc; }
+.shop-ach.t-gold { background: linear-gradient(180deg, #f6eaff, #e2ccfa); color: #4a1a7a; box-shadow: inset 0 0 0 1px #c8a8ee, 0 2px 0 #a888d8; }
+.shop-ach.t-legend { background: linear-gradient(120deg, #2a1a4a, #4a2a8a 50%, #1a3a5a); color: #fff6d0; box-shadow: inset 0 0 0 1px #d4a017, 0 2px 0 #1a1030, 0 0 14px #9a6aff55; }
+.shop-ach.t-legend small { color: #f4d36a; opacity: 1; }
+/* Achievements: the one opened from the shop glows */
+.ach.focus { animation: ach-focus 1.2s ease-in-out 3; position: relative; z-index: 1; }
+@keyframes ach-focus { 0%, 100% { box-shadow: 0 0 0 0 #f0b82000; } 50% { box-shadow: 0 0 0 5px #f0b820aa, 0 0 30px #f0b82088; } }
+/* Northern lights preview */
+.ru-theme.aurora .ru-theme-top { background: linear-gradient(120deg, #051820, #0a2a3a 40%, #14123a); position: relative; overflow: hidden; }
+.ru-theme.aurora .ru-theme-top::before { content: ""; position: absolute; inset: -40%; background: radial-gradient(ellipse at 25% 40%, #3affc8cc, transparent 45%), radial-gradient(ellipse at 70% 30%, #7a5affcc, transparent 45%); filter: blur(4px); animation: aurora-drift 6s ease-in-out infinite alternate; }
+.ru-theme.aurora .ru-theme-top i { position: relative; background: #7fffd4; }
+.ru-theme.aurora { background: #0e1f26; }
+
+/* Midnight: a deep starry sky with a shine that sweeps across */
+:root[data-skin=midnight] .hero { background:
+    radial-gradient(1.5px 1.5px at 12% 22%, #fff, transparent 60%), radial-gradient(1px 1px at 28% 70%, #dfe8ff, transparent 60%),
+    radial-gradient(1.5px 1.5px at 46% 18%, #fff, transparent 60%), radial-gradient(1px 1px at 63% 58%, #dfe8ff, transparent 60%),
+    radial-gradient(1.8px 1.8px at 78% 28%, #fff, transparent 60%), radial-gradient(1px 1px at 90% 74%, #dfe8ff, transparent 60%),
+    radial-gradient(1.2px 1.2px at 6% 84%, #fff, transparent 60%), radial-gradient(1.4px 1.4px at 55% 88%, #fff, transparent 60%),
+    radial-gradient(ellipse at 85% 0%, #3a5aff55, transparent 55%), radial-gradient(ellipse at 10% 100%, #8a5aff44, transparent 55%),
+    linear-gradient(160deg, #070b22, #121c4a 55%, #1c1240); }
+:root[data-skin=midnight] .hero::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, #ffffff10 44%, #cfe0ff38 50%, #ffffff10 56%, transparent 65%); background-size: 260% 100%;
+  animation: midnight-shine 6s ease-in-out infinite; }
+:root[data-skin=midnight] .hero::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(2px 2px at 20% 40%, #fff, transparent 60%), radial-gradient(2px 2px at 70% 15%, #fff, transparent 60%), radial-gradient(2px 2px at 88% 60%, #fff, transparent 60%);
+  animation: midnight-twinkle 2.8s ease-in-out infinite alternate; }
+:root[data-skin=midnight] .hero h1 span, :root[data-skin=midnight] .asma .ar { text-shadow: 0 0 14px #8fb4ffaa; }
+:root[data-skin=midnight] .hero h1 { background: linear-gradient(90deg, #fff, #cfe0ff, #fff); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: gfr-shine 5s linear infinite; }
+:root[data-skin=midnight] .hero h1 span { -webkit-text-fill-color: initial; }
+:root[data-skin=midnight] nav.tabs a.active { background: linear-gradient(180deg, #e8f0ff, #b8ccff); color: #0a1030; box-shadow: 0 0 14px #8fb4ff88; }
+@keyframes midnight-shine { 0% { background-position: 130% 0; } 60%, 100% { background-position: -30% 0; } }
+@keyframes midnight-twinkle { from { opacity: .25; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { :root[data-skin=midnight] .hero::before, :root[data-skin=midnight] .hero::after, :root[data-skin=midnight] .hero h1 { animation: none; } }
+.ru-theme.midnight .ru-theme-top { background: linear-gradient(110deg, #070b22, #121c4a 45%, #cfe0ff55 50%, #121c4a 55%, #1c1240); background-size: 260% 100%; animation: midnight-shine 4s ease-in-out infinite; }

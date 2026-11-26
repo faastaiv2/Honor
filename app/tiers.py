@@ -229,7 +229,7 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("astrolegend", "Legendary Astronaut", 1500, "legendary"),
     ("goldeneagle", "Golden Eagle", 1500, "legendary"),
     ("catlegend", "Legendary Cat", 1200, "legendary"), ("spartanlegend", "Legendary Spartan", 1500, "legendary"),
-    ("knightlegend", "Legendary Knight", 1500, "legendary"), ("nightpanther", "Legendary Night Panther", 1500, "legendary"),
+    ("knightlegend", "Legendary Knight", 1500, "legendary"), ("auroracat", "Northern Lights Cat", 1500, "legendary"), ("nightpanther", "Legendary Night Panther", 1500, "legendary"),
 ]
 FREE_AVATARS = [k for k, _ in FREE_PICTURES]
 SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c, _ in SHOP_PICTURES]
@@ -295,7 +295,7 @@ def catalogue(kind: str, current: Tier, owned: set[str], earned: set[str] | None
                     "price": c, "tier": None, "rarity": _PICTURE_RARITY[a]}
             if a in PICTURE_UNLOCKS:
                 ach = ACH[PICTURE_UNLOCKS[a]]
-                item["unlock"] = {"key": ach.key, "name": ach.name, "text": ach.text}
+                item["unlock"] = {"key": ach.key, "name": ach.name, "text": ach.text, "tier": ach.tier, "icon": ach.icon}
             out.append(item)
         return out
     table = FRAMES if kind == "frame" else THEMES
@@ -308,6 +308,6 @@ def catalogue(kind: str, current: Tier, owned: set[str], earned: set[str] | None
                 "tier": tier_dict(BY_KEY[need]) if need else None}
         if kind == "theme" and k in THEME_UNLOCKS:
             ach = ACH[THEME_UNLOCKS[k]]
-            item["unlock"] = {"key": ach.key, "name": ach.name, "text": ach.text}
+            item["unlock"] = {"key": ach.key, "name": ach.name, "text": ach.text, "tier": ach.tier, "icon": ach.icon}
         out.append(item)
     return special + out

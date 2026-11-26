@@ -725,6 +725,45 @@ const PICS: Record<string, Pic> = {
     {/* skirt strips (pteruges) */}
     {[34, 40, 46, 52, 58, 64].map((x, i) => <rect key={x} x={x} y="94" width="5" height="6" fill={i % 2 ? "#8a1a14" : `url(#${id}gv)`} stroke="#3a2004" strokeWidth=".5" />)}
   </> },
+  auroracat: { bg: ["#0e2a3a", "#03070e"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}a`} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#3affc8" stopOpacity="0" /><stop offset=".3" stopColor="#3affc8" />
+        <stop offset=".65" stopColor="#7a5aff" /><stop offset="1" stopColor="#ff6ad8" stopOpacity="0" /></linearGradient>
+      <linearGradient id={`${id}b`} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#3ad0ff" stopOpacity="0" /><stop offset=".5" stopColor="#3ad0ff" /><stop offset="1" stopColor="#3affc8" stopOpacity="0" /></linearGradient>
+      <linearGradient id={`${id}f`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2a3a5a" /><stop offset="1" stopColor="#0e1428" /></linearGradient>
+      <linearGradient id={`${id}s`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3affc8" /><stop offset=".5" stopColor="#7a8aff" /><stop offset="1" stopColor="#d070ff" /></linearGradient>
+      <radialGradient id={`${id}e`}><stop offset="0" stopColor="#eafffa" /><stop offset=".5" stopColor="#3affc8" /><stop offset="1" stopColor="#0a8a7a" /></radialGradient>
+      <filter id={`${id}g`} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2" /></filter>
+    </defs>
+    {/* the sky: stars and two dancing ribbons of light */}
+    {[[10, 12, 1.2], [26, 6, .9], [44, 14, 1], [80, 8, 1.3], [92, 24, .9], [6, 40, .8], [94, 54, 1]].map(([x, y, r], i) =>
+      <circle key={i} className="fx-twinkle" style={{ animationDelay: `${i * .35}s` }} cx={x} cy={y} r={r} fill="#fff" />)}
+    <g className="pa-drift" filter={`url(#${id}g)`} opacity=".9">
+      <path d="M-10 30 C20 10 40 38 60 22 S96 8 112 20 L112 30 C96 18 76 34 60 32 S20 22 -10 40Z" fill={`url(#${id}a)`} />
+      <path d="M-10 46 C18 32 46 50 70 38 S104 30 112 36 L112 42 C100 38 80 48 68 46 S22 40 -10 54Z" fill={`url(#${id}b)`} opacity=".7" />
+    </g>
+    {/* the cat */}
+    <path d="M14 100 Q16 76 34 72 Q50 82 66 72 Q84 76 86 100Z" fill={`url(#${id}f)`} />
+    <path d="M30 100 Q34 84 50 84 Q66 84 70 100Z" fill="#1a2440" />
+    <path d="M25 46 L22 16 L44 32Z M75 46 L78 16 L56 32Z" fill={`url(#${id}f)`} stroke={`url(#${id}s)`} strokeWidth="1.4" strokeLinejoin="round" />
+    <path d="M28 40 L27 24 L39 33Z M72 40 L73 24 L61 33Z" fill="#7a5aff" opacity=".55" />
+    <ellipse cx="50" cy="52" rx="27" ry="25" fill={`url(#${id}f)`} stroke={`url(#${id}s)`} strokeWidth="1.6" />
+    {/* aurora stripes in the fur */}
+    <g className="pa-glow" stroke={`url(#${id}s)`} strokeWidth="2.2" strokeLinecap="round" fill="none" opacity=".9">
+      <path d="M50 30 v8 M43 31 l2 7 M57 31 l-2 7" />
+      <path d="M25 50 q5 -2 9 0 M75 50 q-5 -2 -9 0 M26 58 q5 -1 8 1 M74 58 q-5 -1 -8 1" strokeWidth="1.6" />
+    </g>
+    {/* glowing eyes */}
+    <g className="pa-glow"><ellipse cx="39" cy="50" rx="6" ry="5.6" fill={`url(#${id}e)`} /><ellipse cx="61" cy="50" rx="6" ry="5.6" fill={`url(#${id}e)`} /></g>
+    <ellipse cx="39" cy="50" rx="1.6" ry="4.4" fill="#04201c" /><ellipse cx="61" cy="50" rx="1.6" ry="4.4" fill="#04201c" />
+    <circle cx="40.6" cy="48" r="1.2" fill="#fff" /><circle cx="62.6" cy="48" r="1.2" fill="#fff" />
+    <path d="M47 58 h6 l-3 3z" fill="#ff9bd8" />
+    <path d="M50 61 q-3 3 -6 1 M50 61 q3 3 6 1" stroke="#8aa8d8" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <path d="M30 57 h-13 M30 61 l-12 3 M70 57 h13 M70 61 l12 3" stroke="#bff8ec" strokeWidth="1" strokeLinecap="round" opacity=".85" />
+    {/* a star charm on the collar */}
+    <path d="M36 80 Q50 88 64 80" stroke={`url(#${id}s)`} strokeWidth="2.6" fill="none" />
+    <path className="pa-pulse" d="M50 82 l1.6 3.4 3.6 .4 -2.7 2.4 .8 3.6 -3.3 -1.8 -3.3 1.8 .8 -3.6 -2.7 -2.4 3.6 -.4z" fill="#eafffa" />
+  </> },
   catlegend: { bg: ["#4a1a7a", "#0e0420"], draw: (id) => <>
     <defs>
       <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff6c8" /><stop offset=".4" stopColor="#ffd24a" /><stop offset="1" stopColor="#9a6a00" /></linearGradient>
