@@ -394,8 +394,15 @@ def _goblin_raid(db: Session, m: Member, tier, p) -> None:
     """Falling onto the Pillar of Shame: goblins raid. Each level deeper (−I, −II, −III) brings a new, bigger raid
     (never more gems than the member has). Shown on the member's next visit (raid_owed)."""
     if p.level >= 0 or tier.key != "low":
+        changed = False
         if m.raid_depth:  # climbed back off the Pillar: the next fall starts fresh
-            m.raid_depth = 0
+            m.raid_depth, changed = 0, True
+        if m.raid_owed is not None and m.raid_owed >= 0:
+            # The fall was undone (a start date or time zone fixed, a parent's correction) before they saw the raid:
+            # call the goblins off and give back what they took.
+            m.gems_stolen = max(0, (m.gems_stolen or 0) - m.raid_owed)
+            m.raid_owed, changed = -1, True
+        if changed:
             db.commit()
         return
     if m.seen_rank not in _RANK_ORDER:  # never seen before (a new member): no raid for where they start

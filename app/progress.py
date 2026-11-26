@@ -59,7 +59,7 @@ class Progress:
 
 def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[date, int], quest_starts: list[date],
              score_from: date, today: date, cut_misses: int, week_from: date | None = None,
-             tasks: list | None = None, periods: list | None = None) -> Progress:
+             tasks: list | None = None, periods: list | None = None, grace_day: date | None = None) -> Progress:
     """logs: day -> (tasks, excuse). adjustments: day -> total change that day."""
     p = Progress(level=base)
     starts = set(quest_starts)
@@ -100,6 +100,8 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
         if d == today:
             p.today_tasks_gems = ticked
         earned = s.delta
+        if d == grace_day and earned < 0:
+            earned = 0  # the day a member joined never costs Honor (they may have joined late in the day)
         if d == today:  # today's Honor is held until midnight
             p.pending, earned = s.delta, 0
         change = earned + adjustments.get(d, 0)

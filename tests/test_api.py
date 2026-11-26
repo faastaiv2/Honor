@@ -1001,3 +1001,30 @@ def test_bonus_starts_from_ya_allah_on_the_start_day(client, family):
 def test_legend_achievement_gives_1000():
     from app.achievements import BY_KEY
     assert BY_KEY["legendary"].gems == 1000
+
+
+def test_a_new_members_first_day_never_costs_honor(client, family, db):
+    """Added on the 24th; the clock moves on to the 25th (a time zone change, or just midnight) with nothing ticked."""
+    from app.models import Member
+    m = Member(name="Newbie", code="N", base_honor=0, pin_hash=family["A"].pin_hash,
+               created_at=datetime(2026, 11, 24, 18, 0, tzinfo=timezone.utc), seen_rank="member")
+    db.add(m)
+    db.commit()
+    h = auth(client, m)
+    a, b = at_today(TODAY + timedelta(days=1))
+    with a, b:
+        prof = client.get("/api/board/profile", headers=h).json()
+    assert prof["level"] == 0 and prof["tier"]["key"] == "member"
+    assert not prof.get("raid")
+
+
+def test_an_undone_fall_calls_the_goblins_off(client, family, db):
+    m = family["A"]
+    m.raid_owed, m.gems_stolen, m.raid_depth = 20, 20, -1  # a raid recorded but not yet shown
+    db.commit()
+    h = auth(client, m)
+    a, b = at_today()
+    with a, b:
+        prof = client.get("/api/board/profile", headers=h).json()
+    db.refresh(m)
+    assert not prof.get("raid") and m.gems_stolen == 0 and m.raid_owed == -1
