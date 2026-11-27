@@ -13,7 +13,7 @@ import QuizScene from "../lib/Quiz";
 import KittenScene from "../lib/Kitten";
 import GobiSplat from "../lib/GobiSplat";
 import RankIcon from "../lib/RankIcon";
-import { playMusic, playSound, resetSounds, stopMusic } from "../lib/sounds";
+import { playMusic, playSound, resetSounds, seedSound, stopMusic, warmSounds } from "../lib/sounds";
 import { useToast } from "../lib/events";
 import QuestFilm from "./QuestFilm";
 import RankUp from "./RankUp";
@@ -67,7 +67,7 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
     if (!f) return;
     if (f.size > 4_300_000) { onError(`That file is ${(f.size / 1_000_000).toFixed(1)} MB. The most is 4.3 MB`); return; }
     setBusy(true);
-    try { stopMusic(k, 0); setPlaying(false); onChange(await api.uploadMusic(f, k)); resetSounds(k); onDone(`${label}: sound uploaded`); }
+    try { stopMusic(k, 0); setPlaying(false); onChange(await api.uploadMusic(f, k)); seedSound(k, f); onDone(`${label}: sound uploaded`); }
     catch (e) { onError(msg(e)); } finally { setBusy(false); }
   }
   async function save() {
@@ -83,12 +83,12 @@ function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
   async function test() {
     if (isMusic) {
       if (playing) { stopMusic(k, 500); setPlaying(false); return; }
-      setPlaying(await playMusic(k));
-    } else await playSound(k);
+      setPlaying(await playMusic(k, false, 0, true)); // a test plays at once, from the start of the chosen section
+    } else await playSound(k, false, true);
   }
   async function remove() {
     stopMusic(k, 0); setPlaying(false);
-    try { onChange(await api.removeMusic(k)); resetSounds(k); onDone("Sound removed"); } catch (e) { onError(msg(e)); }
+    try { onChange(await api.removeMusic(k)); resetSounds(k, true); onDone("Sound removed"); } catch (e) { onError(msg(e)); }
   }
 
   return (
@@ -135,6 +135,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
   const [error, setError] = useState("");
   const [toast, setToast] = useToast();
   const [preview, setPreview] = useState<Preview | null>(null);
+  useEffect(() => { void warmSounds(); }, []); // every sound ready before a preview starts
   const [rank, setRank] = useState("gold");
   useEffect(() => { api.soundsInfo().then(setSounds).catch((e) => setError(msg(e))); }, []);
 
@@ -206,7 +207,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         <>{slot("shaytan-goodjob", "Good job (voice)", "“Good job! You fell into Low Honor… just where I want you!”")}
           <p className="note">His laugh uses the “Evil laugh” sound from Deploy Shaytan.</p></>)}
 
-      {card("🛍️", "Buying in the shop", "Every purchase in the Avatar shop gets a show for its rarity: Common pops out of a wooden crate, Rare breaks out of ice, Epic bursts from a golden chest, Legendary descends in a beam of light with a crown.",
+      {card("🛍️", "Buying in the shop", "Every purchase in the Avatar shop gets a show for its rarity: Common pops out of a wooden crate, Rare breaks out of ice, Epic bursts from a golden chest, Legendary is a 6-second golden show: a jewelled chest rumbles, light leaks out, the lid blasts off and the prize rises under a crown.",
         () => setPreview({ kind: "buy", rarity: "legendary" }),
         <><div className="an-ranks" role="group" aria-label="Preview a rarity">
             {(["common", "rare", "epic", "legendary"] as Rarity[]).map((r) => <button key={r} type="button" onClick={() => setPreview({ kind: "buy", rarity: r })}>{r[0].toUpperCase() + r.slice(1)}</button>)}
@@ -214,7 +215,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
           {slot("buy-common", "Common", "The crate pops open")}
           {slot("buy-rare", "Rare", "Ice cracking and shattering")}
           {slot("buy-epic", "Epic", "A chest bursting open, coins")}
-          {slot("buy-legendary", "Legendary", "A choir, a beam of light")}</>)}
+          {slot("buy-legendary", "Legendary", "Plays as the golden chest rises; the lid blasts off 5.4 seconds in")}</>)}
 
       {card("🐱", "The thirsty kitten", "Sent from the Tests tab: a thin kitten meows in the desert by the pyramids. Water costs every gem; give it and the kitten becomes the Oasis Kitten, all the gems come back, and a secret achievement unlocks.",
         () => setPreview({ kind: "kitten" }),

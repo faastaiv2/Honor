@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api, ApiError, type PollItem, type Polls as PollsData } from "../api";
 import { confetti } from "../lib/confetti";
 import { notifyChanged } from "../lib/events";
@@ -54,7 +54,7 @@ function MemberPoll({ p, onVote }: { p: PollItem; onVote: (choices: number[]) =>
   );
 }
 
-function NewPoll({ onMade }: { onMade: (d: PollsData) => void }) {
+function NewPoll({ onMade, onCancel }: { onMade: (d: PollsData) => void; onCancel?: () => void }) {
   const [q, setQ] = useState("");
   const [opts, setOpts] = useState(["", ""]);
   const [multi, setMulti] = useState(false);
@@ -70,7 +70,7 @@ function NewPoll({ onMade }: { onMade: (d: PollsData) => void }) {
   };
   return (
     <form className="card pl-new" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-      <h3>📊 Ask the family</h3>
+      <h3>📊 Ask the family a poll</h3>
       <label>Question<input value={q} maxLength={200} onChange={(e) => setQ(e.target.value)} placeholder="e.g. Where shall we go on Sunday?" required /></label>
       <div className="pl-new-opts">
         {opts.map((o, i) => (
@@ -88,63 +88,47 @@ function NewPoll({ onMade }: { onMade: (d: PollsData) => void }) {
         <label><input type="checkbox" checked={showResults} onChange={(e) => setShowResults(e.target.checked)} /> Members see the results after answering</label>
       </div>
       {error && <p className="err">{error}</p>}
-      <button className="primary" disabled={!q.trim() || opts.filter((o) => o.trim()).length < 2}>Post the poll</button>
+      <div className="row">
+        <button className="primary" disabled={!q.trim() || opts.filter((o) => o.trim()).length < 2}>Post the poll</button>
+        {onCancel && <button type="button" onClick={onCancel}>Cancel</button>}
+      </div>
     </form>
   );
 }
 
-/** Polls and surveys: the admin asks, the family answers. */
-export default function Polls({ admin }: { admin: boolean }) {
-  const [data, setData] = useState<PollsData | null>(null);
+/** A poll in the Community feed: members answer it right there; the admin sees the results and who picked what. */
+export function PollCard({ p, admin, onChange }: { p: PollItem; admin: boolean; onChange: (d: PollsData) => void }) {
   const [error, setError] = useState("");
-  useEffect(() => { api.polls().then(setData).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load the polls")); }, []);
-  const vote = async (id: string, choices: number[]) => {
+  const vote = async (choices: number[]) => {
     try {
-      const first = data?.items.find((x) => x.id === id)?.mine === null;
-      setData(await api.votePoll(id, choices)); notifyChanged();
+      const first = p.mine === null;
+      onChange(await api.votePoll(p.id, choices)); notifyChanged();
       if (first) confetti();
     } catch (e) { setError(e instanceof ApiError ? e.message : "Could not send your answer"); }
   };
-  const close = async (p: PollItem) => setData(await api.closePoll(p.id, !p.closed));
-  const remove = async (p: PollItem) => { if (confirm("Delete this poll and its answers?")) setData(await api.deletePoll(p.id)); };
-  const open = data?.items.filter((p) => !p.closed) ?? [];
-  const closed = data?.items.filter((p) => p.closed) ?? [];
-
-  const card = (p: PollItem) => (
-    <li key={p.id} className={`card pl-card${p.closed ? " closed" : ""}${!admin && !p.closed && p.mine === null ? " waiting" : ""}`}>
-      <div className="pl-top">
-        <span className="pl-ico" aria-hidden="true">{p.closed ? "🔒" : "📊"}</span>
-        <h3>{p.question}</h3>
-        {!admin && !p.closed && p.mine === null && <span className="news-new">New</span>}
-      </div>
-      <small className="note">
-        {new Date(p.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · {p.voters} {p.voters === 1 ? "answer" : "answers"}
-        {p.multi ? " · Many answers" : ""}{p.anonymous ? " · Anonymous" : ""}{admin && !p.show_results ? " · Results private" : ""}
-      </small>
-      {admin ? <Bars p={p} /> : <MemberPoll p={p} onVote={(c) => vote(p.id, c)} />}
-      {admin && (
-        <div className="pl-admin">
-          <button onClick={() => void close(p)}>{p.closed ? "🔓 Open again" : "🔒 Close the poll"}</button>
-          <button className="danger" onClick={() => void remove(p)}>🗑 Delete</button>
-        </div>
-      )}
-    </li>
-  );
-
+  const close = async () => onChange(await api.closePoll(p.id, !p.closed));
+  const remove = async () => { if (confirm("Delete this poll and its answers?")) onChange(await api.deletePoll(p.id)); };
   return (
-    <section className="polls">
-      <h2>📊 Polls</h2>
-      <p className="note">{admin ? "Ask the family a question. They answer in their Polls tab." : "Questions from the family. Your answer helps decide!"}</p>
-      {admin && <NewPoll onMade={setData} />}
-      {error && <p className="err">{error}</p>}
-      {data === null ? <p className="note">Loading…</p> : data.items.length === 0 ? (
-        <div className="card news-empty"><span>🗳️</span><p>{admin ? "No polls yet. Ask your first question above!" : "No polls right now. Check back soon!"}</p></div>
-      ) : (
-        <>
-          {open.length > 0 && <ul className="pl-list">{open.map(card)}</ul>}
-          {closed.length > 0 && <><h3 className="pl-sub">Closed</h3><ul className="pl-list">{closed.map(card)}</ul></>}
-        </>
+    <article className={`cm-post k-poll pl-card${p.closed ? " closed" : ""}${!admin && !p.closed && p.mine === null ? " waiting" : ""}`}>
+      <header className="cm-head">
+        <span className="cm-parent" style={{ width: 42, height: 42, fontSize: 22 }} aria-hidden="true">📊</span>
+        <span className="cm-by"><b>Poll{p.closed ? " · closed" : ""}</b>
+          <small>{new Date(p.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })} · {p.voters} {p.voters === 1 ? "answer" : "answers"}{p.anonymous ? " · Anonymous" : ""}</small></span>
+        {!admin && !p.closed && p.mine === null && <span className="news-new">Answer me!</span>}
+      </header>
+      <div className="cm-body">
+        <p className="cm-text big">{p.question}</p>
+        {admin ? <Bars p={p} /> : <MemberPoll p={p} onVote={vote} />}
+        {error && <p className="err">{error}</p>}
+      </div>
+      {admin && (
+        <footer className="cm-foot"><span className="news-tools">
+          <button onClick={() => void close()}>{p.closed ? "🔓 Open again" : "🔒 Close"}</button>
+          <button className="danger" onClick={() => void remove()}>Delete</button>
+        </span></footer>
       )}
-    </section>
+    </article>
   );
 }
+
+export { NewPoll, MemberPoll, Bars };

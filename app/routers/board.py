@@ -994,3 +994,49 @@ def quest_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db
             "goal": LEGENDARY_LEVEL, "bonus": True,
             "tasks": [{"key": t.key, "label": t.label_on(today), "group": t.group, "quest_only": t.min_rank == "legendary"} for t in plan],
             "people": people, "me": me}
+
+
+ONLINE_SECONDS = 75  # "online" = really used the app within this long (pings come every 20 s while active)
+
+
+class PingIn(BaseModel):
+    page: str = Field(default="", max_length=40)
+
+
+@router.post("/ping", status_code=204)
+def ping(body: PingIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> None:
+    """Sent only while the member is actually using the app (the tab is in view and they touched, typed or scrolled
+    in the last minute), so an open tab in the background doesn't count as online."""
+    if v.kind != "member":
+        return
+    m = db.get(Member, v.id)
+    if m:
+        m.active_at, m.active_page = datetime.now(timezone.utc), body.page
+        db.commit()
+
+
+@router.get("/online")
+def online(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """The admin's view: who is using the app right now, and when each member last was."""
+    if not v.is_admin:
+        raise HTTPException(403, "For the admin")
+    now = datetime.now(timezone.utc)
+    out = {}
+    for m in active_members(db):
+        at = m.active_at
+        if at is not None and at.tzinfo is None:
+            at = at.replace(tzinfo=timezone.utc)
+        out[m.id] = {"online": at is not None and (now - at).total_seconds() <= ONLINE_SECONDS,
+                     "at": at.isoformat() if at else None, "page": m.active_page or ""}
+    return out
+
+
+@router.get("/rank-tasks")
+def rank_tasks(_: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """Each rank's daily tasks, as they are set for that rank (for the Ranks page)."""
+    cfg = get_settings_row(db)
+    today = today_for(cfg)
+    specs = load_tasks(db)
+    return {r: [{"key": t.key, "label": t.label_on(today), "group": t.group, "new": bool(t.min_rank) and t.min_rank == r}
+                for t in scoring.day_plan(specs, None, today, i)]
+            for i, r in enumerate(scoring.RANK_ORDER) if i >= 1}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import OnlineAvatar from "../lib/OnlineAvatar";
 import { api, type BoardRow, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
 import RankIcon from "../lib/RankIcon";
@@ -31,7 +32,7 @@ export default function AdminHome({ info }: { info: TodayInfo | null }) {
           return (
             <li key={r.member.id} className={`ah-item${isOpen ? " open" : ""}`} style={{ ["--tc" as string]: r.tier.color }}>
               <button className="ah-row" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : r.member.id)}>
-                <Avatar avatar={r.member.avatar} color={r.tier.color} frame={r.member.frame} size={40} />
+                <OnlineAvatar id={r.member.id}><Avatar avatar={r.member.avatar} color={r.tier.color} frame={r.member.frame} size={40} /></OnlineAvatar>
                 <span className="ah-name">
                   <b>{r.member.name}</b>
                   <small><RankIcon rank={r.tier.key} /> {r.tier.name} · {r.label}{r.excused_today?.length ? ` · ${r.excused_today.length} excused` : ""}</small>

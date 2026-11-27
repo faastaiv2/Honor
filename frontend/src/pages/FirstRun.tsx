@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import Avatar from "../lib/Avatar";
-import { api, type Profile } from "../api";
+import { api, type PollItem, type Profile } from "../api";
 import RankIcon from "../lib/RankIcon";
 import { confetti } from "../lib/confetti";
-import { useChangeCounter } from "../lib/events";
+import { notifyChanged, useChangeCounter } from "../lib/events";
+import { Bars, MemberPoll } from "./Polls";
 import GuidedTour from "../lib/GuidedTour";
 
 /**
@@ -72,11 +73,20 @@ export default function FirstRun() {
   const [p, setP] = useState<Profile | null>(null);
   const changes = useChangeCounter();
   useEffect(() => { api.profile().then(setP).catch(() => undefined); }, [changes]);
+  // A new poll waiting for an answer pops up once per visit ("Later" hides it until the app is opened again).
+  const [poll, setPoll] = useState<PollItem | null>(null);
+  useEffect(() => {
+    api.polls().then((r) => {
+      const later = (id: string) => { try { return !!sessionStorage.getItem(`honor.poll.${id}`); } catch { return false; } };
+      setPoll(r.items.find((x) => !x.closed && x.mine === null && !later(x.id)) ?? null);
+    }).catch(() => undefined);
+  }, [changes]);
   if (!p) return null;
   if (!p.oath) return <Oath name={p.member.name} note={p.oath_note} onSworn={() => setP({ ...p, oath: true, oath_note: "" })} />;
   if (!p.toured && !p.oath_note) return <GuidedTour onDone={() => { setP({ ...p, toured: true }); api.toured().catch(() => undefined); }} />;
   if (p.resolved?.length) return <ResolvedPop item={p.resolved[0]} onDone={() => { const r = p.resolved![0]; setP({ ...p, resolved: p.resolved!.slice(1) }); api.feedbackSeen(r.id).catch(() => undefined); }} />;
   if (p.new_likes) return <LikesPop likes={p.new_likes} onDone={() => { setP({ ...p, new_likes: null }); api.likesSeen().catch(() => undefined); }} />;
+  if (poll) return <PollPop poll={poll} onDone={() => { try { sessionStorage.setItem(`honor.poll.${poll.id}`, "1"); } catch { /* private mode */ } setPoll(null); }} />;
   if (p.avatar_nudge && !p.member.shamed) return <AvatarNudge name={p.member.name} onDone={() => { setP({ ...p, avatar_nudge: false }); api.avatarNudgeSeen().catch(() => undefined); }} />;
   return null;
 }
@@ -174,6 +184,37 @@ function AvatarNudge({ name, onDone }: { name: string; onDone: () => void }) {
           <button className="primary" autoFocus onClick={() => { onDone(); nav("/profile?pick=1"); }}>👉 Show me where</button>
           <button onClick={later}>Maybe later</button>
         </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+
+/** A poll the admin posted that this member hasn't answered yet: answer it right here, or later in Community. */
+function PollPop({ poll, onDone }: { poll: PollItem; onDone: () => void }) {
+  const calm = useCalm(true);
+  const [result, setResult] = useState<PollItem | null>(null);
+  if (!calm) return null;
+  const vote = async (choices: number[]) => {
+    try {
+      const r = await api.votePoll(poll.id, choices);
+      const mine = r.items.find((x) => x.id === poll.id) ?? null;
+      confetti(["#ffd24a", "#4aa8ff", "#7ad86a", "#ff7aa8"]);
+      notifyChanged();
+      if (mine?.counts) setResult(mine); else onDone();
+    } catch { onDone(); }
+  };
+  return createPortal(
+    <div className="avn" role="dialog" aria-modal="true" aria-labelledby="pp-h">
+      <div className="avn-card pp-card">
+        <div className="pp-ico" aria-hidden="true">📊</div>
+        <p className="pp-kicker">{result ? "Thanks for answering!" : "The family wants to know"}</p>
+        <h2 id="pp-h">{poll.question}</h2>
+        {result ? <><Bars p={result} /><div className="avn-btns"><button className="primary" autoFocus onClick={onDone}>Done</button></div></> : <>
+          <MemberPoll p={poll} onVote={vote} />
+          <div className="avn-btns"><button onClick={onDone}>Later</button></div>
+        </>}
       </div>
     </div>,
     document.body,

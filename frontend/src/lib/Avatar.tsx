@@ -52,7 +52,8 @@ function Gem({ x, y, s, fill }: { x: number; y: number; s: number; fill: string 
   );
 }
 
-function Crown({ y = -52, scale = 1, fill, gem }: { y?: number; scale?: number; fill: string; gem: string }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function Crown({ y = -52, scale = 1, fill, gem }: { y?: number; scale?: number; fill: string; gem: string }) {
   return (
     <g transform={`translate(0 ${y}) scale(${scale})`}>
       <path d="M-15 6 L-17 -9 L-8 -1 L0 -13 L8 -1 L17 -9 L15 6 Z" fill={fill} stroke="#7a5a00" strokeWidth="1.2" strokeLinejoin="round" />
@@ -169,14 +170,60 @@ const ART: Record<string, Art> = {
       </g>
     ),
   },
-  crown: {
-    ring: GOLD, glow: "#ffd24a",
+  crown: { // 👑 Legendary: wings of gold, a sunburst, a jewelled ring with a travelling shine, and a royal crown
+    ring: ["#7a4a00", "#ffe27a", "#c98a10", "#fff8d8", "#e0a520", "#8a5a00"], glow: "#ffcf3a",
     back: (id) => <>
-      {[1, -1].map((s) => <g key={s} transform={`scale(${s} 1)`}>
-        {[0, 1, 2, 3].map((i) => <path key={i} d={`M${R + 2} ${-6 + i * 7} q${16 - i * 2} ${-10 + i * 2} ${22 - i * 3} ${-4 + i * 4} q-10 ${4} -${20 - i * 3} ${8}z`} fill={`url(#${id}-ring)`} stroke="#7a5a00" strokeWidth=".7" />)}
-      </g>)}
+      <defs>
+        <radialGradient id={`${id}-halo`}><stop offset="55%" stopColor="#ffd24a" stopOpacity=".55" /><stop offset="100%" stopColor="#ffd24a" stopOpacity="0" /></radialGradient>
+        <linearGradient id={`${id}-fea`} x1="0" y1="1" x2="1" y2="0"><stop offset="0" stopColor="#9a6400" /><stop offset=".45" stopColor="#ffd84a" /><stop offset="1" stopColor="#fffbe6" /></linearGradient>
+      </defs>
+      <circle r="66" fill={`url(#${id}-halo)`} className="fx-pulse" />
+      <g className="fx-spin-slow" opacity=".9">
+        {Array.from({ length: 28 }, (_, i) => {
+          const a = i * (360 / 28), long = i % 2 === 0;
+          const [x1, y1] = polar(R + 3, a - 2.2), [x2, y2] = polar(R + 3, a + 2.2), [tx, ty] = polar(R + (long ? 19 : 12), a);
+          return <polygon key={i} points={`${x1},${y1} ${tx},${ty} ${x2},${y2}`} fill={long ? "#ffd24a" : "#fff1b0"} opacity={long ? 0.85 : 0.6} />;
+        })}
+      </g>
+      {[1, -1].map((side) => (
+        <g key={side} className={side === 1 ? "fx-flap-r" : "fx-flap-l"}>
+          {[0, 1, 2].map((row) => Array.from({ length: 6 }, (_, k) => {
+            const len = 40 - row * 9 - k * 1.6, ang = -64 + k * 15 + row * 6;
+            const bx = side * (R - 3 + row * 2), by = 4 - row * 3;
+            const rot = side === 1 ? ang : 180 - ang;
+            return <path key={`${row}${k}`} transform={`translate(${bx} ${by}) rotate(${rot})`}
+              d={`M0 0 C${len * 0.3} ${-4.6 + row * .6} ${len * 0.8} -3.4 ${len} 0 C${len * 0.8} 3.4 ${len * 0.3} ${4.6 - row * .6} 0 0 Z`}
+              fill={`url(#${id}-fea)`} stroke="#7a5000" strokeWidth=".55" opacity={1 - row * 0.08} />;
+          }))}
+        </g>
+      ))}
     </>,
-    front: () => <><Crown fill="#ffd24a" gem="#e3214a" y={-50} scale={1.15} /><Twinkles pts={[[-44, -36, 5], [46, 34, 5]]} fill="#fff8d6" /></>,
+    front: (id) => <>
+      <circle r={R - W / 2 - 0.8} fill="none" stroke="#9a0f2e" strokeWidth="1.6" opacity=".9" />
+      <g className="fx-orbit-a"><circle r={R} fill="none" stroke="#fff" strokeWidth={W - 2} strokeDasharray="14 269" strokeLinecap="round" opacity=".75" /></g>
+      {[[20, "#e3214a"], [70, "#2a6cff"], [110, "#19b46a"], [160, "#e3214a"], [200, "#2a6cff"], [340, "#19b46a"]].map(([a, c], i) => {
+        const [x, y] = polar(R, a as number);
+        return <g key={i}><Gem x={x} y={y} s={3.3} fill={c as string} /><circle cx={x - 1} cy={y - 1} r=".9" fill="#fff" className="fx-twinkle" style={{ animationDelay: `${i * 0.35}s` }} /></g>;
+      })}
+      <Laurel fill="#e8b830" from={98} to={150} n={5} />
+      <g transform={`translate(0 ${R + 3})`}>
+        <circle r="7.5" fill={`url(#${id}-ring)`} stroke="#7a5000" strokeWidth="1" />
+        <Gem x={0} y={0} s={3.8} fill="#e3214a" />
+      </g>
+      <g className="fx-bob">
+        <g transform="translate(0 -54) scale(1.55)">
+          <path d="M-15 7 L-18 -8 L-9 -1 L-4.5 -11 L0 -3 L4.5 -11 L9 -1 L18 -8 L15 7 Z" fill={`url(#${id}-ring)`} stroke="#6a4200" strokeWidth="1" strokeLinejoin="round" />
+          <path d="M-15 4 Q0 0 15 4 L15 7.5 Q0 3.5 -15 7.5 Z" fill="#9a0f2e" stroke="#6a4200" strokeWidth=".6" />
+          {[[-18, -8], [-4.5, -11], [4.5, -11], [18, -8]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.8" fill="#fff6d0" stroke="#6a4200" strokeWidth=".6" />)}
+          <path d="M0 -16 v6 M-2.6 -13.5 h5.2" stroke="#ffe27a" strokeWidth="1.6" strokeLinecap="round" />
+          <Gem x={0} y={1.5} s={2.8} fill="#2a6cff" /><Gem x={-9} y={3} s={2} fill="#19b46a" /><Gem x={9} y={3} s={2} fill="#19b46a" />
+          <path d="M-12 -2 L-10 4" stroke="#fff" strokeWidth=".9" strokeLinecap="round" opacity=".7" />
+        </g>
+      </g>
+      <g className="fx-orbit-b">
+        <Twinkles pts={[[R + 13, 0, 4.5], [-R - 10, -18, 3.5], [8, R + 14, 3.5], [-20, -R - 12, 3]]} fill="#fffbe0" />
+      </g>
+    </>,
   },
   star: {
     ring: GOLD, glow: "#ffe58a",

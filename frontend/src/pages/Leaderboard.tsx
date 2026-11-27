@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import OnlineAvatar from "../lib/OnlineAvatar";
 import RankIcon from "../lib/RankIcon";
 import { api, type Board, type BoardRow, type Tier, type TodayInfo } from "../api";
 import Avatar from "../lib/Avatar";
@@ -119,7 +120,7 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
                   {f.rows.map((r) => (
                     <li key={r.member.id} className={`p-row${r.is_me ? " me" : ""}${r.is_me && found ? " found" : ""}`}>
                       <span className="p-rank">#{r.rank}</span>
-                      <Avatar avatar={r.member.avatar} color={r.tier.color} frame={r.member.frame} size={46} />
+                      <OnlineAvatar id={r.member.id}><Avatar avatar={r.member.avatar} color={r.tier.color} frame={r.member.frame} size={46} /></OnlineAvatar>
                       <span className="p-name">{r.tier.key === "low" && <span className="p-chain" aria-hidden="true">⛓️</span>}{r.is_me ? "You" : r.member.name}{r.quest.active && <small><RankIcon rank="legendary" /> on the quest</small>}</span>
                       {r.is_me && found && <span className="you-bubble">That's you!</span>}
                       {r.can_gobi && <button className="take-btn gobi-btn" onClick={() => setGobiAt(r)}>🥦 Launch Gobi</button>}

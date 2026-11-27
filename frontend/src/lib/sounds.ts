@@ -47,7 +47,7 @@ function allInfo() {
 async function load(key: SoundKey): Promise<AudioBuffer | null> {
   const c = audio();
   if (!c) return null;
-  const url = await api.musicUrl(key);
+  const url = await api.musicUrl(key, (await allInfo())[key]?.updated ?? undefined);
   const bytes = await (await fetch(url)).arrayBuffer();
   URL.revokeObjectURL(url);
   return await new Promise<AudioBuffer>((ok, bad) => { c.decodeAudioData(bytes, ok, bad); });
@@ -76,10 +76,21 @@ export async function firstSet(keys: SoundKey[]): Promise<SoundKey | null> {
   return keys.find((k) => all[k]?.has) ?? null;
 }
 
-/** After an upload or a change: fetch fresh next time. */
-export function resetSounds(key?: SoundKey) {
+/** After a change of settings: fetch the settings fresh next time. With `dropFile`, the sound file too. */
+export function resetSounds(key?: SoundKey, dropFile = false) {
   infos = null;
+  if (!dropFile) return;
   if (key) buffers.delete(key); else buffers.clear();
+}
+
+/** Right after an upload: decode the file the parent just picked, so it plays at once (no download, no delay). */
+export function seedSound(key: SoundKey, file: Blob) {
+  infos = null;
+  const c = audio();
+  if (!c) { buffers.delete(key); return; }
+  buffers.set(key, file.arrayBuffer()
+    .then((bytes) => new Promise<AudioBuffer>((ok, bad) => { c.decodeAudioData(bytes, ok, bad); }))
+    .catch(() => { buffers.delete(key); return null; }));
 }
 
 const sleep = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
@@ -98,7 +109,7 @@ async function ready(c: AudioContext): Promise<boolean> {
 }
 
 /** Start a decoded sound: its chosen section, at its volume. Returns the nodes, or null if sound is blocked. */
-function start(m: { buffer: AudioBuffer; info: MusicInfo }, volume: number) {
+function start(m: { buffer: AudioBuffer; info: MusicInfo }, volume: number, late = 0) {
   const c = audio();
   if (!c || c.state !== "running") return null;
   const src = c.createBufferSource();
@@ -106,8 +117,10 @@ function start(m: { buffer: AudioBuffer; info: MusicInfo }, volume: number) {
   const gain = c.createGain();
   gain.gain.value = volume;
   src.connect(gain).connect(c.destination);
-  const from = Math.max(0, Math.min(m.info.start || 0, m.buffer.duration));
+  // Started late (the file was still loading)? Skip ahead so it stays in time with the animation.
+  const from = Math.max(0, Math.min((m.info.start || 0) + Math.max(0, late), m.buffer.duration));
   const len = m.info.end > m.info.start ? Math.min(m.info.end, m.buffer.duration) - from : undefined;
+  if (len !== undefined && len <= 0.05) return null;
   try { len !== undefined ? src.start(0, from, Math.max(0, len)) : src.start(0, from); } catch { return null; }
   return { src, gain, len: len ?? m.buffer.duration - from };
 }
@@ -118,13 +131,17 @@ export async function scheduleSound(key: SoundKey, baseMs: number, elapsed: () =
   if (!m) return;
   const wait = baseMs + (m.info.offset_ms ?? 0) - elapsed();
   if (wait > 0) await sleep(wait);
-  if (isMusic) await playMusic(key, false); else await playSound(key, false);
+  const late = Math.max(0, -wait) / 1000;
+  if (isMusic) await playMusic(key, false, late);
+  else if (late < 0.6) await playSound(key, false); // an effect that would come much too late is skipped
 }
 
 /** Play a sound once (no wait if it isn't set). With `delayed`, waits for the parent's offset first. */
-export async function playSound(key: SoundKey, delayed = true): Promise<boolean> {
+export async function playSound(key: SoundKey, delayed = true, always = false): Promise<boolean> {
+  const t0 = performance.now();
   const m = await preloadSound(key);
   if (!m) return false;
+  if (!always && performance.now() - t0 > 1200) return false; // still downloading when its moment came: don't play it seconds late
   if (delayed && m.info.offset_ms > 0) await sleep(m.info.offset_ms);
   const c = audio();
   if (!c || !(await ready(c))) return false;
@@ -132,17 +149,19 @@ export async function playSound(key: SoundKey, delayed = true): Promise<boolean>
 }
 
 /** Play music for a film: fades in, and out over the end of its section. Resolves false if not set. */
-export async function playMusic(key: SoundKey, delayed = true): Promise<boolean> {
+export async function playMusic(key: SoundKey, delayed = true, late = 0, fromStart = false): Promise<boolean> {
+  const t0 = performance.now();
   const m = await preloadSound(key);
   if (!m) return false;
+  if (!fromStart) late += Math.max(0, performance.now() - t0 - 150) / 1000; // the download took a while: join the music where it should be by now
   if (delayed && m.info.offset_ms > 0) await sleep(m.info.offset_ms);
   stopMusic(key, 0);
   const c = audio();
   if (!c || !(await ready(c))) return false;
-  const s = start(m, 0);
+  const s = start(m, 0, late);
   if (!c || !s) return false;
   const vol = m.info.volume / 100, now = c.currentTime;
-  const fadeIn = Math.min(2.5, s.len * 0.3);
+  const fadeIn = Math.min(0.5, s.len * 0.2); // short, so the music is heard straight away
   s.gain.gain.setValueAtTime(0, now);
   s.gain.gain.linearRampToValueAtTime(vol, now + fadeIn);
   if (m.info.end > m.info.start) {  // the chosen section: fade out over its last 1.5 seconds

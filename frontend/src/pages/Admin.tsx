@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import OnlineAvatar from "../lib/OnlineAvatar";
 import { Link } from "react-router-dom";
 import RankIcon from "../lib/RankIcon";
 import { api, ApiError, type AdminMember, type BoardRow, type Settings } from "../api";
@@ -131,7 +132,7 @@ function MemberCard({ m, row, gems, onDone, onChanged, onError }: { m: AdminMemb
   return (
     <article className="ad-member" style={{ ["--tc" as string]: color }}>
       <header className="ad-member-head">
-        <Avatar avatar={m.avatar} color={color} size={52} />
+        <OnlineAvatar id={m.id}><Avatar avatar={m.avatar} color={color} size={52} /></OnlineAvatar>
         <div className="ad-member-name">
           <b>{m.name}</b>
           <span className="ad-rank">{row ? <><RankIcon rank={row.tier.key} /> {row.tier.name}</> : "New"}</span>

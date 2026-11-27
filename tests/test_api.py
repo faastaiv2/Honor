@@ -394,8 +394,9 @@ def test_admin_edits_tasks(client, family):
     with a, b, patch("app.routers.admin.today_for", return_value=TODAY):
         tasks = client.get("/api/admin/tasks", headers=ha).json()
         assert len(tasks) == 17 and tasks[3]["shown_today"] == "251 × Darood Sharif"  # the Bronze number
-        assert tasks[3]["by_rank"][:3] == [{"rank": "bronze", "label": "251 × Darood Sharif"}, {"rank": "silver", "label": "276 × Darood Sharif"},
-                                           {"rank": "gold", "label": "301 × Darood Sharif"}]
+        assert [{"rank": r["rank"], "label": r["label"]} for r in tasks[3]["by_rank"][:3]] == [
+            {"rank": "bronze", "label": "251 × Darood Sharif"}, {"rank": "silver", "label": "276 × Darood Sharif"},
+            {"rank": "gold", "label": "301 × Darood Sharif"}]
         # Darood: 300 at Bronze, +20 for each rank above; no more daily growth
         r = client.patch("/api/admin/tasks/darood", headers=ha, json={"number_today": 300, "rank_step": 20, "step": 2}).json()
         assert r["shown_today"] == "300 × Darood Sharif" and r["shown_tomorrow"] == "300 × Darood Sharif" and r["step"] == 0
@@ -1456,3 +1457,46 @@ def test_quest_info_shows_prize_tasks_and_people(client, family):
     assert r["prize"] == 700 and r["goal"] == 50 and r["me"]["goal"] == 50
     assert any("88" in t["label"] for t in r["tasks"] if t["key"] == "push")
     assert client.get("/api/board/quest-info", headers=ha).json()["me"] is None
+
+
+def test_online_dot_only_after_a_ping(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    assert client.get("/api/board/online", headers=h).status_code == 403
+    assert not client.get("/api/board/online", headers=ha).json()[family["A"].id]["online"]
+    assert client.post("/api/board/ping", headers=h, json={"page": "/news"}).status_code == 204
+    me = client.get("/api/board/online", headers=ha).json()[family["A"].id]
+    assert me["online"] and me["page"] == "/news"
+
+
+def test_task_numbers_set_per_rank(client, family):
+    ha = auth(client, admin=True)
+    client.get("/api/admin/tasks", headers=ha)
+    t = client.patch("/api/admin/tasks/push", headers=ha, json={"rank_numbers": {"bronze": 3, "gold": 40}}).json()
+    by = {r["rank"]: r for r in t["by_rank"]}
+    assert by["bronze"]["number"] == 3 and by["gold"]["number"] == 40 and by["gold"]["set"] and not by["silver"]["set"]
+    assert client.patch("/api/admin/tasks/push", headers=ha, json={"rank_numbers": {"nope": 3}}).status_code == 400
+    ranks = client.get("/api/board/rank-tasks", headers=auth(client, family["A"])).json()
+    assert any(x["label"].startswith("40 ") for x in ranks["gold"] if x["key"] == "push")
+
+
+def test_friends_quest_sealed_bids_and_prizes(client, family):
+    ha = auth(client, admin=True)
+    ids = [family[k].id for k in "ABS"]
+    r = client.post("/api/friends", headers=ha, json={"title": "Darood together", "dhikr": "Darood Sharif", "prizes": [100, 50],
+                                                       "teams": [[ids[0], ids[1]], [ids[2]]]})
+    assert r.status_code == 201 and not r.json()["launched"]
+    qid = r.json()["id"]
+    ha_, hb, hs = auth(client, family["A"]), auth(client, family["B"]), auth(client, family["S"])
+    assert client.get("/api/friends", headers=hb).json()["items"] == []  # not launched: hidden from members
+    assert client.post(f"/api/friends/{qid}/bid", headers=ha_, json={"count": 1}).status_code == 400
+    assert client.post(f"/api/friends/{qid}/launch", headers=ha, json={}).json()["open"]
+    client.post(f"/api/friends/{qid}/bid", headers=ha_, json={"count": 300})
+    seen_by_s = client.post(f"/api/friends/{qid}/bid", headers=hs, json={"count": 500}).json()
+    assert all(t["count"] is None for t in seen_by_s["teams"])  # sealed
+    b = client.get("/api/friends", headers=hb).json()["items"][0]
+    assert b["mine"]["count"] == 300 and b["mine"]["entered_by"] == "Alpha"
+    before = client.get("/api/board/profile", headers=hb).json()["gems"]["balance"]
+    done = client.post(f"/api/friends/{qid}/close", headers=ha).json()
+    assert [t["place"] for t in done["teams"]] == [1, 2]
+    assert client.get("/api/board/profile", headers=hb).json()["gems"]["balance"] == before + 50
+    assert client.post(f"/api/friends/{qid}/bid", headers=hb, json={"count": 9}).status_code == 400

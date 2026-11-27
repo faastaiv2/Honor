@@ -4,15 +4,17 @@ import { notifyChanged, useToast } from "../lib/events";
 import Avatar from "../lib/Avatar";
 import Gem from "../lib/Gem";
 import Medal from "../lib/Medal";
+import { NewPoll, PollCard } from "./Polls";
+import type { Polls } from "../api";
 
 /**
  * Community: the family's feed. Posts from the parents, and posts the app writes when something happens
  * (a new picture, a 1st place, a deal with Shaytan). Filter by kind, ❤️ posts (double-tap works too).
  */
 type Look = { name: string; avatar: string; frame: string; parent?: boolean };
-type Filter = "all" | "post" | "picture" | "win" | "achievement" | "shaytan";
+type Filter = "all" | "poll" | "post" | "picture" | "win" | "achievement" | "shaytan";
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all", label: "All" }, { key: "post", label: "📣 News" }, { key: "picture", label: "🖼️ Pictures" },
+  { key: "all", label: "All" }, { key: "poll", label: "📊 Polls" }, { key: "post", label: "📣 News" }, { key: "picture", label: "🖼️ Pictures" },
   { key: "win", label: "🥇 Winners" }, { key: "achievement", label: "🏅 Achievements" }, { key: "shaytan", label: "😈 Shaytan" },
 ];
 const EMOJIS = ["📣", "🎉", "🏆", "📅", "🕌", "⚠️", "🎁", "❤️", "🌙", "⭐"];
@@ -66,6 +68,9 @@ export default function NewsPage({ admin }: { admin: boolean }) {
   const [form, setForm] = useState<NewsIn>(blank);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [polls, setPolls] = useState<Polls | null>(null);
+  const [pollOpen, setPollOpen] = useState(false);
+  useEffect(() => { api.polls().then(setPolls).catch(() => undefined); }, []);
   const [burst, setBurst] = useState<string | null>(null);
   const [toast, setToast] = useToast();
   const lastTap = useRef<{ id: string; t: number } | null>(null);
@@ -124,7 +129,8 @@ export default function NewsPage({ admin }: { admin: boolean }) {
 
   const shown = (items ?? []).filter((n) => filter === "all" || (n.kind || "post") === filter);
   const totalLikes = (items ?? []).reduce((s, n) => s + n.likes, 0);
-  const count = (f: Filter) => (items ?? []).filter((n) => f === "all" || (n.kind || "post") === f).length;
+  const count = (f: Filter) => f === "poll" ? (polls?.items.length ?? 0) : (items ?? []).filter((n) => f === "all" || (n.kind || "post") === f).length;
+  const shownPolls = (polls?.items ?? []).filter((p) => filter === "poll" || (filter === "all" && !p.closed));
 
   const author = (n: News & { member: News["member"] }) => {
     if ((n.kind === "picture" || n.kind === "win" || n.kind === "shaytan" || n.kind === "achievement" || n.kind === "kitten") && n.member) return { look: { name: n.member.name, avatar: n.member.avatar, frame: n.member.frame } as Look, name: n.member.name, tag: null };
@@ -143,12 +149,16 @@ export default function NewsPage({ admin }: { admin: boolean }) {
         </div>
       </div>
 
-      {admin && !open && (
-        <button className="cm-compose" onClick={() => { setForm(blank); setEditing(null); setOpen(true); }}>
-          <span className="cm-parent" style={{ width: 40, height: 40, fontSize: 22 }} aria-hidden="true">👑</span>
-          <span>What's new in the family?</span>
-        </button>
+      {admin && !open && !pollOpen && (
+        <div className="cm-compose-row">
+          <button className="cm-compose" onClick={() => { setForm(blank); setEditing(null); setOpen(true); }}>
+            <span className="cm-parent" style={{ width: 40, height: 40, fontSize: 22 }} aria-hidden="true">👑</span>
+            <span>What's new in the family?</span>
+          </button>
+          <button className="cm-compose cm-compose-poll" onClick={() => setPollOpen(true)}><span aria-hidden="true">📊</span> Poll</button>
+        </div>
       )}
+      {admin && pollOpen && <NewPoll onMade={(d) => { setPolls(d); setPollOpen(false); setToast("Poll posted 📊"); setFilter("all"); }} onCancel={() => setPollOpen(false)} />}
       {admin && open && (
         <form className="card news-form cm-form" onSubmit={(e) => { e.preventDefault(); save(); }}>
           <div className="news-emojis" role="radiogroup" aria-label="Icon">
@@ -178,7 +188,9 @@ export default function NewsPage({ admin }: { admin: boolean }) {
       </div>
       {error && <p className="err">{error}</p>}
 
-      {items === null ? <p className="note">Loading…</p> : shown.length === 0 ? (
+      {shownPolls.map((p) => <PollCard key={p.id} p={p} admin={admin} onChange={setPolls} />)}
+      {filter === "poll" ? (shownPolls.length === 0 && <div className="card news-empty"><span>🗳️</span><p>No polls yet.</p></div>)
+      : items === null ? <p className="note">Loading…</p> : shown.length === 0 ? (
         <div className="card news-empty"><span>📭</span><p>Nothing here yet.</p></div>
       ) : shown.map((n) => {
         const a = author(n);

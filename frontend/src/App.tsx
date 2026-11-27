@@ -1,6 +1,6 @@
 import FirstRun from "./pages/FirstRun";
 import HelpButton from "./lib/Help";
-import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api, type Profile, type TodayInfo } from "./api";
 import { newItems, SHOP_NEW_EVENT } from "./lib/shopNew";
@@ -10,6 +10,7 @@ import { useChangeCounter } from "./lib/events";
 import { warmSounds } from "./lib/sounds";
 import Leaderboard from "./pages/Leaderboard";
 import Guard from "./lib/Guard";
+import { lastSeen, OnlineContext, startPresence, useOnline } from "./lib/presence";
 import SignIn from "./pages/SignIn";
 import Welcome from "./pages/Welcome";
 import Today from "./pages/Today";
@@ -37,9 +38,11 @@ const Benefits = lazyPage(() => import("./pages/Benefits"));
 const Tasks = lazyPage(() => import("./pages/Tasks"));
 const NewsPage = lazyPage(() => import("./pages/News"));
 const TestsPage = lazyPage(() => import("./pages/Tests"));
-const PollsPage = lazyPage(() => import("./pages/Polls"));
 const LegendaryPage = lazyPage(() => import("./pages/Legendary"));
 
+
+const PAGE_NAMES: Record<string, string> = { "/": "Today", "/leaderboard": "Leaderboard", "/achievements": "Achievements", "/news": "Community",
+  "/events": "Events", "/profile": "Avatar shop", "/ranks": "Ranks", "/legendary": "Legendary" };
 
 export default function App() {
   const { viewer, loading, signOut } = useAuth();
@@ -65,10 +68,24 @@ export default function App() {
     window.addEventListener(SHOP_NEW_EVENT, count);
     return () => window.removeEventListener(SHOP_NEW_EVENT, count);
   }, [viewer, changes]);
-  const [pollsWaiting, setPollsWaiting] = useState(0); // member: open polls not answered yet
+  // The online dot: members ping while really using the app; the admin sees who is online.
+  const pathRef = useRef(pathname);
+  pathRef.current = pathname;
   useEffect(() => {
-    if (!viewer || viewer.is_admin) { setPollsWaiting(0); return; }
-    api.polls().then((r) => setPollsWaiting(r.waiting)).catch(() => undefined);
+    if (!viewer || viewer.is_admin) return;
+    return startPresence(() => pathRef.current);
+  }, [viewer]);
+  const online = useOnline(!!viewer?.is_admin);
+  const [showOnline, setShowOnline] = useState(false);
+  const [names, setNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!viewer?.is_admin) return;
+    api.signInList().then((ms) => setNames(Object.fromEntries(ms.map((m) => [m.id, m.name])))).catch(() => undefined);
+  }, [viewer]);
+  const [friendsNew, setFriendsNew] = useState(0); // member: a Friends quest to enter, or results to see
+  useEffect(() => {
+    if (!viewer || viewer.is_admin) { setFriendsNew(0); return; }
+    api.friends().then((r) => setFriendsNew(r.items.filter((q) => q.mine && ((q.open && q.mine.count === null) || (q.closed && !q.mine.seen))).length)).catch(() => undefined);
   }, [viewer, changes, pathname]);
   useEffect(() => {
     if (!viewer || viewer.is_admin) { setUnread(0); return; }
@@ -117,11 +134,10 @@ export default function App() {
             {!viewer.is_admin && <NavLink to="/leaderboard">Leaderboard</NavLink>}
             {!viewer.is_admin && <NavLink to="/achievements">Achievements{achReady > 0 && <i className="red-dot" aria-label={`${achReady} ready to collect`} />}</NavLink>}
             <NavLink to="/news">Community{unread > 0 && <span className="nbadge" aria-label={`${unread} new`}>{unread}</span>}</NavLink>
-            <NavLink to="/events">Events</NavLink>
-            <NavLink to="/polls">Polls{pollsWaiting > 0 && <i className="red-dot" aria-label={`${pollsWaiting} to answer`} />}</NavLink>
+            <NavLink to="/events">Events{friendsNew > 0 && <i className="red-dot" aria-label="Friends quest: something new" />}</NavLink>
             <NavLink to="/legendary">👑 Legendary</NavLink>
             {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Avatar{shopNew > 0 && <i className="red-dot" aria-label="Something new" />}</NavLink>}
-            <NavLink to="/benefits">Benefits</NavLink>
+            <NavLink to="/ranks">Ranks</NavLink>
             {viewer.is_admin && <NavLink to="/tasks">Tasks</NavLink>}
             {viewer.is_admin && <NavLink to="/animations">Animations</NavLink>}
             {viewer.is_admin && <NavLink to="/tests">Tests</NavLink>}
@@ -134,6 +150,26 @@ export default function App() {
                   setInfo({ ...info, viewer: { ...info.viewer, theme: next } });
                   await api.setAdminTheme(next).catch(() => undefined);
                 }}>{info.viewer.theme === "dark" ? "☀️" : "🌙"}</button>}
+              {viewer.is_admin && (
+                <span className="onl-wrap">
+                  <button className="onl-btn" aria-expanded={showOnline} onClick={() => setShowOnline((x) => !x)} title="Who is using the app right now">
+                    <i className={`onl-dot${Object.values(online).some((o) => o.online) ? " on" : ""}`} aria-hidden="true" />
+                    {Object.values(online).filter((o) => o.online).length}<span className="sr-only"> online</span>
+                  </button>
+                  {showOnline && (
+                    <div className="onl-pop" role="dialog" aria-label="Who is online">
+                      <b>Online now</b>
+                      <ul>
+                        {Object.entries(online).sort((a, b) => Number(b[1].online) - Number(a[1].online) || (b[1].at ?? "").localeCompare(a[1].at ?? "")).map(([id, o]) => (
+                          <li key={id}><i className={`onl-dot${o.online ? " on" : ""}`} aria-hidden="true" /><span>{names[id] ?? "…"}</span>
+                            <small>{o.online ? `on ${PAGE_NAMES[o.page] ?? "the app"}` : `last seen ${lastSeen(o.at)}`}</small></li>
+                        ))}
+                      </ul>
+                      <p className="note">Green only while they are really using it: the app in view and touched in the last minute.</p>
+                    </div>
+                  )}
+                </span>
+              )}
               {viewer.is_admin
                 ? <NavLink to="/inbox" className="inbox-btn" aria-label={`Inbox${inbox ? `, ${inbox} new` : ""}`} title="Inbox: Help messages">📬{inbox > 0 && <i className="nbadge">{inbox}</i>}</NavLink>
                 : <HelpButton />}
@@ -146,6 +182,7 @@ export default function App() {
         <div className="wrap">
           <Guard name="This page">
           <Suspense fallback={<p className="note page-loading">Loading…</p>}>
+          <OnlineContext.Provider value={online}>
           <Routes>
             <Route path="/" element={viewer.is_admin
               ? <div className="main"><AdminHome info={info} /><Leaderboard info={info} /></div>
@@ -154,19 +191,22 @@ export default function App() {
             <Route path="/history" element={viewer.is_admin ? <HistoryPage /> : <Navigate to="/profile" />} />
             <Route path="/profile" element={viewer.is_admin ? <Navigate to="/admin" /> : <ProfilePage info={info} />} />
             <Route path="/animations" element={viewer.is_admin ? <Animations info={info} /> : <Navigate to="/" />} />
-            <Route path="/benefits" element={<Benefits info={info} />} />
+            <Route path="/ranks" element={<Benefits info={info} />} />
+            <Route path="/benefits" element={<Navigate to="/ranks" />} />
             <Route path="/events" element={<Events />} />
-            <Route path="/polls" element={<PollsPage admin={viewer.is_admin} />} />
+            <Route path="/friends" element={<Navigate to="/events?tab=friends" />} />
+            <Route path="/polls" element={<Navigate to="/news" />} />
             <Route path="/legendary" element={<LegendaryPage />} />
             <Route path="/news" element={<NewsPage admin={viewer.is_admin} />} />
             <Route path="/achievements" element={viewer.is_admin ? <Navigate to="/" /> : <Achievements />} />
-            <Route path="/rules" element={<Navigate to="/benefits" />} />
+            <Route path="/rules" element={<Navigate to="/ranks" />} />
             <Route path="/admin" element={viewer.is_admin ? <Admin info={info} /> : <Navigate to="/" />} />
             <Route path="/inbox" element={viewer.is_admin ? <Inbox /> : <Navigate to="/" />} />
             <Route path="/tests" element={viewer.is_admin ? <TestsPage /> : <Navigate to="/" />} />
             <Route path="/tasks" element={viewer.is_admin ? <Tasks /> : <Navigate to="/" />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
+          </OnlineContext.Provider>
           </Suspense>
           </Guard>
         </div>

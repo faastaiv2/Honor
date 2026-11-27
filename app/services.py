@@ -93,7 +93,8 @@ def load_tasks(db: Session) -> list[scoring.TaskSpec]:
         return list(scoring.DEFAULT_SPECS)
     return [scoring.TaskSpec(r.key, r.label, r.group, r.fitness, r.number, r.step, r.every, r.start_day, r.next_day,
                              r.not_before, tuple(r.links) if r.links and len(r.links) == 7 else (),
-                             r.rank_step or 0, r.min_rank or "", quest_number=r.quest_number) for r in rows]
+                             r.rank_step or 0, r.min_rank or "", rank_numbers=tuple(sorted((r.rank_numbers or {}).items())),
+                             quest_number=r.quest_number) for r in rows]
 
 
 @_request_cache

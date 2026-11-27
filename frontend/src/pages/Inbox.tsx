@@ -4,9 +4,9 @@ import { notifyChanged } from "../lib/events";
 
 /** Pages a resolved message can take the member to ("See what's added" → there). */
 const GO: [string, string][] = [["", "Nowhere, just the note"], ["/", "📋 Today"], ["/profile", "🛍️ Avatar shop"], ["/achievements", "🏅 Achievements"],
-  ["/news", "🏘️ Community"], ["/events", "🎨 Events"], ["/leaderboard", "🏆 Leaderboard"], ["/benefits", "🎁 Benefits"]];
+  ["/news", "🏘️ Community"], ["/events", "🎨 Events"], ["/leaderboard", "🏆 Leaderboard"], ["/ranks", "🎖️ Ranks"], ["/legendary", "👑 Legendary"], ["/events?tab=friends", "🤝 Friends quest"]];
 const PAGES: Record<string, string> = { "/": "Today", "/leaderboard": "Leaderboard", "/achievements": "Achievements", "/news": "Community",
-  "/events": "Events", "/profile": "Avatar", "/benefits": "Benefits" };
+  "/events": "Events", "/profile": "Avatar", "/benefits": "Ranks", "/ranks": "Ranks", "/legendary": "Legendary", "/events?tab=friends": "Friends quest" };
 
 /** The admin's Inbox: feature requests and bug reports from the Help button. */
 export default function Inbox() {

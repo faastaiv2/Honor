@@ -120,6 +120,7 @@ class TaskSpec:
     rank_step: int = 0  # added to the number for every rank above Bronze
     min_rank: str = ""  # "" = every rank; else the task appears from this rank on
     at_rank: int = 1  # the member's rank (index in RANK_ORDER) this task is shown for; set by day_plan
+    rank_numbers: tuple = ()  # (rank, number) pairs: the number set by hand for each rank (else Bronze number + rank_step)
     quest_number: int | None = None  # the number while on the Legendary quest (None: the Legendary rank's number)
     on_quest: bool = False  # set by day_plan on Legendary quest days
 
@@ -131,6 +132,10 @@ class TaskSpec:
             return None
         if self.on_quest and self.quest_number is not None:
             return max(0, self.quest_number)
+        if self.rank_numbers and 0 < self.at_rank < len(RANK_ORDER):
+            by = dict(self.rank_numbers)
+            if RANK_ORDER[self.at_rank] in by:
+                return max(0, int(by[RANK_ORDER[self.at_rank]]))
         daily = self.step * ((d - self.start_day).days // max(1, self.every)) if self.step else 0
         return max(0, self.number + daily + self.rank_step * max(0, self.at_rank - 1))
 

@@ -57,7 +57,7 @@ export interface History {
 export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean; avatar: string; early_ticks: number; godfather: boolean; avatar_nudge?: boolean }
 export interface Adjustment { id: string; member_id: string; delta: number; note: string; created_at: string; created_by: string }
 export interface TaskDef { key: string; label: string; group: string; fitness: boolean; next_day: boolean; not_before: string | null; links?: string[]; number_today: number | null; step: number; every: number; shown_today: string; shown_tomorrow: string;
-  rank_step: number; min_rank: string; quest_number: number | null; on_quest: string; by_rank: { rank: string; label: string }[] }
+  rank_step: number; min_rank: string; quest_number: number | null; on_quest: string; by_rank: { rank: string; label: string; number: number | null; set: boolean }[] }
 export interface Achievement { key: string; name: string; text: string; group: string; icon: string; tier: string; gems: number; goal: number; progress: number; unlocked: boolean; claimed: boolean; picture?: { key: string; name: string }; theme?: { key: string; name: string } }
 export interface Achievements { member: { id: string; name: string }; items: Achievement[]; unlocked: number; total: number }
 export interface EventEntry { id: string; member: { id: string; name: string; avatar: string }; title: string; place: number | null; gems: number; day: string }
@@ -90,6 +90,12 @@ export type ShaytanShow = { id: string; show: "offer"; offer: number; ladder: nu
 export interface Settings { score_from: string; cut_misses: number; timezone: string; legendary_gems: number; quest_day_gems: number }
 export interface PollItem { id: string; question: string; options: string[]; multi: boolean; anonymous: boolean; show_results: boolean;
   closed: boolean; created_at: string; mine: number[] | null; voters: number; counts: number[] | null; who?: string[][] }
+export interface FriendPerson { id: string; name: string; avatar: string }
+export interface FriendQuest { id: string; title: string; dhikr: string; prizes: number[]; closed: boolean; open: boolean; closes_at: string | null;
+  launched: boolean; opens_at: string | null;
+  created_at: string; entered: number; teams_total: number;
+  teams: { id: string; members: FriendPerson[]; count: number | null; entered: boolean; place: number | null; gems: number; mine: boolean }[];
+  mine?: { id: string; count: number | null; members: FriendPerson[]; place: number | null; gems: number; entered_by: string; seen: boolean } }
 export interface Polls { items: PollItem[]; waiting: number }
 export interface QuestInfo { prize: number; day_gems: number; goal: number;
   tasks: { key: string; label: string; group: string; quest_only: boolean }[];
@@ -170,9 +176,9 @@ export const api = {
   uploadMusic: (f: File, key: SoundKey = "quest-music") => request<MusicInfo>(`/media/${key}`, { method: "PUT", body: f, headers: { "Content-Type": f.type || "audio/mpeg" } }),
   musicSettings: (start: number, volume: number, key: SoundKey = "quest-music", end = 0, offset_ms = 0) => request<MusicInfo>(`/media/${key}`, send("PATCH", { start, end, volume, offset_ms })),
   removeMusic: (key: SoundKey = "quest-music") => request<MusicInfo>(`/media/${key}`, send("DELETE")),
-  musicUrl: async (key: SoundKey = "quest-music"): Promise<string> => {
+  musicUrl: async (key: SoundKey = "quest-music", version?: string): Promise<string> => {
     const t = token.get();
-    const res = await fetch(`${BASE}/api/media/${key}`, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+    const res = await fetch(`${BASE}/api/media/${key}${version ? `?v=${encodeURIComponent(version)}` : ""}`, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
     if (!res.ok) throw new ApiError(res.status, "No music");
     return URL.createObjectURL(await res.blob());
   },
@@ -267,6 +273,16 @@ export const api = {
   celebrated: () => request<Profile>("/board/profile/celebrated", send("POST", {})),
   saveProfile: (body: { avatar?: string; frame?: string; theme?: string }) => request<Profile>("/board/profile", send("PUT", body)),
   buy: (kind: "frame" | "theme" | "avatar", key: string) => request<Profile>("/board/shop/buy", send("POST", { kind, key })),
+  ping: (page: string) => request<void>("/board/ping", send("POST", { page: page.slice(0, 40) })),
+  online: () => request<Record<string, { online: boolean; at: string | null; page: string }>>("/board/online"),
+  rankTasks: () => request<Record<string, { key: string; label: string; group: string; new: boolean }[]>>("/board/rank-tasks"),
+  friends: () => request<{ items: FriendQuest[] }>("/friends"),
+  addFriends: (body: { title: string; dhikr: string; prizes: number[]; closes_at: string | null; opens_at: string | null; launch_now: boolean; teams: string[][] | null }) => request<FriendQuest>("/friends", send("POST", body)),
+  launchFriends: (id: string, at: string | null) => request<FriendQuest>(`/friends/${id}/launch`, send("POST", { at })),
+  friendBid: (id: string, count: number) => request<FriendQuest>(`/friends/${id}/bid`, send("POST", { count })),
+  closeFriends: (id: string) => request<FriendQuest>(`/friends/${id}/close`, send("POST", {})),
+  friendsSeen: (id: string) => request<void>(`/friends/${id}/seen`, send("POST", {})),
+  deleteFriends: (id: string) => request<{ items: FriendQuest[] }>(`/friends/${id}`, { method: "DELETE" }),
   questInfo: () => request<QuestInfo>("/board/quest-info"),
   polls: () => request<Polls>("/polls"),
   addPoll: (body: { question: string; options: string[]; multi: boolean; anonymous: boolean; show_results: boolean }) => request<Polls>("/polls", send("POST", body)),
@@ -297,8 +313,8 @@ export const api = {
   addPeriod: (body: PeriodIn) => request<Period>("/admin/periods", send("POST", body)),
   editPeriod: (id: string, body: PeriodIn) => request<Period>(`/admin/periods/${encodeURIComponent(id)}`, send("PUT", body)),
   deletePeriod: (id: string) => request<void>(`/admin/periods/${encodeURIComponent(id)}`, send("DELETE")),
-  addTask: (body: { label: string; group: string; fitness: boolean; next_day: boolean; not_before?: string | null; links?: string[]; number_today: number | null; step?: number; every?: number; rank_step?: number; min_rank?: string }) => request<TaskDef>("/admin/tasks", send("POST", body)),
-  editTask: (key: string, body: Partial<{ label: string; group: string; fitness: boolean; next_day: boolean; not_before: string; links: string[]; number_today: number; clear_number: boolean; step: number; every: number; rank_step: number; min_rank: string; quest_number: number; move: number }>) => request<TaskDef>(`/admin/tasks/${encodeURIComponent(key)}`, send("PATCH", body)),
+  addTask: (body: { label: string; group: string; fitness: boolean; next_day: boolean; not_before?: string | null; links?: string[]; number_today: number | null; step?: number; every?: number; rank_step?: number; min_rank?: string; rank_numbers?: Record<string, number> }) => request<TaskDef>("/admin/tasks", send("POST", body)),
+  editTask: (key: string, body: Partial<{ label: string; group: string; fitness: boolean; next_day: boolean; not_before: string; links: string[]; number_today: number; clear_number: boolean; step: number; every: number; rank_step: number; min_rank: string; quest_number: number; rank_numbers: Record<string, number>; move: number }>) => request<TaskDef>(`/admin/tasks/${encodeURIComponent(key)}`, send("PATCH", body)),
   deleteTask: (key: string) => request<void>(`/admin/tasks/${encodeURIComponent(key)}`, { method: "DELETE" }),
   settings: () => request<Settings>("/admin/settings"),
   saveSettings: (body: Partial<Settings>) => request<Settings>("/admin/settings", send("PUT", body)),

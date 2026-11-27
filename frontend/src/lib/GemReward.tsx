@@ -106,12 +106,13 @@ export interface GemRewardProps {
   title?: string;
   from?: number; // balance before, for the wallet count-up
   chest?: boolean;
+  gold?: boolean; // a golden background all the way through (the Legendary rank-up)
   jewel?: string; // colour of the gem on the chest's lock (the rank's colour)
   sound?: SoundKey; // a sound for this moment (an achievement, a tournament win), played as it appears
   onDone: () => void;
 }
 
-export default function GemReward({ amount, title, from, chest = false, jewel, sound, onDone }: GemRewardProps) {
+export default function GemReward({ amount, title, from, chest = false, gold = false, jewel, sound, onDone }: GemRewardProps) {
   const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   // One falling gem for every gem won (a big prize shows its first 80; "+N" still counts the whole amount).
   const n = Math.max(1, Math.min(80, Math.round(amount)));
@@ -220,7 +221,7 @@ export default function GemReward({ amount, title, from, chest = false, jewel, s
 
   const showGems = phase === "heap" || phase === "fly" || phase === "done";
   return createPortal(
-    <div className={`gr gr-is-${phase}`} role="dialog" aria-modal="true" aria-label={`${amount} gems`}>
+    <div className={`gr gr-is-${phase}${gold ? " gr-gold" : ""}`} role="dialog" aria-modal="true" aria-label={`${amount} gems`}>
       <div className="gr-stage" aria-hidden="true"><i className="gr-rays" /></div>
       <canvas ref={canvas} className="gr-canvas" />
       <span className={`gr-wallet${phase === "fly" ? " filling" : ""}`} ref={walletRef}>

@@ -10,7 +10,7 @@ from zoneinfo import available_timezones
 from app.db import get_db
 from app.deps import Viewer, require_admin
 from app.models import Adjustment, DayLog, GemGrant, Member, Period, TaskDef
-from app.scoring import DEFAULT_SPECS, TaskSpec
+from app.scoring import DEFAULT_SPECS, RANK_ORDER, TaskSpec
 from app.security import hash_secret
 from app.services import gem_balance, get_settings_row, today_for
 from app.tiers import tier_for
@@ -320,6 +320,7 @@ class TaskIn(BaseModel):
     next_day: bool = False
     not_before: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     links: list[str] | None = Field(default=None, max_length=7)  # Monday … Sunday video links ("" = none)
+    rank_numbers: dict[str, int] | None = None  # the number at each rank, set one by one
 
     @field_validator("links")
     @classmethod
@@ -343,6 +344,7 @@ class TaskPatch(BaseModel):
     rank_step: int | None = Field(default=None, ge=-1000, le=10_000)
     min_rank: str | None = Field(default=None, pattern=RANK_PATTERN)
     quest_number: int | None = Field(default=None, ge=-1, le=100_000)  # -1 clears it (back to the Legendary rank's number)
+    rank_numbers: dict[str, int] | None = None  # the number at each rank, set one by one
     move: int | None = Field(default=None, ge=-1, le=1)  # -1 up, +1 down
     next_day: bool | None = None
     not_before: str | None = Field(default=None, pattern=r"^(([01]\d|2[0-3]):[0-5]\d)?$")  # "" clears it
@@ -361,7 +363,8 @@ class TaskPatch(BaseModel):
 
 def _spec(t: TaskDef) -> TaskSpec:
     return TaskSpec(t.key, t.label, t.group, t.fitness, t.number, t.step, t.every, t.start_day, rank_step=t.rank_step or 0,
-                    min_rank=t.min_rank or "", quest_number=t.quest_number)
+                    min_rank=t.min_rank or "", quest_number=t.quest_number,
+                    rank_numbers=tuple(sorted((t.rank_numbers or {}).items())))
 
 
 def _task_out(t: TaskDef, today: date) -> dict:
@@ -369,7 +372,8 @@ def _task_out(t: TaskDef, today: date) -> dict:
     from app.scoring import RANK_ORDER
     spec = _spec(t)
     start = RANK_ORDER.index(t.min_rank) if t.min_rank in RANK_ORDER else 1
-    by_rank = [{"rank": r, "label": _with(spec, at_rank=i).label_on(today)} for i, r in enumerate(RANK_ORDER) if i >= max(1, start)]
+    by_rank = [{"rank": r, "label": _with(spec, at_rank=i).label_on(today), "number": _with(spec, at_rank=i).number_on(today),
+                "set": r in (t.rank_numbers or {})} for i, r in enumerate(RANK_ORDER) if i >= max(1, start)]
     return {"key": t.key, "label": t.label, "group": t.group, "fitness": t.fitness, "next_day": bool(t.next_day),
             "not_before": t.not_before or None, "links": list(t.links) if t.links and len(t.links) == 7 else [""] * 7,
             "number_today": spec.number_on(today),
@@ -418,6 +422,7 @@ def add_task(body: TaskIn, _: Viewer = Depends(require_admin), db: Session = Dep
                 fitness=body.fitness, number=body.number_today, step=0, every=1, start_day=today,
                 rank_step=body.rank_step if body.number_today is not None else 0, min_rank=body.min_rank,
                 next_day=body.next_day, not_before=body.not_before, links=body.links or [],
+                rank_numbers={k: max(0, int(v)) for k, v in (body.rank_numbers or {}).items() if k in RANK_ORDER[1:]} or None,
                 sort_order=max((r.sort_order for r in rows), default=0) + 1)
     db.add(t)
     db.commit()
@@ -467,6 +472,11 @@ def edit_task(key: str, body: TaskPatch, _: Viewer = Depends(require_admin), db:
         t.min_rank = body.min_rank
     if body.quest_number is not None:
         t.quest_number = None if body.quest_number < 0 else body.quest_number
+    if body.rank_numbers is not None:
+        bad = [k for k in body.rank_numbers if k not in RANK_ORDER[1:]]
+        if bad or any(not 0 <= v <= 100_000 for v in body.rank_numbers.values()):
+            raise HTTPException(400, "Give a number from 0 for each rank")
+        t.rank_numbers = dict(body.rank_numbers)
     db.commit()
     return _task_out(t, today)
 

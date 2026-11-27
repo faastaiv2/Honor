@@ -4,7 +4,9 @@ import { useAuth } from "../auth";
 import Avatar from "../lib/Avatar";
 import Gem from "../lib/Gem";
 import { fmt } from "../lib/dates";
-import { notifyChanged, useToast } from "../lib/events";
+import { notifyChanged, useChangeCounter, useToast } from "../lib/events";
+import { useSearchParams } from "react-router-dom";
+import Friends from "./Friends";
 
 /**
  * Events: art tournaments. The admin posts one any time in the week and chooses when submissions open and close
@@ -298,7 +300,7 @@ function EventsAdmin({ data, editing, setEditing, onDone, onError }: {
   );
 }
 
-export default function Events() {
+function ArtEvents() {
   const { viewer } = useAuth();
   const isAdmin = !!viewer?.is_admin;
   const [data, setData] = useState<EventsInfo | null>(null);
@@ -475,5 +477,27 @@ export default function Events() {
       ))}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
+  );
+}
+
+
+/** Events: art tournaments, and the 🤝 Friends quest (the admin launches it when they choose). */
+export default function Events() {
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === "friends" ? "friends" : "art";
+  const [friendsNew, setFriendsNew] = useState(0);
+  const changes = useChangeCounter();
+  useEffect(() => {
+    api.friends().then((r) => setFriendsNew(r.items.filter((q) => q.mine && ((q.open && q.mine.count === null) || (q.closed && !q.mine.seen))).length)).catch(() => undefined);
+  }, [changes]);
+  return (
+    <>
+      <div className="ev-switch" role="tablist" aria-label="Events">
+        <button role="tab" aria-selected={tab === "art"} className={tab === "art" ? "on" : ""} onClick={() => setParams({})}>🎨 Art tournaments</button>
+        <button role="tab" aria-selected={tab === "friends"} className={tab === "friends" ? "on" : ""} onClick={() => setParams({ tab: "friends" })}>
+          🤝 Friends quest{friendsNew > 0 && <i className="red-dot" aria-label="Something new" />}</button>
+      </div>
+      {tab === "friends" ? <Friends /> : <ArtEvents />}
+    </>
   );
 }

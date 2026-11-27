@@ -15,7 +15,7 @@ import type { SoundKey } from "../api";
 /** Rank order: the higher the rank, the bigger the show. */
 const ORDER = ["bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond", "obsidian", "legendary"];
 /** Every rank is a 10-second film in four acts; Legendary is a 15-second epic in five. */
-const FILM = 10000, EPIC = 15000;
+const FILM = 10000, EPIC = 19000;
 const ACTS = [0, 2500, 5000, 7500]; // 1 scene · 2 the emblem forms · 3 the reveal · 4 the celebration
 
 type Engine = Particles;
@@ -129,6 +129,27 @@ function Emblem({ tier }: { tier: Tier }) {
   );
 }
 
+/** Two great golden wings that unfurl behind the Legendary crest (act 3) and beat (act 5). */
+function GoldWings() {
+  const wing = (side: 1 | -1) => (
+    <g className={`ru-wing ${side === 1 ? "r" : "l"}`}>
+      {[0, 1, 2, 3].map((row) => Array.from({ length: 8 }, (_, k) => {
+        const len = 150 - row * 30 - k * 5, ang = -70 + k * 12 + row * 5;
+        const rot = side === 1 ? ang : 180 - ang;
+        return <path key={`${row}${k}`} transform={`translate(${side * (18 + row * 6)} ${10 - row * 8}) rotate(${rot})`}
+          d={`M0 0 C${len * .3} -14 ${len * .8} -10 ${len} 0 C${len * .8} 10 ${len * .3} 14 0 0 Z`}
+          fill="url(#ru-fea)" stroke="#8a5a00" strokeWidth="1.2" opacity={1 - row * 0.1} />;
+      }))}
+    </g>
+  );
+  return (
+    <svg className="ru-wings" viewBox="-200 -150 400 260" aria-hidden="true">
+      <defs><linearGradient id="ru-fea" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stopColor="#a86c00" /><stop offset=".5" stopColor="#ffd84a" /><stop offset="1" stopColor="#fffbe6" /></linearGradient></defs>
+      {wing(1)}{wing(-1)}
+    </svg>
+  );
+}
+
 /** Gold eight-pointed stars that draw themselves (Legendary, act 2). */
 function DrawnPattern() {
   const stars = [];
@@ -190,16 +211,21 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
       SCRIPTS[tier.key]?.(e, colors, at, doShake);
       at(FILM, () => setReady(true));
     } else {
-      // Legendary: a 15-second show in five acts.
+      // Legendary: a 19-second show in five acts. The heartbeat in the dark · golden stars draw themselves and
+      // pillars of light fall · the crown descends and golden wings unfurl · a flash: the world turns gold ·
+      // the celebration (fireworks, the wings beat, a halo). From act 4 on the background stays gold.
       setAct(1);
       e.burst("star", 260, ["#ffffff", "#ffe9a8"]);
-      at(3000, () => setAct(2));
-      at(6000, () => { setAct(3); e.emit("gold", 140, 3000, colors); });
-      at(8600, () => e.burst("shard", 80, colors));
-      at(9000, () => { setAct(4); doShake(2); e.burst("sparkle", 260, colors); });
-      for (let i = 0; i < 9; i++) at(9400 + i * 180, () => e.burst("sparkle", 20, colors));
-      at(12000, () => { setAct(5); e.emit("confetti", 120, 3000, colors); });
-      for (let i = 0; i < 9; i++) at(12000 + i * 330, () => e.firework(colors));
+      at(1800, () => e.burst("star", 120, ["#ffe9a8", "#ffd24a"]));
+      at(3500, () => setAct(2));
+      at(5200, () => e.emit("gold", 60, 1800, colors));
+      at(7000, () => { setAct(3); e.emit("gold", 160, 3400, colors); });
+      at(8600, () => doShake(1));
+      at(9900, () => e.burst("shard", 90, colors));
+      at(10500, () => { setAct(4); doShake(2); e.burst("sparkle", 300, colors); });
+      for (let i = 0; i < 12; i++) at(10900 + i * 170, () => e.burst("sparkle", 22, colors));
+      at(13500, () => { setAct(5); e.emit("confetti", 140, 3500, colors); });
+      for (let i = 0; i < 14; i++) at(13500 + i * 360, () => e.firework(colors));
       at(EPIC, () => setReady(true));
     }
     return () => { ts.forEach(clearTimeout); ts.length = 0; };
@@ -239,6 +265,8 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
       {lvl >= 6 && <div className="ru-beam" />}
       {legendary && <DrawnPattern />}
       {legendary && <div className="ru-arch" />}
+      {legendary && <div className="ru-goldsky" aria-hidden="true" />}
+      {legendary && <div className="ru-pillars" aria-hidden="true">{Array.from({ length: 5 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
       <div className="ru-rings">{Array.from({ length: Math.min(4, 2 + Math.floor(lvl / 4)) }, (_, i) => <i key={i} style={{ animationDelay: `${0.5 + i * 0.35}s` }} />)}</div>
       <div className="ru-flash" />
       <canvas ref={canvas} className="ru-canvas" />
@@ -246,11 +274,17 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
 
       {stage === "show" && (
         <div className="ru-stage">
-          {legendary && <div className="ru-crown" aria-hidden="true"><RankIcon rank="legendary" className="ru-crest" /></div>}
+          {legendary && (
+            <div className="ru-crown-wrap" aria-hidden="true">
+              <GoldWings />
+              <span className="ru-halo" />
+              <div className="ru-crown"><RankIcon rank="legendary" className="ru-crest" /></div>
+            </div>
+          )}
           {!legendary && <Emblem tier={tier} />}
           <p className="ru-kicker">{legendary ? "The highest honor" : "Rank up!"}</p>
           <h1 className="ru-name" aria-label={legendary ? "Legendary" : tier.name}>
-            {letters.map((ch, i) => <span key={i} style={{ animationDelay: `${(legendary ? 9.2 : 5.15) + i * (legendary ? 0.16 : 0.08)}s` }}>{ch}</span>)}
+            {letters.map((ch, i) => <span key={i} style={{ animationDelay: `${(legendary ? 10.8 : 5.15) + i * (legendary ? 0.16 : 0.08)}s` }}>{ch}</span>)}
           </h1>
           <p className="ru-who">{name} · {tier.range}</p>
           <button className={`ru-honor${ready ? " show" : ""}`} disabled={!ready} onClick={() => setStage("benefits")}>For Honor ⚔️</button>
@@ -306,7 +340,7 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
       )}
 
       {stage === "gems" && (
-        <GemReward amount={reward} chest jewel={tier.color} title={`Reaching ${tier.name}`}
+        <GemReward amount={reward} chest gold={legendary} jewel={tier.color} title={`Reaching ${tier.name}`}
           from={profile ? Math.max(0, profile.gems.balance - reward) : undefined} onDone={onClose} />
       )}
     </div>

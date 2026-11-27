@@ -15,7 +15,7 @@ from sqlalchemy import select
 from app.config import DEFAULT_SECRET, get_settings
 from app.db import SessionLocal
 from app.models import Admin
-from app.routers import admin, auth, board, feedback, health, events, media, news, polls, tests
+from app.routers import admin, auth, board, feedback, health, events, media, news, polls, friends, tests
 from app.security import hash_secret
 
 settings = get_settings()
@@ -148,7 +148,7 @@ async def refuse_when_not_ready(request, call_next):
     return await call_next(request)
 
 
-for r in (health.router, auth.router, board.router, admin.router, events.router, media.router, news.router, tests.router, feedback.router, polls.router):
+for r in (health.router, auth.router, board.router, admin.router, events.router, media.router, news.router, tests.router, feedback.router, polls.router, friends.router):
     app.include_router(r, prefix="/api")
 
 

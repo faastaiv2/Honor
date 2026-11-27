@@ -53,6 +53,8 @@ class Member(Base):
     avatar_nudge: Mapped[bool] = mapped_column(Boolean, default=False)  # the admin sent "Don't forget to set your avatar"
     likes_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # last saw who liked their posts
     raid_depth: Mapped[int] = mapped_column(Integer, default=0)  # the deepest level raided on this fall (0 = not on the Pillar)
+    active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # last really using the app
+    active_page: Mapped[str] = mapped_column(String(40), default="")  # the page they were on then
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
@@ -208,6 +210,7 @@ class TaskDef(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     rank_step: Mapped[int] = mapped_column(Integer, default=0)  # added to the number for every rank above Bronze
     min_rank: Mapped[str] = mapped_column(String(12), default="")  # "" = every rank; else appears from this rank on
+    rank_numbers: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # the number at each rank, set one by one ({} = from the Bronze number)
     quest_number: Mapped[int | None] = mapped_column(Integer, nullable=True)  # the number on the Legendary quest (None: by rank)
 
 
@@ -407,3 +410,30 @@ class PollVote(Base):
     member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"))
     choices: Mapped[list] = mapped_column(JSON, default=list)  # indexes into the poll's options
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class FriendQuest(Base):
+    """🤝 Friends quest: members in pairs read dhikr together and enter their count as a sealed (blind) bid.
+    When the admin closes it, the biggest counts take 1st, 2nd and 3rd prize (each friend in the pair gets it)."""
+    __tablename__ = "friend_quests"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    title: Mapped[str] = mapped_column(String(120))
+    dhikr: Mapped[str] = mapped_column(String(160), default="")  # what to read together
+    prizes: Mapped[list] = mapped_column(JSON, default=list)  # gems for 1st, 2nd, 3rd, … (each friend)
+    opens_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # launch time (None = not launched yet)
+    closes_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class FriendTeam(Base):
+    __tablename__ = "friend_teams"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    quest_id: Mapped[str] = mapped_column(ForeignKey("friend_quests.id", ondelete="CASCADE"), index=True)
+    members: Mapped[list] = mapped_column(JSON, default=list)  # member ids (2, or 3 when the number is odd)
+    count: Mapped[int | None] = mapped_column(Integer, nullable=True)  # their sealed bid (None = not entered)
+    entered_by: Mapped[str] = mapped_column(String(32), default="")
+    entered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    place: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gems: Mapped[int] = mapped_column(Integer, default=0)
+    seen_by: Mapped[list] = mapped_column(JSON, default=list)  # members who have watched the results

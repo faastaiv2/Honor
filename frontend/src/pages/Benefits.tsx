@@ -8,8 +8,8 @@ import { api, type Profile, type Tier, type TodayInfo } from "../api";
 import { useAuth } from "../auth";
 
 /**
- * Benefits: what every rank gives. Pick a rank to see its gems, daily chest, game time, make-ups,
- * frame and theme; then a table of every rank side by side, and how gems are earned.
+ * Ranks: what every rank gives. Pick a rank to see its gems, game time, make-ups, frame and theme,
+ * and the daily tasks at that rank; then how gems are earned.
  */
 
 const ROMAN: [number, string][] = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
@@ -101,6 +101,8 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
   const gems = info?.gems;
   const avatar = p?.member.avatar || "lion";
   const strip = useRef<HTMLDivElement>(null);
+  const [rankTasks, setRankTasks] = useState<Record<string, { key: string; label: string; group: string }[]> | null>(null);
+  useEffect(() => { api.rankTasks().then(setRankTasks).catch(() => setRankTasks({})); }, []);
 
   // Keep the chosen rank in view in the strip.
   useEffect(() => {
@@ -119,7 +121,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
         <div className="bx-hero-row">
           <span className="bx-hero-icon"><RankIcon rank={current?.key ?? "bronze"} size={110} /></span>
           <div className="bx-hero-txt">
-            <p className="bx-kicker">{current ? "Your rank" : "Rank benefits"}</p>
+            <p className="bx-kicker">{current ? "Your rank" : "Ranks"}</p>
             <h1>{current ? current.name : "Climb the ranks"}</h1>
             {current && p ? (
               <>
@@ -144,7 +146,7 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
 
       <section className="card bx-pick">
         <div className="bx-pick-head">
-          <h2>Rank rewards</h2>
+          <h2>Ranks</h2>
           <div className="bx-arrows">
             <button aria-label="Previous rank" disabled={shownIdx <= 0} onClick={() => setPick(tiers[shownIdx - 1].key)}>‹</button>
             <button aria-label="Next rank" disabled={shownIdx >= tiers.length - 1} onClick={() => setPick(tiers[shownIdx + 1].key)}>›</button>
@@ -163,28 +165,33 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
         <RankDetail t={shown} state={stateOf(shownIdx)} needed={shown.min ? shown.min - level : undefined} avatar={avatar} />
       </section>
 
-      <section className="card bx-table-card">
-        <h2>All ranks at a glance</h2>
-        <div className="bx-table-wrap">
-          <table className="bx-table">
-            <thead>
-              <tr><th>Rank</th><th>Levels</th><th>Arrival</th><th>Game time</th></tr>
-            </thead>
-            <tbody>
-              {[...tiers].reverse().map((t) => {
-                const i = tiers.indexOf(t);
-                return (
-                  <tr key={t.key} className={`${stateOf(i)}${t.key === shown.key ? " on" : ""}`} style={{ ["--tc" as string]: t.color }} onClick={() => setPick(t.key)}>
-                    <td><span className="bx-tr-rank"><RankIcon rank={t.key} size={28} /> <b>{t.name}</b>{stateOf(i) === "here" && <em>You</em>}</span></td>
-                    <td>{romanRange(t)}</td>
-                    <td className="num">+{t.gems ?? 0} <Gem /></td>
-                    <td>{gameText(t)[0]}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <section className="card bx-tasks" style={{ ["--tc" as string]: shown.color }}>
+        <h2><RankIcon rank={shown.key} size={30} /> Daily tasks at {shown.name}</h2>
+        {!rankTasks ? <p className="note">Loading…</p> : (() => {
+          const key = shown.key === "member" || shown.key === "low" ? "bronze" : shown.key;
+          const list = rankTasks[key] ?? [];
+          const order = ["bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond", "obsidian", "legendary"];
+          const prevKey = order[order.indexOf(key) - 1];
+          const prev = prevKey ? Object.fromEntries((rankTasks[prevKey] ?? []).map((t) => [t.key, t.label])) : {};
+          const groups = [...new Set(list.map((t) => t.group))];
+          return (
+            <>
+              <p className="note">{list.length} tasks every day{shown.key === "member" ? " (the same as Bronze)" : ""}.{prevKey ? " ⬆ marks a task that is bigger than at the rank before; ✨ a task that is new at this rank." : ""}</p>
+              {groups.map((g) => (
+                <div key={g} className="bx-tgroup">
+                  <small>{g}</small>
+                  <ul>
+                    {list.filter((t) => t.group === g).map((t) => {
+                      const isNew = !!prevKey && !(t.key in prev);
+                      const up = !isNew && !!prevKey && prev[t.key] !== t.label;
+                      return <li key={t.key} className={isNew ? "new" : up ? "up" : ""}><span>{t.label}</span>{isNew && <em>✨ New</em>}{up && <em>⬆ was {prev[t.key]}</em>}</li>;
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </>
+          );
+        })()}
       </section>
 
       <section className="card bx-earn">
