@@ -98,6 +98,7 @@ function useCalm(on: boolean) {
 
 /** The admin resolved one of this member's Help messages: "added because of you!", then what changed. */
 function ResolvedPop({ item, onDone }: { item: NonNullable<Profile["resolved"]>[number]; onDone: () => void }) {
+  const nav = useNavigate();
   const calm = useCalm(true);
   const [open, setOpen] = useState(false);
   if (!calm) return null;
@@ -114,7 +115,11 @@ function ResolvedPop({ item, onDone }: { item: NonNullable<Profile["resolved"]>[
           <p className="rs-big" aria-hidden="true">{bug ? "🔧" : "🎉"}</p>
           <h2 id="rs-h">{item.reply || (bug ? "It works now. Thanks for telling us!" : "It's in the app now. Go and try it!")}</h2>
           <p>Thank you for helping make Honor better 🌟</p>
-          <div className="avn-btns"><button className="primary" autoFocus onClick={onDone}>Awesome!</button></div>
+          <div className="avn-btns">
+            {item.link ? <button className="primary" autoFocus onClick={() => { onDone(); nav(item.link!); }}>👉 Take me there!</button>
+              : <button className="primary" autoFocus onClick={onDone}>Awesome!</button>}
+            {item.link && <button onClick={onDone}>Later</button>}
+          </div>
         </>}
       </div>
     </div>,

@@ -806,6 +806,38 @@ const PICS: Record<string, Pic> = {
     {/* icicles under the helm */}
     <path d="M32 68 l2 7 2 -6 M64 68 l2 6 2 -7" fill="#dff8ff" />
   </> },
+  frostastro: { bg: ["#0e2a4a", "#030a1a"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}s`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffffff" /><stop offset=".45" stopColor="#d6f2ff" /><stop offset="1" stopColor="#7ab8e8" /></linearGradient>
+      <linearGradient id={`${id}v`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#bff8ff" /><stop offset=".45" stopColor="#3ab0e8" /><stop offset="1" stopColor="#0a2a6a" /></linearGradient>
+      <radialGradient id={`${id}p`} cx="35%" cy="35%"><stop offset="0" stopColor="#eafcff" /><stop offset=".6" stopColor="#7ad0f0" /><stop offset="1" stopColor="#2a6ab0" /></radialGradient>
+    </defs>
+    {/* stars, falling snow and an ice planet with a frozen ring */}
+    {[[10, 12], [90, 10], [6, 44], [94, 52], [24, 6], [70, 4]].map(([x, y], i) => <circle key={i} className="fx-twinkle" style={{ animationDelay: `${i * .3}s` }} cx={x} cy={y} r="1.2" fill="#fff" />)}
+    {[[16, 26, 3], [84, 70, 2.6], [12, 76, 2.4]].map(([x, y, r], i) => (
+      <g key={i} stroke="#dff8ff" strokeWidth=".9" strokeLinecap="round">{[0, 60, 120].map((a) => <path key={a} d={`M${x - r} ${y} H${x + r}`} transform={`rotate(${a} ${x} ${y})`} />)}</g>
+    ))}
+    <circle cx="82" cy="26" r="9" fill={`url(#${id}p)`} />
+    <ellipse cx="82" cy="27" rx="15" ry="3.4" fill="none" stroke="#dff8ff" strokeWidth="1.6" opacity=".9" />
+    {/* frosty suit with an ice backpack */}
+    <rect x="18" y="66" width="12" height="26" rx="4" fill="#9ad8f8" stroke="#3a7ac0" strokeWidth="1" />
+    <rect x="70" y="66" width="12" height="26" rx="4" fill="#9ad8f8" stroke="#3a7ac0" strokeWidth="1" />
+    <path d="M22 100 Q22 76 38 72 Q50 70 62 72 Q78 76 78 100Z" fill={`url(#${id}s)`} stroke="#5a9ad8" strokeWidth="1.2" />
+    <rect x="40" y="80" width="20" height="12" rx="3" fill="#1a3a6a" />
+    <circle cx="45" cy="86" r="2" fill="#7ff6ff" /><circle cx="51" cy="86" r="2" fill="#ff7aa8" /><circle cx="57" cy="86" r="2" fill="#ffd24a" />
+    {/* icicles on the shoulders */}
+    <path d="M30 76 l2 6 2 -6 M66 76 l2 6 2 -6" fill="#eafcff" stroke="#7ab8e8" strokeWidth=".6" />
+    {/* the helmet, frosted around the edge */}
+    <circle cx="50" cy="46" r="28" fill={`url(#${id}s)`} stroke="#7ab8e8" strokeWidth="2" />
+    <path d="M24 38 l4 3 -1 -5 5 2 -1 -5 5 3 0 -5 5 3 1 -5 4 4" stroke="#fff" strokeWidth="1.4" fill="none" opacity=".9" />
+    <rect x="28" y="33" width="44" height="30" rx="15" fill={`url(#${id}v)`} stroke="#0a2a6a" strokeWidth="1" />
+    <path d="M34 41 Q40 36 48 37" stroke="#fff" strokeWidth="3" fill="none" opacity=".8" strokeLinecap="round" />
+    {/* a little face behind the visor */}
+    <circle cx="43" cy="50" r="2.6" fill="#eafcff" /><circle cx="57" cy="50" r="2.6" fill="#eafcff" />
+    <path d="M45 56 q5 4 10 0" stroke="#eafcff" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+    <circle cx="22" cy="46" r="5" fill="#9ad8f8" stroke="#3a7ac0" strokeWidth="1" /><circle cx="78" cy="46" r="5" fill="#9ad8f8" stroke="#3a7ac0" strokeWidth="1" />
+    <path d="M78 41 V30" stroke="#9ad8f8" strokeWidth="2" /><circle cx="78" cy="29" r="2.2" fill="#7ff6ff" className="fx-twinkle" />
+  </> },
   pharaohcat: { bg: ["#ffe8b0", "#d09020"], draw: (id) => <>
     <defs><linearGradient id={`${id}g`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff2a8" /><stop offset=".6" stopColor="#f0b820" /><stop offset="1" stopColor="#9a6a00" /></linearGradient></defs>
     <path d="M10 100 L50 30 L90 100Z" fill="#e8c070" opacity=".5" />

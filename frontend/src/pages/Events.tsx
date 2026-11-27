@@ -148,7 +148,13 @@ function EventEditor({ data, ev, onSaved, onCancel, onError }: {
   const [f, setF] = useState<ArtEventIn>(() => ev ? {
     day: ev.day, open_day: ev.open_day || ev.day, title: ev.title, prompt: ev.prompt, opens: ev.opens, closes: ev.closes,
     prize1: ev.prizes["1"], prize2: ev.prizes["2"], prize3: ev.prizes["3"], fee: ev.fee, banner: ev.banner,
-  } : { day: data.suggested_day, open_day: data.today, title: "Art Tournament", prompt: "", opens: "09:00", closes: "18:00", prize1: 100, prize2: 50, prize3: 25, fee: 0, banner: "sunset" });
+  } : (() => {
+    // Post it now; by default art can be sent all of Friday and Saturday (the Friday before the suggested Saturday).
+    const fri = new Date(`${data.suggested_day}T12:00:00`); fri.setDate(fri.getDate() - 1);
+    const friIso = `${fri.getFullYear()}-${String(fri.getMonth() + 1).padStart(2, "0")}-${String(fri.getDate()).padStart(2, "0")}`;
+    return { day: data.suggested_day, open_day: friIso < data.today ? data.today : friIso, title: "Art Tournament", prompt: "", opens: "00:00", closes: "23:59",
+      prize1: 100, prize2: 50, prize3: 25, fee: 0, banner: "sunset" };
+  })());
   const [upload, setUpload] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const upFile = useRef<HTMLInputElement>(null);
@@ -183,7 +189,7 @@ function EventEditor({ data, ev, onSaved, onCancel, onError }: {
       <div className="ad-two">
         <label className="field"><span className="field-label">Name</span><input required maxLength={80} value={f.title} onChange={(e) => set("title", e.target.value)} /></label>
       </div>
-      <p className="field-hint ev-post-note">📣 The kids see it as soon as you create it, so post it any day of the week. Art can only be sent between the times below.</p>
+      <p className="field-hint ev-post-note">📣 The kids see the theme as soon as you create it, so post it early in the week. Art can only be sent between the times below: Friday to Saturday unless you change it.</p>
       <div className="field">
         <span className="field-label">📬 Submissions open · {fmt(f.open_day, { weekday: "long", day: "numeric", month: "long" })}</span>
         <DayPick value={f.open_day} today={data.today} label="Day submissions open" min={ev ? undefined : data.today}

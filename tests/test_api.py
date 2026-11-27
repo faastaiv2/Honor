@@ -1369,9 +1369,10 @@ def test_resolved_help_message_shows_the_member_a_pop_up_once(client, family):
     client.post("/api/feedback", headers=h, json={"kind": "feature", "text": "A pet to look after"})
     fid = client.get("/api/feedback", headers=ha).json()["items"][0]["id"]
     assert client.get("/api/board/profile", headers=h).json()["resolved"] == []
-    client.patch(f"/api/feedback/{fid}", headers=ha, json={"done": True, "reply": "Added a pet shop!"})
+    assert client.patch(f"/api/feedback/{fid}", headers=ha, json={"done": True, "link": "/nowhere"}).status_code == 422
+    client.patch(f"/api/feedback/{fid}", headers=ha, json={"done": True, "reply": "Added a pet shop!", "link": "/profile"})
     got = client.get("/api/board/profile", headers=h).json()["resolved"]
-    assert got == [{"id": fid, "kind": "feature", "text": "A pet to look after", "reply": "Added a pet shop!"}]
+    assert got == [{"id": fid, "kind": "feature", "text": "A pet to look after", "reply": "Added a pet shop!", "link": "/profile"}]
     client.post(f"/api/feedback/{fid}/seen", headers=h)
     assert client.get("/api/board/profile", headers=h).json()["resolved"] == []
 

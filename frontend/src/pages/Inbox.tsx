@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { api, ApiError, type FeedbackItem } from "../api";
 import { notifyChanged } from "../lib/events";
 
+/** Pages a resolved message can take the member to ("See what's added" → there). */
+const GO: [string, string][] = [["", "Nowhere, just the note"], ["/", "📋 Today"], ["/profile", "🛍️ Avatar shop"], ["/achievements", "🏅 Achievements"],
+  ["/news", "🏘️ Community"], ["/events", "🎨 Events"], ["/leaderboard", "🏆 Leaderboard"], ["/benefits", "🎁 Benefits"]];
 const PAGES: Record<string, string> = { "/": "Today", "/leaderboard": "Leaderboard", "/achievements": "Achievements", "/news": "Community",
   "/events": "Events", "/profile": "Avatar", "/benefits": "Benefits" };
 
@@ -18,8 +21,9 @@ export default function Inbox() {
 
   const [resolving, setResolving] = useState<string | null>(null);
   const [reply, setReply] = useState("");
+  const [link, setLink] = useState("");
   const mark = async (f: FeedbackItem, note?: string, keepDone = false) => {
-    await api.markFeedback(f.id, keepDone ? true : !f.done, note).catch(() => undefined); setResolving(null); setReply(""); void load();
+    await api.markFeedback(f.id, keepDone ? true : !f.done, note, note === undefined ? undefined : link).catch(() => undefined); setResolving(null); setReply(""); setLink(""); void load();
   };
   const remove = async (f: FeedbackItem) => { if (!confirm("Delete this message?")) return; await api.deleteFeedback(f.id).catch(() => undefined); void load(); };
   const shown = (items ?? []).filter((f) => filter === "done" ? f.done : !f.done && (filter === "open" || f.kind === filter));
@@ -51,18 +55,20 @@ export default function Inbox() {
                   <small>{new Date(f.created_at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}{f.page ? ` · on ${PAGES[f.page] ?? f.page}` : ""}</small>
                 </div>
                 <p>{f.text}</p>
-                {f.done && f.reply && <p className="inbox-reply">✓ {f.reply}</p>}
+                {f.done && (f.reply || f.link) && <p className="inbox-reply">✓ {f.reply}{f.link ? ` → ${PAGES[f.link] ?? f.link}` : ""}</p>}
                 {resolving === f.id ? (
                   <form className="inbox-resolve" onSubmit={(e) => { e.preventDefault(); void mark(f, reply, f.done); }}>
                     <label>What did you {f.kind === "bug" ? "fix" : "add"}? <small>{f.name} sees this in a “because of you!” pop-up</small>
                       <input autoFocus maxLength={500} value={reply} onChange={(e) => setReply(e.target.value)}
                         placeholder={f.kind === "bug" ? "e.g. The map opens properly now" : "e.g. Added a pet you can look after!"} /></label>
+                    <label>Take them to <small>“See what's added” opens this page</small>
+                      <select value={link} onChange={(e) => setLink(e.target.value)}>{GO.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
                     <div className="inbox-tools"><button className="primary">{f.done ? `💬 Tell ${f.name || "them"}` : `✓ Done, tell ${f.name || "them"}`}</button><button type="button" onClick={() => setResolving(null)}>Cancel</button></div>
                   </form>
                 ) : (
                   <div className="inbox-tools">
-                    <button onClick={() => (f.done ? mark(f) : (setResolving(f.id), setReply("")))}>{f.done ? "↩ Reopen" : "✓ Mark done"}</button>
-                    {f.done && <button onClick={() => { setResolving(f.id); setReply(f.reply || ""); }}>💬 {f.reply ? "Change the note" : "Tell them what's added"}</button>}
+                    <button onClick={() => (f.done ? mark(f) : (setResolving(f.id), setReply(""), setLink("")))}>{f.done ? "↩ Reopen" : "✓ Mark done"}</button>
+                    {f.done && <button onClick={() => { setResolving(f.id); setReply(f.reply || ""); setLink(f.link || ""); }}>💬 {f.reply ? "Change the note" : "Tell them what's added"}</button>}
                     <button className="danger" onClick={() => remove(f)}>Delete</button>
                   </div>
                 )}

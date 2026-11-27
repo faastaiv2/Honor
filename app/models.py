@@ -309,6 +309,7 @@ class Feedback(Base):
     done: Mapped[bool] = mapped_column(Boolean, default=False)
     reply: Mapped[str] = mapped_column(Text, default="")  # the admin's note when it was resolved ("Added a pet shop!")
     done_seen: Mapped[bool] = mapped_column(Boolean, default=True)  # the member saw the "added because of you" pop-up
+    link: Mapped[str] = mapped_column(String(40), default="")  # the page "See what's added" takes them to ("" = none)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

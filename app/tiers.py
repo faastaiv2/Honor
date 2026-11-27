@@ -226,7 +226,7 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("thundertiger", "Thunder Tiger", 650, "epic"), ("pharaohcat", "Pharaoh Cat", 750, "epic"),
     ("phoenix", "Phoenix", 0, "epic"), ("dragon", "Dragon", 0, "epic"), ("kinglion", "Lion King", 800, "epic"),
     ("cosmiccat", "Cosmic cat", 900, "epic"), ("knightepic", "Epic Knight", 800, "epic"), ("unicornepic", "Epic Unicorn", 750, "epic"),
-    ("moonrabbit", "Moon Rabbit", 650, "epic"), ("crystalowl", "Crystal Owl", 700, "epic"), ("jellyfish", "Galaxy Jellyfish", 750, "epic"),
+    ("moonrabbit", "Moon Rabbit", 650, "epic"), ("frostastro", "Frost Astronaut", 700, "epic"), ("crystalowl", "Crystal Owl", 700, "epic"), ("jellyfish", "Galaxy Jellyfish", 750, "epic"),
     # Legendary
     ("dragonknight", "Dragon Knight", 1000, "legendary"), ("crystalqueen", "Crystal Queen", 1000, "legendary"),
     ("astrolegend", "Legendary Astronaut", 1500, "legendary"),

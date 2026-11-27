@@ -18,7 +18,7 @@ class FeedbackIn(BaseModel):
 
 
 def _out(f: Feedback) -> dict:
-    return {"id": f.id, "kind": f.kind, "text": f.text, "page": f.page, "name": f.name, "read": f.read, "done": f.done, "reply": f.reply or "",
+    return {"id": f.id, "kind": f.kind, "text": f.text, "page": f.page, "name": f.name, "read": f.read, "done": f.done, "reply": f.reply or "", "link": f.link or "",
             "created_at": f.created_at.isoformat()}
 
 
@@ -53,6 +53,7 @@ def mark_all_read(_: Viewer = Depends(require_admin), db: Session = Depends(get_
 class FeedbackEdit(BaseModel):
     done: bool
     reply: str | None = Field(default=None, max_length=500)
+    link: str | None = Field(default=None, pattern=r"^(|/|/leaderboard|/achievements|/news|/events|/profile|/benefits)$")
 
 
 @router.patch("/{fid}")
@@ -62,7 +63,9 @@ def mark(fid: str, body: FeedbackEdit, _: Viewer = Depends(require_admin), db: S
         raise HTTPException(404, "Not found")
     was = f.done
     f.done, f.read = body.done, True
-    changed = body.reply is not None and body.reply.strip() != (f.reply or "")
+    changed = (body.reply is not None and body.reply.strip() != (f.reply or "")) or (body.link is not None and body.link != (f.link or ""))
+    if body.link is not None:
+        f.link = body.link
     if body.reply is not None:
         f.reply = body.reply.strip()
     if body.done and (not was or changed) and f.member_id:
@@ -86,7 +89,7 @@ def resolved_for(db: Session, member_id: str) -> list[dict]:
     """This member's requests the admin resolved that they haven't seen yet."""
     rows = db.scalars(select(Feedback).where(Feedback.member_id == member_id, Feedback.done.is_(True),
                                              Feedback.done_seen.is_(False)).order_by(Feedback.created_at))
-    return [{"id": f.id, "kind": f.kind, "text": f.text, "reply": f.reply or ""} for f in rows]
+    return [{"id": f.id, "kind": f.kind, "text": f.text, "reply": f.reply or "", "link": f.link or ""} for f in rows]
 
 
 @router.post("/{fid}/seen")
