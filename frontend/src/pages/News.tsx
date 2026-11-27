@@ -1,10 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type News, type NewsIn } from "../api";
 import { notifyChanged, useToast } from "../lib/events";
 import Avatar from "../lib/Avatar";
 import Gem from "../lib/Gem";
 
-/** Community: posts from the parents and from the app (new pictures, 1st places). Everyone can ❤️ them. */
+/**
+ * Community: the family's feed. Posts from the parents, and posts the app writes when something happens
+ * (a new picture, a 1st place, a deal with Shaytan). Filter by kind, ❤️ posts (double-tap works too).
+ */
+type Look = { name: string; avatar: string; frame: string; parent?: boolean };
+type Filter = "all" | "post" | "picture" | "win" | "shaytan";
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "All" }, { key: "post", label: "📣 News" }, { key: "picture", label: "🖼️ Pictures" },
+  { key: "win", label: "🥇 Winners" }, { key: "shaytan", label: "😈 Shaytan" },
+];
+const EMOJIS = ["📣", "🎉", "🏆", "📅", "🕌", "⚠️", "🎁", "❤️", "🌙", "⭐"];
+const blank: NewsIn = { title: "", body: "", emoji: "📣", pinned: false };
+
+function when(iso: string) {
+  const d = new Date(iso), mins = Math.floor((Date.now() - d.getTime()) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 60 * 24) return `${Math.floor(mins / 60)} h ago`;
+  const days = Math.floor(mins / 1440);
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
 
 /** A tournament picture (fetched with the sign-in, like on the Events page). */
 function Art({ id, alt }: { id: string; alt: string }) {
@@ -13,41 +35,45 @@ function Art({ id, alt }: { id: string; alt: string }) {
   return src ? <img className="cm-art" src={src} alt={alt} /> : <span className="cm-art wait" aria-label={alt} />;
 }
 
-function Likes({ n, onLike }: { n: News; onLike: () => void }) {
-  const others = n.likers.filter(Boolean);
+function Face({ look, size }: { look: Look; size: number }) {
+  return look.parent ? <span className="cm-parent" style={{ width: size, height: size, fontSize: size * 0.55 }} aria-hidden="true">👑</span>
+    : <Avatar avatar={look.avatar} color="#ffffff" frame={look.frame} size={size} />;
+}
+
+function Likes({ n, onLike, burst }: { n: News & { liker_looks?: Look[] }; onLike: () => void; burst: boolean }) {
+  const looks = n.liker_looks ?? [];
   return (
     <div className="cm-likes">
       <button className={`cm-like${n.liked ? " on" : ""}`} onClick={onLike} aria-pressed={n.liked} aria-label={n.liked ? "Unlike" : "Like"}>
-        <span className="cm-heart" aria-hidden="true">{n.liked ? "❤️" : "🤍"}</span>{n.likes > 0 && <b>{n.likes}</b>}
+        <span className={`cm-heart${burst ? " burst" : ""}`} aria-hidden="true">{n.liked ? "❤️" : "🤍"}</span>{n.likes > 0 ? <b>{n.likes}</b> : <span>Like</span>}
       </button>
-      {others.length > 0 && <small>{others.slice(0, 3).join(", ")}{n.likes > 3 ? ` and ${n.likes - 3} more` : ""} liked this</small>}
+      {looks.length > 0 && (
+        <span className="cm-likers">
+          <span className="cm-faces">{looks.slice(0, 5).map((l, i) => <span key={i} className="cm-face"><Face look={l} size={24} /></span>)}</span>
+          <small>{looks.slice(0, 2).map((l) => l.name).join(", ")}{n.likes > 2 ? ` +${n.likes - 2}` : ""}</small>
+        </span>
+      )}
     </div>
   );
 }
-const EMOJIS = ["📣", "🎉", "🏆", "📅", "🕌", "⚠️", "🎁", "❤️", "🌙", "⭐"];
-const blank: NewsIn = { title: "", body: "", emoji: "📣", pinned: false };
-
-function when(iso: string) {
-  const d = new Date(iso);
-  const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
-  if (days <= 0) return `Today · ${d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
-}
 
 export default function NewsPage({ admin }: { admin: boolean }) {
-  const [items, setItems] = useState<News[] | null>(null);
+  const [items, setItems] = useState<(News & { liker_looks?: Look[] })[] | null>(null);
+  const [family, setFamily] = useState<Look[]>([]);
+  const [filter, setFilter] = useState<Filter>("all");
   const [error, setError] = useState("");
   const [form, setForm] = useState<NewsIn>(blank);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [burst, setBurst] = useState<string | null>(null);
   const [toast, setToast] = useToast();
+  const lastTap = useRef<{ id: string; t: number } | null>(null);
 
   const load = () => api.news().then((n) => {
     setItems(n.items);
+    setFamily(n.family ?? []);
     if (!admin && n.unread > 0) api.newsSeen().then(notifyChanged).catch(() => undefined);
-  }).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load the news"));
+  }).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load the feed"));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
 
@@ -55,7 +81,7 @@ export default function NewsPage({ admin }: { admin: boolean }) {
     if (!form.title.trim()) return;
     try {
       if (editing) await api.editNews(editing, form); else await api.addNews(form);
-      setToast(editing ? "Announcement updated" : "Announcement posted 📣");
+      setToast(editing ? "Post updated" : "Posted 📣");
       setForm(blank); setEditing(null); setOpen(false); setError("");
       load();
     } catch (e) { setError(e instanceof ApiError ? e.message : "Could not save"); }
@@ -70,87 +96,131 @@ export default function NewsPage({ admin }: { admin: boolean }) {
     setToast("Deleted"); load();
   };
   const like = async (n: News) => {
+    if (!n.liked) { setBurst(n.id); window.setTimeout(() => setBurst((b) => (b === n.id ? null : b)), 700); }
     setItems((xs) => xs && xs.map((x) => x.id === n.id ? { ...x, liked: !x.liked, likes: x.likes + (x.liked ? -1 : 1) } : x));
-    try {
-      const r = await api.likeNews(n.id);
-      setItems((xs) => xs && xs.map((x) => x.id === n.id ? { ...x, ...r } : x));
-    } catch { load(); }
+    try { await api.likeNews(n.id); load(); } catch { load(); }
+  };
+  // Double-tap a post to like it.
+  const tap = (n: News) => {
+    const now = Date.now(), l = lastTap.current;
+    if (l && l.id === n.id && now - l.t < 350) { lastTap.current = null; if (!n.liked) void like(n); else { setBurst(n.id); window.setTimeout(() => setBurst(null), 700); } }
+    else lastTap.current = { id: n.id, t: now };
   };
   const togglePin = async (n: News) => { await api.editNews(n.id, { pinned: !n.pinned }).catch(() => undefined); load(); };
 
+  const shown = (items ?? []).filter((n) => filter === "all" || (n.kind || "post") === filter);
+  const totalLikes = (items ?? []).reduce((s, n) => s + n.likes, 0);
+  const count = (f: Filter) => (items ?? []).filter((n) => f === "all" || (n.kind || "post") === f).length;
+
+  const author = (n: News & { member: News["member"] }) => {
+    if ((n.kind === "picture" || n.kind === "win" || n.kind === "shaytan") && n.member) return { look: { name: n.member.name, avatar: n.member.avatar, frame: n.member.frame } as Look, name: n.member.name, tag: null };
+    return { look: { name: n.author || "Admin", avatar: "", frame: "", parent: true } as Look, name: n.author || "Admin", tag: "Admin" };
+  };
+
   return (
-    <section className="news">
-      <div className="card news-head">
-        <h2>🏘️ Community</h2>
-        {admin && <p className="note">Post for the whole family. The app also posts here when someone puts on a new picture or wins 1st place. Everyone can ❤️ posts.</p>}
-        {admin && !open && <button className="primary" onClick={() => { setForm(blank); setEditing(null); setOpen(true); }}>+ New announcement</button>}
-        {admin && open && (
-          <form className="news-form" onSubmit={(e) => { e.preventDefault(); save(); }}>
-            <div className="news-emojis" role="radiogroup" aria-label="Icon">
-              {EMOJIS.map((em) => (
-                <button type="button" key={em} role="radio" aria-checked={form.emoji === em}
-                  className={form.emoji === em ? "on" : ""} onClick={() => setForm({ ...form, emoji: em })}>{em}</button>
-              ))}
-            </div>
-            <input autoFocus maxLength={120} placeholder="Title, e.g. Family trip on Sunday" value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })} aria-label="Title" />
-            <textarea rows={4} maxLength={4000} placeholder="Details (optional)" value={form.body}
-              onChange={(e) => setForm({ ...form, body: e.target.value })} aria-label="Details" />
-            <label className="news-pin"><input type="checkbox" checked={form.pinned} onChange={(e) => setForm({ ...form, pinned: e.target.checked })} /> 📌 Pin to the top</label>
-            <div className="row">
-              <button className="primary" disabled={!form.title.trim()}>{editing ? "Save" : "Post"}</button>
-              <button type="button" onClick={() => { setOpen(false); setEditing(null); setForm(blank); }}>Cancel</button>
-            </div>
-          </form>
-        )}
-        {error && <p className="error">{error}</p>}
+    <section className="cm">
+      <div className="cm-hero">
+        <div className="cm-hero-top">
+          <h2>🏘️ Community</h2>
+          <span className="cm-stats"><b>{items?.length ?? 0}</b> posts · <b>{totalLikes}</b> ❤️</span>
+        </div>
+        <div className="cm-family" aria-label="The family">
+          {family.map((f, i) => <span key={i} className="cm-member" title={f.name} style={{ animationDelay: `${i * 60}ms` }}><Face look={f} size={44} /><small>{f.name}</small></span>)}
+        </div>
       </div>
-      {items === null ? <p className="note">Loading…</p> : items.length === 0 ? (
+
+      {admin && !open && (
+        <button className="cm-compose" onClick={() => { setForm(blank); setEditing(null); setOpen(true); }}>
+          <span className="cm-parent" style={{ width: 40, height: 40, fontSize: 22 }} aria-hidden="true">👑</span>
+          <span>What's new in the family?</span>
+        </button>
+      )}
+      {admin && open && (
+        <form className="card news-form cm-form" onSubmit={(e) => { e.preventDefault(); save(); }}>
+          <div className="news-emojis" role="radiogroup" aria-label="Icon">
+            {EMOJIS.map((em) => (
+              <button type="button" key={em} role="radio" aria-checked={form.emoji === em}
+                className={form.emoji === em ? "on" : ""} onClick={() => setForm({ ...form, emoji: em })}>{em}</button>
+            ))}
+          </div>
+          <input autoFocus maxLength={120} placeholder="Title, e.g. Family trip on Sunday" value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })} aria-label="Title" />
+          <textarea rows={4} maxLength={4000} placeholder="Details (optional)" value={form.body}
+            onChange={(e) => setForm({ ...form, body: e.target.value })} aria-label="Details" />
+          <label className="news-pin"><input type="checkbox" checked={form.pinned} onChange={(e) => setForm({ ...form, pinned: e.target.checked })} /> 📌 Pin to the top</label>
+          <div className="row">
+            <button className="primary" disabled={!form.title.trim()}>{editing ? "Save" : "Post"}</button>
+            <button type="button" onClick={() => { setOpen(false); setEditing(null); setForm(blank); }}>Cancel</button>
+          </div>
+        </form>
+      )}
+
+      <div className="cm-filters" role="tablist" aria-label="Show">
+        {FILTERS.filter((f) => f.key === "all" || count(f.key) > 0).map((f) => (
+          <button key={f.key} role="tab" aria-selected={filter === f.key} className={filter === f.key ? "on" : ""} onClick={() => setFilter(f.key)}>
+            {f.label} <small>{count(f.key)}</small>
+          </button>
+        ))}
+      </div>
+      {error && <p className="err">{error}</p>}
+
+      {items === null ? <p className="note">Loading…</p> : shown.length === 0 ? (
         <div className="card news-empty"><span>📭</span><p>Nothing here yet.</p></div>
-      ) : items.map((n) => n.kind === "picture" && n.member ? (
-        <article key={n.id} className={`card cm-post cm-picture${n.new ? " fresh" : ""}`}>
-          <div className="cm-pic"><Avatar avatar={n.data.avatar ?? n.member.avatar} color="#ffffff" frame={n.member.frame} size={96} /></div>
-          <div className="news-main">
-            <p className="cm-kicker">🖼️ New picture{n.new && <span className="news-new">New</span>}</p>
-            <h3>{n.member.name}{n.data.picture ? <> is now the <b>{n.data.picture}</b></> : " has a new picture"}</h3>
-            <small className="note">{when(n.created_at)}</small>
-            <Likes n={n} onLike={() => like(n)} />
-            {admin && <div className="news-tools"><button className="danger" onClick={() => remove(n)}>Delete</button></div>}
-          </div>
-        </article>
-      ) : n.kind === "win" && n.member ? (
-        <article key={n.id} className={`card cm-post cm-win${n.new ? " fresh" : ""}`}>
-          <div className="cm-win-head">
-            <Avatar avatar={n.member.avatar} color="#ffffff" frame={n.member.frame} size={56} />
-            <div>
-              <p className="cm-kicker">🥇 1st place{n.data.event ? ` · ${n.data.event}` : ""}{n.new && <span className="news-new">New</span>}</p>
-              <h3>{n.member.name} won 1st place!</h3>
-            </div>
-          </div>
-          {n.data.entry_id && <figure className="cm-figure"><Art id={n.data.entry_id} alt={n.data.art || "The winning picture"} />
-            <figcaption>{n.data.art ? <>“{n.data.art}”</> : null}{n.data.gems ? <span className="cm-prize">+{n.data.gems} <Gem /></span> : null}</figcaption></figure>}
-          <small className="note">{when(n.created_at)}</small>
-          <Likes n={n} onLike={() => like(n)} />
-          {admin && <div className="news-tools"><button className="danger" onClick={() => remove(n)}>Delete</button></div>}
-        </article>
-      ) : (
-        <article key={n.id} className={`card news-item${n.pinned ? " pinned" : ""}${n.new ? " fresh" : ""}`}>
-          <div className="news-icon" aria-hidden="true">{n.emoji}</div>
-          <div className="news-main">
-            <h3>{n.title}{n.new && <span className="news-new">New</span>}{n.pinned && <span className="news-pinned">📌 Pinned</span>}</h3>
-            {n.body && <p className="news-body">{n.body}</p>}
-            <small className="note">{when(n.created_at)}{n.author ? ` · ${n.author}` : ""}</small>
-            <Likes n={n} onLike={() => like(n)} />
-            {admin && (
-              <div className="news-tools">
-                <button onClick={() => edit(n)}>Edit</button>
-                <button onClick={() => togglePin(n)}>{n.pinned ? "Unpin" : "Pin"}</button>
-                <button className="danger" onClick={() => remove(n)}>Delete</button>
+      ) : shown.map((n) => {
+        const a = author(n);
+        const kind = n.kind || "post";
+        return (
+          <article key={n.id} className={`cm-post k-${kind}${n.pinned ? " pinned" : ""}${n.new ? " fresh" : ""}`} onClick={() => tap(n)}>
+            {burst === n.id && <span className="cm-bigheart" aria-hidden="true">❤️</span>}
+            <header className="cm-head">
+              <Face look={a.look} size={42} />
+              <span className="cm-by">
+                <b>{a.name}{a.tag && <em className="cm-tag">{a.tag}</em>}</b>
+                <small>{when(n.created_at)}{kind !== "post" ? " · by Honor" : ""}</small>
+              </span>
+              {n.pinned && <span className="cm-pin">📌 Pinned</span>}
+              {n.new && <span className="news-new">New</span>}
+            </header>
+
+            {kind === "picture" && n.member && (
+              <div className="cm-body pic">
+                <div className="cm-pic-stage"><Avatar avatar={n.data.avatar ?? n.member.avatar} color="#ffffff" frame={n.member.frame} size={120} /></div>
+                <p className="cm-text">🖼️ <b>{n.member.name}</b>{n.data.picture ? <> is now the <b className="hl">{n.data.picture}</b>!</> : " has a new picture!"}</p>
               </div>
             )}
-          </div>
-        </article>
-      ))}
+            {kind === "win" && n.member && (
+              <div className="cm-body win">
+                <p className="cm-text big">🥇 <b>{n.member.name}</b> won 1st place{n.data.event ? <> in <b>{n.data.event}</b></> : null}!</p>
+                {n.data.entry_id && <figure className="cm-figure"><Art id={n.data.entry_id} alt={n.data.art || "The winning picture"} />
+                  <figcaption>{n.data.art ? <>“{n.data.art}”</> : <span />}{n.data.gems ? <span className="cm-prize">+{n.data.gems} <Gem /></span> : null}</figcaption></figure>}
+              </div>
+            )}
+            {kind === "shaytan" && (
+              <div className="cm-body shaytan">
+                <p className="cm-text big">😈 {n.title}</p>
+                {n.body && <p className="cm-text">{n.body}</p>}
+              </div>
+            )}
+            {kind === "post" && (
+              <div className="cm-body post">
+                <p className="cm-text big"><span className="cm-emoji" aria-hidden="true">{n.emoji}</span> {n.title}</p>
+                {n.body && <p className="cm-text">{n.body}</p>}
+              </div>
+            )}
+
+            <footer className="cm-foot" onClick={(e) => e.stopPropagation()}>
+              <Likes n={n} onLike={() => like(n)} burst={burst === n.id} />
+              {admin && (
+                <span className="news-tools">
+                  {kind === "post" && <button onClick={() => edit(n)}>Edit</button>}
+                  {kind === "post" && <button onClick={() => togglePin(n)}>{n.pinned ? "Unpin" : "Pin"}</button>}
+                  <button className="danger" onClick={() => remove(n)}>Delete</button>
+                </span>
+              )}
+            </footer>
+          </article>
+        );
+      })}
       {toast && <div className="toast" role="status">{toast}</div>}
     </section>
   );

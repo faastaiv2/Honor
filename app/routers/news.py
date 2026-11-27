@@ -67,7 +67,15 @@ def _out(a: Announcement, seen: datetime | None, likes: list[PostLike] | None = 
             "pinned": a.pinned, "author": a.author, "created_at": created.isoformat(), "new": seen is None or created > seen,
             "data": a.data or {},
             "member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame} if m else None,
-            "likes": len(likes), "liked": any(x.who == me for x in likes), "likers": [x.name for x in likes][:8]}
+            "likes": len(likes), "liked": any(x.who == me for x in likes), "likers": [x.name for x in likes][:8],
+            "liker_looks": [_look(x, members) for x in likes][:8]}
+
+
+def _look(x: PostLike, members: dict | None) -> dict:
+    """Who liked it, with their picture (a parent has none)."""
+    mid = x.who.split(":", 1)[1] if x.who.startswith("member:") else None
+    m = (members or {}).get(mid) if mid else None
+    return {"name": x.name, "avatar": m.avatar if m else "", "frame": m.frame if m else "", "parent": m is None}
 
 
 @router.get("")
@@ -86,7 +94,9 @@ def list_news(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)
     if v.is_admin:
         for i in items:
             i["new"] = False
-    return {"items": items, "unread": sum(1 for i in items if i["new"])}
+    family = [{"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame}
+              for m in sorted(members.values(), key=lambda m: (m.sort_order, m.name)) if m.active]
+    return {"items": items, "unread": sum(1 for i in items if i["new"]), "family": family}
 
 
 @router.post("/seen")

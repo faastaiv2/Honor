@@ -74,10 +74,11 @@ export interface EventsInfo {
 export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number>; members: string[] }
 export interface Period extends PeriodIn { id: string }
 export interface News {
-  id: string; kind: "post" | "picture" | "win"; title: string; body: string; emoji: string; pinned: boolean; author: string; created_at: string; new: boolean;
+  id: string; kind: "post" | "picture" | "win" | "shaytan"; title: string; body: string; emoji: string; pinned: boolean; author: string; created_at: string; new: boolean;
   data: { avatar?: string; picture?: string; entry_id?: string; art?: string; event?: string; gems?: number };
   member: { id: string; name: string; avatar: string; frame: string } | null;
   likes: number; liked: boolean; likers: string[];
+  liker_looks?: { name: string; avatar: string; frame: string; parent: boolean }[];
 }
 export interface NewsIn { title: string; body: string; emoji: string; pinned: boolean }
 export interface ShaytanTest { id: string; member: { id: string; name: string; avatar: string }; offer: number; answer: "" | "yes" | "no";
@@ -151,7 +152,7 @@ export const api = {
     request<DayView>("/board/day", send("PUT", { member_id, date, tasks, excuse, task_excuses })),
   watched: (member_id: string, date: string, task: string) =>
     request<{ watched: string[] }>("/board/watched", send("POST", { member_id, date, task })),
-  news: () => request<{ items: News[]; unread: number }>("/news"),
+  news: () => request<{ items: News[]; unread: number; family?: { id: string; name: string; avatar: string; frame: string }[] }>("/news"),
   likeNews: (id: string) => request<{ likes: number; liked: boolean; likers: string[] }>(`/news/${encodeURIComponent(id)}/like`, send("POST", {})),
   newsSeen: () => request<{ unread: number }>("/news/seen", send("POST", {})),
   addNews: (body: NewsIn) => request<News>("/news", send("POST", body)),
