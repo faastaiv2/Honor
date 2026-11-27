@@ -357,3 +357,16 @@ class QuizTest(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by: Mapped[str] = mapped_column(String(120), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class KittenTest(Base):
+    """A test the admin sends: a thirsty kitten in the desert. Water costs every gem the member has (given back
+    once they've chosen to give it) and unlocks a secret achievement and the Pharaoh Cat. Walking past costs nothing."""
+    __tablename__ = "kitten_tests"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    answer: Mapped[str] = mapped_column(String(8), default="")  # "", "water" or "walk"
+    gems: Mapped[int] = mapped_column(Integer, default=0)  # what they were ready to give
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(120), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

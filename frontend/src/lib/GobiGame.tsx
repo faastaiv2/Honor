@@ -15,6 +15,7 @@ const MAX_PULL = 115;
 const POWER = 7.2;                   // launch speed per unit pulled (units / s)
 const GRAVITY = 520;                 // units / s²
 const TARGET_R = 40, GOBI_R = 20;
+const LANE_END = 150;                // where the target stands in lane mode
 
 export function Cauliflower({ size = 40 }: { size?: number }) {
   return (
@@ -34,13 +35,15 @@ export function Cauliflower({ size = 40 }: { size?: number }) {
 
 type Phase = "aim" | "fly" | "hit" | "miss" | "done";
 
-export default function GobiGame({ name, avatar, frame, color, onHit, onClose, target: targetArt, mega = false, winText }: {
+export default function GobiGame({ name, avatar, frame, color, onHit, onClose, target: targetArt, mega = false, winText, lane = false }: {
   name: string; avatar: string; frame: string; color: string; onHit: () => Promise<number>; onClose: () => void;
   /** Something else to aim at instead of a member's picture (the rude kid). */
   target?: ReactNode;
   /** The upgraded launcher: a golden slingshot, a bigger cauliflower and a sparkly trail. */
   mega?: boolean;
   winText?: ReactNode;
+  /** Stand the target at the far end of a lane (instead of floating across the sky). */
+  lane?: boolean;
 }) {
   const [trail, setTrail] = useState<{ x: number; y: number }[]>([]);
   const svg = useRef<SVGSVGElement>(null);
@@ -63,7 +66,8 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose, t
     const step = (t: number) => {
       if (phaseRef.current !== "hit" && phaseRef.current !== "done") {
         const speed = 0.0007 + Math.min(misses.current, 6) * 0.00008;
-        setTarget({ x: W / 2 + Math.sin((t - t0) * speed) * 110, y: 120 + Math.sin((t - t0) * speed * 2.3) * 12 });
+        if (lane) setTarget({ x: W / 2 + Math.sin((t - t0) * speed * 0.9) * 22, y: LANE_END });  // shuffling at the end of the lane
+        else setTarget({ x: W / 2 + Math.sin((t - t0) * speed) * 110, y: 120 + Math.sin((t - t0) * speed * 2.3) * 12 });
       }
       raf = requestAnimationFrame(step);
     };
@@ -160,7 +164,31 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose, t
         <path d={`M0 ${H - 70} Q${W / 2} ${H - 100} ${W} ${H - 70} V${H} H0Z`} fill="#7cc46a" />
         <path d={`M0 ${H - 40} Q${W / 2} ${H - 62} ${W} ${H - 40} V${H} H0Z`} fill="#5aa84e" />
 
-        {/* the target: the person on the Pillar of Shame */}
+        {lane && <g className="gobi-lane">
+          <path d={`M${W / 2 - 150} ${H - 64} L${W / 2 - 34} ${LANE_END + 36} L${W / 2 + 34} ${LANE_END + 36} L${W / 2 + 150} ${H - 64}Z`} fill="#c9a26a" stroke="#8a6a3a" strokeWidth="3" />
+          <path d={`M${W / 2 - 120} ${H - 64} L${W / 2 - 26} ${LANE_END + 36} M${W / 2 + 120} ${H - 64} L${W / 2 + 26} ${LANE_END + 36}`} stroke="#fff6dc" strokeWidth="3" opacity=".8" />
+          <path d={`M${W / 2} ${H - 70} L${W / 2} ${LANE_END + 40}`} stroke="#fff6dc" strokeWidth="4" strokeDasharray="14 14" opacity=".9" />
+          {[0.25, 0.5, 0.75].map((f, i) => { const y = LANE_END + 36 + (H - 64 - LANE_END - 36) * f, hw = 34 + (150 - 34) * f;
+            return <path key={i} d={`M${W / 2 - hw} ${y} h${hw * 2}`} stroke="#8a6a3a" strokeWidth="1.5" opacity=".35" />; })}
+          <ellipse cx={target.x} cy={LANE_END + 40} rx="34" ry="7" fill="#0003" />
+        </g>}
+        {/* the target: the person on the Pillar of Shame (or whoever stands at the end of the lane) */}
+        {lane && targetArt ? (
+          <g transform={`translate(${target.x} ${target.y})`}>
+            <foreignObject x={-58} y={-82} width={116} height={140}>
+              <div className="gobi-standing">{targetArt}</div>
+            </foreignObject>
+            <text y={TARGET_R + 34} textAnchor="middle" className="gobi-name">{name}</text>
+            {splat && <g className="gobi-splat" transform="translate(0 -24)">
+              {Array.from({ length: 12 }, (_, i) => {
+                const a = (i / 12) * Math.PI * 2, r = 22 + (i % 3) * 10;
+                return <circle key={i} cx={Math.cos(a) * r} cy={Math.sin(a) * r} r={6 + (i % 4) * 2} fill={i % 2 ? "#fffbea" : "#f1e7c4"} stroke="#e0d2a0" strokeWidth="1"
+                  style={{ ["--dx" as string]: `${Math.cos(a) * 30}px`, ["--dy" as string]: `${Math.sin(a) * 30}px` }} />;
+              })}
+              <g transform="scale(1.1)"><Cauliflower size={34} /></g>
+            </g>}
+          </g>
+        ) : (
         <g transform={`translate(${target.x} ${target.y})`}>
           <circle r={TARGET_R + 8} fill="#ff4a4a22" stroke="#ff4a4a" strokeWidth="2" strokeDasharray="4 5" className="gobi-aim" />
           <foreignObject x={-TARGET_R - 12} y={-TARGET_R - 12} width={(TARGET_R + 12) * 2} height={(TARGET_R + 12) * 2}>
@@ -176,6 +204,7 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose, t
             <g transform="scale(1.1)"><Cauliflower size={34} /></g>
           </g>}
         </g>
+        )}
 
         {/* the slingshot */}
         <path d={`M${REST.x} ${H - 60} V${REST.y + 22} M${REST.x} ${REST.y + 30} L${FORK[0].x} ${FORK[0].y} M${REST.x} ${REST.y + 30} L${FORK[1].x} ${FORK[1].y}`}

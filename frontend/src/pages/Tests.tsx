@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, ApiError, type AdminMember, type BullyTest, type CharityTest, type PigeonNote, type QuizQuestion, type QuizTest, type ShaytanTest } from "../api";
+import { api, ApiError, type AdminMember, type BullyTest, type KittenTest, type CharityTest, type PigeonNote, type QuizQuestion, type QuizTest, type ShaytanTest } from "../api";
 import CharityScene from "../lib/Charity";
 import PigeonScene, { medievalNote } from "../lib/Pigeon";
 import BullyScene from "../lib/Bully";
 import QuizScene from "../lib/Quiz";
+import KittenScene from "../lib/Kitten";
 import Avatar from "../lib/Avatar";
 import Gem from "../lib/Gem";
 import { fmt } from "../lib/dates";
@@ -35,6 +36,9 @@ export default function Tests() {
   const [bullies, setBullies] = useState<BullyTest[] | null>(null);
   const [bWho, setBWho] = useState("");
   const [bPreview, setBPreview] = useState(false);
+  const [kittens, setKittens] = useState<KittenTest[] | null>(null);
+  const [kWho, setKWho] = useState("");
+  const [kPreview, setKPreview] = useState(false);
   const blankQ = (): Required<QuizQuestion> => ({ q: "", options: ["", "", ""], answer: 0 });
   const [quizzes, setQuizzes] = useState<QuizTest[] | null>(null);
   const [qWho, setQWho] = useState("");
@@ -55,6 +59,8 @@ export default function Tests() {
     api.members().then((ms) => setCWho((w) => w || ms.find((m) => m.active)?.id || "")).catch(() => undefined);
     api.members().then((ms) => setPWho((w) => w || ms.find((m) => m.active)?.id || "")).catch(() => undefined);
     api.members().then((ms) => { const f = ms.find((m) => m.active)?.id || ""; setBWho((w) => w || f); setQWho((w) => w || f); }).catch(() => undefined);
+    api.members().then((ms) => setKWho((w) => w || ms.find((m) => m.active)?.id || "")).catch(() => undefined);
+    api.kittenTests().then(setKittens).catch(() => undefined);
     api.bullyTests().then(setBullies).catch(() => undefined);
     api.quizTests().then(setQuizzes).catch(() => undefined);
     api.pigeons().then(setPigeons).catch(() => undefined);
@@ -87,6 +93,37 @@ export default function Tests() {
           <button onClick={() => setPreview(true)}>👁 Preview</button>
         </div>
         {error && <p className="err">{error}</p>}
+      </div>
+
+      <div className="card ts-deploy">
+        <h2>🐱 The thirsty kitten</h2>
+        <p className="note">Inspired by the hadith of the man who gave water to a thirsty dog. A thin kitten meows in the desert with the pyramids behind.
+          Water costs <b>all</b> the member's gems. If they give it, the kitten drinks, turns into the Pharaoh Cat, every gem comes back, and they unlock
+          a <b>secret</b> achievement (“???” until then: Mercy to All Creatures, Epic, +100) and the Pharaoh Cat picture. Walking past costs nothing; the kitten just lies down sadly.</p>
+        <div className="ts-row">
+          <select value={kWho} onChange={(e) => setKWho(e.target.value)} aria-label="Member">
+            {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+          <button className="ts-go" disabled={!kWho} onClick={() => act(() => api.sendKitten(kWho), `🐱 The kitten is waiting for ${members.find((m) => m.id === kWho)?.name ?? ""}`)}>Send the kitten</button>
+          <button onClick={() => setKPreview(true)}>👁 Preview</button>
+        </div>
+        {kittens && kittens.length > 0 && (
+          <ul className="ts-list">
+            {kittens.map((t) => (
+              <li key={t.id} className="ts-item">
+                <div className="ts-head">
+                  <Avatar avatar={t.member.avatar} color="#ffffff" size={36} />
+                  <b>{t.member.name}</b>
+                  <span className={`ts-state ${t.answer === "water" ? "no" : t.answer ? "yes" : "wait"}`}>
+                    {t.answer === "water" ? `💧 Gave water (all ${t.gems} gems, returned)` : t.answer === "walk" ? "🚶 Walked past" : "⏳ Waiting"}</span>
+                  <small className="note">{fmt(t.created_at.slice(0, 10), { day: "numeric", month: "short" })}</small>
+                </div>
+                {!t.answer && <div className="ts-row"><span className="ts-done">The kitten appears the next time {t.member.name} opens the app.</span>
+                  <button onClick={() => act(() => api.cancelKitten(t.id), "Called off")}>Call off</button></div>}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="card ts-deploy">
@@ -275,6 +312,7 @@ export default function Tests() {
         )}
       </div>
       {preview && <ShaytanScene name={name || "Preview"} offer={Math.max(1, Number(offer) || 50)} preview onDone={() => setPreview(false)} />}
+      {kPreview && <KittenScene name={members.find((m) => m.id === kWho)?.name || "Preview"} balance={120} preview onDone={() => setKPreview(false)} />}
       {bPreview && <BullyScene name={members.find((m) => m.id === bWho)?.name || "Preview"} balance={100} preview onDone={() => setBPreview(false)} />}
       {qPreview && <QuizScene name={members.find((m) => m.id === qWho)?.name || "Preview"} preview onDone={() => setQPreview(false)}
         quiz={{ id: "p", gems_each: Number(qGems) || 0, answers: cleanQs().map(() => -1), questions: cleanQs() }} />}

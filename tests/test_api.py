@@ -1300,3 +1300,21 @@ def test_owl_quiz_one_try_per_question_and_gems_for_right_answers(client, family
     p = client.get("/api/board/profile", headers=h).json()
     assert p["quiz"] is None and p["gems"]["balance"] == b0["gems"]["balance"] + 20
     assert client.get("/api/tests/quiz", headers=ha).json()[0]["right"] == 2
+
+
+def test_thirsty_kitten_secret_mercy_unlocks_pharaoh_cat(client, family):
+    h, hb, ha = auth(client, family["A"]), auth(client, family["B"]), auth(client, admin=True)
+    client.post(f"/api/admin/members/{family['A'].id}/gems", headers=ha, json={"balance": 80})
+    mercy = lambda hh: next(x for x in client.get("/api/board/achievements", headers=hh).json()["items"] if x["key"] == "mercy")
+    pharaoh = lambda hh: next(x for x in client.get("/api/board/profile", headers=hh).json()["avatars"] if x["key"] == "pharaohcat")
+    assert mercy(h)["name"] == "???" and mercy(h)["secret"] and pharaoh(h)["unlock"]["name"] == "???" and not pharaoh(h)["available"]
+    ta = client.post("/api/tests/kitten", headers=ha, json={"member_id": family["A"].id}).json()
+    tb = client.post("/api/tests/kitten", headers=ha, json={"member_id": family["B"].id}).json()
+    assert client.get("/api/board/profile", headers=h).json()["kitten"] == {"id": ta["id"]}
+    assert client.post(f"/api/tests/kitten/{ta['id']}/answer", headers=h, json={"water": True}).json() == {"answer": "water", "gems": 80}
+    assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == 80  # every gem given back
+    m = mercy(h)
+    assert m["unlocked"] and m["name"] == "Mercy to All Creatures" and m["tier"] == "gold" and not m["secret"]
+    assert pharaoh(h)["available"] and pharaoh(h)["unlock"]["name"] == "Mercy to All Creatures"
+    client.post(f"/api/tests/kitten/{tb['id']}/answer", headers=hb, json={"water": False})
+    assert not mercy(hb)["unlocked"] and not pharaoh(hb)["available"]

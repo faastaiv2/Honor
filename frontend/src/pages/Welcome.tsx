@@ -19,6 +19,7 @@ import CharityScene from "../lib/Charity";
 import PigeonScene from "../lib/Pigeon";
 import BullyScene from "../lib/Bully";
 import QuizScene from "../lib/Quiz";
+import KittenScene from "../lib/Kitten";
 import GobiSplat from "../lib/GobiSplat";
 import SoundGate from "../lib/SoundGate";
 
@@ -268,6 +269,16 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
         <SoundGate icon="😈"><ShaytanScene name={p.member.name} offer={s.show === "offer" ? s.offer : 50} ladder={s.show === "offer" ? s.ladder : undefined}
           onAnswer={async (accept, refusals) => { await api.answerShaytan(s.id, accept, refusals).catch(() => undefined); }}
           onDone={() => { api.profile().then(setP).catch(() => undefined); notifyChanged(); }} /></SoundGate>); })()}
+      {p?.kitten && !p.quiz && !p.bully && !p.pigeon && !p.charity && !p.shaytan && !godfather && raid === null && !rankUp && !reward && (() => { const k = p.kitten!; return (
+        <SoundGate icon="🐱"><KittenScene name={p.member.name} balance={p.gems.balance}
+          onAnswer={(w) => api.answerKitten(k.id, w)}
+          onDone={(g) => {
+            api.profile().then((np) => {
+              setP(np);
+              if (g > 0) setReward({ amount: g, from: 0, title: "Every gem returned 💛", chest: false });
+            }).catch(() => undefined);
+            notifyChanged();
+          }} /></SoundGate>); })()}
       {p?.quiz && !p.bully && !p.pigeon && !p.charity && !p.shaytan && !godfather && raid === null && !rankUp && !reward && (() => { const qz = p.quiz!; return (
         <SoundGate icon="🦉"><QuizScene name={p.member.name} quiz={qz}
           onAnswer={(i, c) => api.answerQuiz(qz.id, i, c)}

@@ -488,3 +488,67 @@ def answer_quiz(test_id: str, body: QuizAnswerIn, v: Viewer = Depends(current_vi
     db.commit()
     return {"right": right, "answer": q["answer"], "gems": t.gems_each if right else 0,
             "score": sum(1 for x, a in zip(t.questions, answers) if a == x["answer"]), "done": t.finished_at is not None}
+
+
+# ---------------------------------------------------------------- the thirsty kitten (a secret: Mercy, the Pharaoh Cat)
+from app.models import KittenTest  # noqa: E402
+
+
+def _kitten_out(db: Session, t: KittenTest) -> dict:
+    return {"id": t.id, "member": _member_brief(db, t.member_id), "answer": t.answer, "gems": t.gems,
+            "answered_at": t.answered_at.isoformat() if t.answered_at else None, "created_at": t.created_at.isoformat()}
+
+
+@router.get("/kitten")
+def list_kitten(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
+    return [_kitten_out(db, t) for t in db.scalars(select(KittenTest).order_by(KittenTest.created_at.desc()).limit(100))]
+
+
+@router.post("/kitten", status_code=201)
+def send_kitten(body: MemberOnlyIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    m = db.get(Member, body.member_id)
+    if not m:
+        raise HTTPException(404, "Member not found")
+    if db.scalar(select(KittenTest.id).where(KittenTest.member_id == m.id, KittenTest.answer == "")):
+        raise HTTPException(400, f"The kitten is already waiting for {m.name}")
+    t = KittenTest(member_id=m.id, created_by=v.name)
+    db.add(t)
+    db.commit()
+    return _kitten_out(db, t)
+
+
+@router.delete("/kitten/{test_id}", status_code=204)
+def cancel_kitten(test_id: str, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> None:
+    t = db.get(KittenTest, test_id)
+    if t and not t.answer:
+        db.delete(t)
+        db.commit()
+
+
+def kitten_for(db: Session, member_id: str) -> dict | None:
+    t = db.scalar(select(KittenTest).where(KittenTest.member_id == member_id, KittenTest.answer == "")
+                  .order_by(KittenTest.created_at).limit(1))
+    return {"id": t.id} if t else None
+
+
+class KittenAnswerIn(BaseModel):
+    water: bool
+
+
+@router.post("/kitten/{test_id}/answer")
+def answer_kitten(test_id: str, body: KittenAnswerIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """Water: they agreed to give every gem. The kitten's blessing gives them all back (no change in the end),
+    and the secret Mercy achievement unlocks the Pharaoh Cat. Walk past: nothing happens."""
+    from app.services import gem_balance, get_settings_row
+    t = db.get(KittenTest, test_id)
+    if not t:
+        raise HTTPException(404, "No such test")
+    if v.kind != "member" or v.id != t.member_id:
+        raise HTTPException(403, "Not your test")
+    if t.answer:
+        raise HTTPException(400, "Already answered")
+    m = db.get(Member, t.member_id)
+    t.gems = gem_balance(db, get_settings_row(db), m)
+    t.answer, t.answered_at = ("water" if body.water else "walk"), datetime.now(timezone.utc)
+    db.commit()
+    return {"answer": t.answer, "gems": t.gems}

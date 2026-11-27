@@ -24,6 +24,7 @@ const GLYPHS: Record<string, ReactNode> = {
   sun: <g fill={G}><circle cx="40" cy="50" r="7" />{Array.from({ length: 8 }, (_, i) => <rect key={i} x="38.8" y="35" width="2.4" height="6" rx="1.2" transform={`rotate(${i * 45} 40 50)`} />)}</g>,
   dumbbell: <g fill={G}><rect x="31" y="47.5" width="18" height="5" rx="2" /><rect x="25" y="40" width="6" height="20" rx="2" /><rect x="49" y="40" width="6" height="20" rx="2" /><rect x="21" y="44" width="4" height="12" rx="1.5" /><rect x="55" y="44" width="4" height="12" rx="1.5" /></g>,
   shield: <path d="M40 34 L52 38.5 V47 C52 55 47 60 40 63 C33 60 28 55 28 47 V38.5 Z M40 40 V58" fill="none" stroke={G} strokeWidth="3.4" strokeLinejoin="round" />,
+  secret: <text x="40" y="59" textAnchor="middle" fontSize="24" fontWeight="900" fontFamily="system-ui, sans-serif" fill={G}>?</text>,
   heart: <path d="M40 61 C30 54 26 49 26 44 C26 39.5 29.5 36.5 33.5 36.5 C36.5 36.5 38.8 38.3 40 40.6 C41.2 38.3 43.5 36.5 46.5 36.5 C50.5 36.5 54 39.5 54 44 C54 49 50 54 40 61 Z" fill={G} />,
   bag: <g><path d="M29 44 H51 L53 62 H27 Z" fill={G} /><path d="M34 44 C34 36 46 36 46 44" fill="none" stroke={G} strokeWidth="3" /></g>,
   godfather: <text x="40" y="58" textAnchor="middle" fontSize="22" fontWeight="700" fontFamily="'Didot', 'Bodoni 72', Georgia, serif" fill={G}>G</text>,

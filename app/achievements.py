@@ -25,6 +25,7 @@ class Facts:
     shaytan: int = 0  # times they turned Shaytan down three times
     sadaqah: int = 0  # times they gave to the man in the cloak
     kindness: int = 0  # times they replied kindly to the rude kid
+    mercy: int = 0  # times they gave their gems for water for the thirsty kitten
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,7 @@ class Achievement:
     measure: Callable[[Facts], int]
     reward: int | None = None  # overrides the tier's usual reward
     only_godfather: bool = False  # hidden from everyone who isn't a Godfather
+    secret: bool = False  # name and goal stay "???" until it is unlocked
 
     @property
     def gems(self) -> int:
@@ -59,6 +61,8 @@ ACHIEVEMENTS: list[Achievement] = [
                 lambda f: f.sadaqah),
     Achievement("kindness", "Gentle Heart", "Reply kindly when someone is rude to you", "Honor", "heart", "silver", 1,
                 lambda f: f.kindness),
+    Achievement("mercy", "Mercy to All Creatures", "Give everything you have so a thirsty kitten can drink", "Honor", "heart", "gold", 1,
+                lambda f: f.mercy, secret=True),
     Achievement("godfather", "The Godfather", "Be named a Godfather of the family", "Honor", "godfather", "godfather", 1,
                 lambda f: f.godfather, reward=313, only_godfather=True),
     # Streaks
@@ -102,6 +106,17 @@ ACHIEVEMENTS: list[Achievement] = [
 BY_KEY = {a.key: a for a in ACHIEVEMENTS}
 
 
+SECRET_NAME = "???"
+SECRET_TEXT = "A secret achievement. Some good deeds are found, not told 🤫"
+
+
+def unlock_info(a: "Achievement", earned: set[str] | None) -> dict:
+    """What the shop shows about the achievement that unlocks an item (a secret one stays secret until earned)."""
+    if a.secret and a.key not in (earned or set()):
+        return {"key": a.key, "name": SECRET_NAME, "text": SECRET_TEXT, "tier": a.tier, "icon": "secret"}
+    return {"key": a.key, "name": a.name, "text": a.text, "tier": a.tier, "icon": a.icon}
+
+
 def evaluate(f: Facts, claimed: set[str]) -> list[dict]:
     from app.tiers import PICTURE_UNLOCKS, _PICTURE_NAMES
     pictures = {ach: pic for pic, ach in PICTURE_UNLOCKS.items()}
@@ -113,7 +128,9 @@ def evaluate(f: Facts, claimed: set[str]) -> list[dict]:
         if a.only_godfather and not f.godfather and a.key not in claimed:
             continue
         have = a.measure(f)
-        out.append({"key": a.key, "name": a.name, "text": a.text, "group": a.group, "icon": a.icon, "tier": a.tier,
+        hidden = a.secret and have < a.goal
+        out.append({"key": a.key, "name": SECRET_NAME if hidden else a.name, "text": SECRET_TEXT if hidden else a.text, "group": a.group,
+                    "icon": "secret" if hidden else a.icon, "tier": a.tier, "secret": hidden,
                     "gems": a.gems, "goal": a.goal, "progress": min(have, a.goal), "unlocked": have >= a.goal,
                     "claimed": a.key in claimed,
                     **({"picture": {"key": pictures[a.key], "name": _PICTURE_NAMES[pictures[a.key]]}} if a.key in pictures else {}),

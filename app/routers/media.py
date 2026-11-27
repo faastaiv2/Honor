@@ -48,6 +48,9 @@ KEYS = {
     "owl-hoot",        # the owl sage arrives
     "quiz-right",      # a right answer on the quiz
     "quiz-wrong",      # a wrong answer
+    "kitten-meow",     # the thirsty kitten's weak meow
+    "kitten-drink",    # lapping water, then a happy purr
+    "kitten-pharaoh",  # the golden reveal: the Pharaoh Cat
     "gobi-splat",      # a cauliflower splats on the screen of the person it hit
 } | {f"rankup-music-{r}" for r in ("bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond",
                                    "obsidian", "legendary")}  # music for one rank's show (else the general rank-up music)

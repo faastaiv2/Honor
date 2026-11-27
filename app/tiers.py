@@ -221,7 +221,7 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     # Epic
     ("knight", "Knight", 500, "epic"), ("spartan", "Spartan", 500, "epic"), ("frostknight", "Frost Knight", 500, "epic"),
     ("warriorprincess", "Warrior Princess", 500, "epic"), ("crystalfox", "Crystal Fox", 600, "epic"),
-    ("thundertiger", "Thunder Tiger", 650, "epic"), ("pharaohcat", "Pharaoh Cat", 750, "epic"),
+    ("thundertiger", "Thunder Tiger", 650, "epic"), ("pharaohcat", "Pharaoh Cat", 0, "epic"),
     ("phoenix", "Phoenix", 0, "epic"), ("dragon", "Dragon", 0, "epic"), ("kinglion", "Lion King", 800, "epic"),
     ("cosmiccat", "Cosmic cat", 900, "epic"), ("knightepic", "Epic Knight", 800, "epic"), ("unicornepic", "Epic Unicorn", 750, "epic"),
     # Legendary
@@ -243,6 +243,8 @@ PICTURE_UNLOCKS = {
     "dino": "days10", "robot": "fit10", "fairy": "chest7",
     # Epic: hard
     "phoenix": "streak30", "dragon": "days50",
+    # Secret: the thirsty kitten (a test from the Tests tab)
+    "pharaohcat": "mercy",
 }
 
 TIER_ORDER = [t.key for t in TIERS]
@@ -294,8 +296,8 @@ def catalogue(kind: str, current: Tier, owned: set[str], earned: set[str] | None
             item = {"key": a, "name": _PICTURE_NAMES[a], "available": item_available("avatar", a, current, owned, earned),
                     "price": c, "tier": None, "rarity": _PICTURE_RARITY[a]}
             if a in PICTURE_UNLOCKS:
-                ach = ACH[PICTURE_UNLOCKS[a]]
-                item["unlock"] = {"key": ach.key, "name": ach.name, "text": ach.text, "tier": ach.tier, "icon": ach.icon}
+                from app.achievements import unlock_info
+                item["unlock"] = unlock_info(ACH[PICTURE_UNLOCKS[a]], earned)
             out.append(item)
         return out
     table = FRAMES if kind == "frame" else THEMES

@@ -38,7 +38,7 @@ export interface BoardRow extends Status {
 export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary"; unlock?: { key: string; name: string; text: string; tier?: string; icon?: string }; special?: "godfather" }
 export interface Profile extends Status {
   raid?: { stolen: number } | null; avatar_nudge?: boolean; new_likes?: { names: string[]; count: number; likes: number; what: string } | null; shaytan?: ShaytanShow | null; charity?: { id: string; ask: number } | null; pigeon?: { id: string; sender: string; gems: number; message: string } | null;
-  bully?: { id: string; price: number } | null; quiz?: QuizShow | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[]; gobi_splat?: string[];
+  bully?: { id: string; price: number } | null; quiz?: QuizShow | null; kitten?: { id: string } | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[]; gobi_splat?: string[];
   member: { id: string; name: string; avatar: string; frame: string; theme: string; shamed?: boolean; own_avatar?: string; own_frame?: string };
   week_delta: number; streak: number;
   gems: { balance: number; earned: number; spent: number; claimed: number; today: number; from_tasks: number; from_levels: number };
@@ -96,6 +96,7 @@ export interface QuizShow { id: string; gems_each: number; answers: number[]; qu
 export interface BullyTest { id: string; member: { id: string; name: string; avatar: string }; answer: "" | "gobi" | "mean" | "kind"; paid: number; answered_at: string | null; created_at: string }
 export interface QuizTest { id: string; member: { id: string; name: string; avatar: string }; questions: Required<QuizQuestion>[]; gems_each: number; answers: number[];
   right: number; finished_at: string | null; created_at: string }
+export interface KittenTest { id: string; member: { id: string; name: string; avatar: string }; answer: "" | "water" | "walk"; gems: number; answered_at: string | null; created_at: string }
 export interface FeedbackItem { id: string; kind: "feature" | "bug"; text: string; page: string; name: string; read: boolean; done: boolean; created_at: string }
 
 export class ApiError extends Error {
@@ -108,7 +109,7 @@ export class ApiError extends Error {
 
 export type RankSoundKey = `rankup-music-${"bronze" | "silver" | "gold" | "platinum" | "emerald" | "sapphire" | "ruby" | "diamond" | "obsidian" | "legendary"}`;
 export type SoundKey = RankSoundKey | "quest-music" | "quest-thunder" | "quest-crack" | "rankup-music" | "chest" | "gems" | "gems-crack" | "collect" | "achievement" | "event-win" | "goblins" | "godfather"
-  | "shaytan-arrive" | "shaytan-offer1" | "shaytan-offer2" | "shaytan-offer3" | "shaytan-grumble" | "shaytan-laugh" | "shaytan-goodjob" | "shaytan-flee" | "shaytan-cut" | "gobi-splat" | "charity-ask" | "charity-thanks" | "charity-reveal" | "pigeon-coo" | "pigeon-scroll" | "bully-taunt" | "bully-sorry" | "bully-cry" | "owl-hoot" | "quiz-right" | "quiz-wrong";
+  | "shaytan-arrive" | "shaytan-offer1" | "shaytan-offer2" | "shaytan-offer3" | "shaytan-grumble" | "shaytan-laugh" | "shaytan-goodjob" | "shaytan-flee" | "shaytan-cut" | "gobi-splat" | "charity-ask" | "charity-thanks" | "charity-reveal" | "pigeon-coo" | "pigeon-scroll" | "bully-taunt" | "bully-sorry" | "bully-cry" | "owl-hoot" | "quiz-right" | "quiz-wrong" | "kitten-meow" | "kitten-drink" | "kitten-pharaoh";
 export interface MusicInfo { has: boolean; start: number; end: number; offset_ms: number; volume: number; size: number; updated: string | null }
 
 export const token = {
@@ -207,6 +208,10 @@ export const api = {
   godfatherSeen: () => request<{ ok: boolean }>("/board/profile/godfather-seen", send("POST", {})),
   setAdminTheme: (theme: "white" | "dark") => request<{ theme: string }>("/admin/theme", send("PUT", { theme })),
   tests: () => request<ShaytanTest[]>("/tests"),
+  kittenTests: () => request<KittenTest[]>("/tests/kitten"),
+  sendKitten: (member_id: string) => request<KittenTest>("/tests/kitten", send("POST", { member_id })),
+  cancelKitten: (id: string) => request<void>(`/tests/kitten/${id}`, send("DELETE")),
+  answerKitten: (id: string, water: boolean) => request<{ answer: string; gems: number }>(`/tests/kitten/${id}/answer`, send("POST", { water })),
   bullyTests: () => request<BullyTest[]>("/tests/bully"),
   sendBully: (member_id: string) => request<BullyTest>("/tests/bully", send("POST", { member_id })),
   cancelBully: (id: string) => request<void>(`/tests/bully/${id}`, send("DELETE")),

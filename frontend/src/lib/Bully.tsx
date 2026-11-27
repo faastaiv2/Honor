@@ -108,7 +108,7 @@ export default function BullyScene({ name, balance, price = 25, onAnswer, onDone
   }
 
   if (stage === "gobi") {
-    return <GobiGame name="The rude kid" avatar="" frame="" color="#ffffff" mega target={<span className="bl-target"><Kid mood="angry" /></span>}
+    return <GobiGame name="The rude kid" avatar="" frame="" color="#ffffff" mega lane target={<Kid mood="angry" />}
       winText={<>Bullseye! He's covered in cauliflower! 🥦</>}
       onHit={async () => 0}
       onClose={() => { setStage("fled"); void playSound("bully-cry"); later(3400, () => setStage("leave")); later(4400, onDone); }} />;
