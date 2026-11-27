@@ -18,7 +18,7 @@ class FeedbackIn(BaseModel):
 
 
 def _out(f: Feedback) -> dict:
-    return {"id": f.id, "kind": f.kind, "text": f.text, "page": f.page, "name": f.name, "read": f.read, "done": f.done,
+    return {"id": f.id, "kind": f.kind, "text": f.text, "page": f.page, "name": f.name, "read": f.read, "done": f.done, "reply": f.reply or "",
             "created_at": f.created_at.isoformat()}
 
 
@@ -52,6 +52,7 @@ def mark_all_read(_: Viewer = Depends(require_admin), db: Session = Depends(get_
 
 class FeedbackEdit(BaseModel):
     done: bool
+    reply: str | None = Field(default=None, max_length=500)
 
 
 @router.patch("/{fid}")
@@ -59,7 +60,14 @@ def mark(fid: str, body: FeedbackEdit, _: Viewer = Depends(require_admin), db: S
     f = db.get(Feedback, fid)
     if not f:
         raise HTTPException(404, "Not found")
+    was = f.done
     f.done, f.read = body.done, True
+    if body.reply is not None:
+        f.reply = body.reply.strip()
+    if body.done and not was and f.member_id:
+        f.done_seen = False  # the member gets a "added because of you!" pop-up
+    if not body.done:
+        f.done_seen = True
     db.commit()
     return _out(f)
 
@@ -69,5 +77,21 @@ def remove(fid: str, _: Viewer = Depends(require_admin), db: Session = Depends(g
     f = db.get(Feedback, fid)
     if f:
         db.delete(f)
+        db.commit()
+    return {"ok": True}
+
+
+def resolved_for(db: Session, member_id: str) -> list[dict]:
+    """This member's requests the admin resolved that they haven't seen yet."""
+    rows = db.scalars(select(Feedback).where(Feedback.member_id == member_id, Feedback.done.is_(True),
+                                             Feedback.done_seen.is_(False)).order_by(Feedback.created_at))
+    return [{"id": f.id, "kind": f.kind, "text": f.text, "reply": f.reply or ""} for f in rows]
+
+
+@router.post("/{fid}/seen")
+def seen(fid: str, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    f = db.get(Feedback, fid)
+    if f and v.kind == "member" and f.member_id == v.id:
+        f.done_seen = True
         db.commit()
     return {"ok": True}

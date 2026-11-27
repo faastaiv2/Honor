@@ -75,6 +75,7 @@ export default function FirstRun() {
   if (!p) return null;
   if (!p.oath) return <Oath name={p.member.name} note={p.oath_note} onSworn={() => setP({ ...p, oath: true, oath_note: "" })} />;
   if (!p.toured && !p.oath_note) return <GuidedTour onDone={() => { setP({ ...p, toured: true }); api.toured().catch(() => undefined); }} />;
+  if (p.resolved?.length) return <ResolvedPop item={p.resolved[0]} onDone={() => { const r = p.resolved![0]; setP({ ...p, resolved: p.resolved!.slice(1) }); api.feedbackSeen(r.id).catch(() => undefined); }} />;
   if (p.new_likes) return <LikesPop likes={p.new_likes} onDone={() => { setP({ ...p, new_likes: null }); api.likesSeen().catch(() => undefined); }} />;
   if (p.avatar_nudge && !p.member.shamed) return <AvatarNudge name={p.member.name} onDone={() => { setP({ ...p, avatar_nudge: false }); api.avatarNudgeSeen().catch(() => undefined); }} />;
   return null;
@@ -93,6 +94,32 @@ function useCalm(on: boolean) {
     return () => clearInterval(t);
   }, [on]);
   return calm;
+}
+
+/** The admin resolved one of this member's Help messages: "added because of you!", then what changed. */
+function ResolvedPop({ item, onDone }: { item: NonNullable<Profile["resolved"]>[number]; onDone: () => void }) {
+  const calm = useCalm(true);
+  const [open, setOpen] = useState(false);
+  if (!calm) return null;
+  const bug = item.kind === "bug";
+  return createPortal(
+    <div className="avn" role="dialog" aria-modal="true" aria-labelledby="rs-h">
+      <div className={`avn-card rs-card${open ? " open" : ""}`}>
+        {!open ? <>
+          <div className="rs-gift" aria-hidden="true"><span>🎁</span>{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }}>✨</i>)}</div>
+          <h2 id="rs-h">{bug ? "Fixed" : "Added"}, because of you! 💛</h2>
+          <p className="rs-quote">You {bug ? "reported" : "asked for"}: “{item.text}”</p>
+          <div className="avn-btns"><button className="primary" autoFocus onClick={() => { setOpen(true); confetti(["#ffd24a", "#4aa8ff", "#ff7aa8", "#7ad86a"]); }}>👀 See what's {bug ? "fixed" : "added"}!</button></div>
+        </> : <>
+          <p className="rs-big" aria-hidden="true">{bug ? "🔧" : "🎉"}</p>
+          <h2 id="rs-h">{item.reply || (bug ? "It works now. Thanks for telling us!" : "It's in the app now. Go and try it!")}</h2>
+          <p>Thank you for helping make Honor better 🌟</p>
+          <div className="avn-btns"><button className="primary" autoFocus onClick={onDone}>Awesome!</button></div>
+        </>}
+      </div>
+    </div>,
+    document.body,
+  );
 }
 
 /** Back in the app and people liked your new picture (or your win): who, how many, and a little confetti. */

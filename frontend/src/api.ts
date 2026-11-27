@@ -38,7 +38,7 @@ export interface BoardRow extends Status {
 export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary"; unlock?: { key: string; name: string; text: string; tier?: string; icon?: string }; special?: "godfather" }
 export interface Profile extends Status {
   raid?: { stolen: number } | null; avatar_nudge?: boolean; new_likes?: { names: string[]; count: number; likes: number; what: string } | null; shaytan?: ShaytanShow | null; charity?: { id: string; ask: number } | null; pigeon?: { id: string; sender: string; gems: number; message: string } | null;
-  bully?: { id: string; price: number; tell_price?: number; elder?: string } | null; quiz?: QuizShow | null; kitten?: { id: string } | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[]; gobi_splat?: string[];
+  bully?: { id: string; price: number; tell_price?: number; elder?: string } | null; quiz?: QuizShow | null; kitten?: { id: string } | null; resolved?: { id: string; kind: "feature" | "bug"; text: string; reply: string }[]; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[]; gobi_splat?: string[];
   member: { id: string; name: string; avatar: string; frame: string; theme: string; shamed?: boolean; own_avatar?: string; own_frame?: string };
   week_delta: number; streak: number;
   gems: { balance: number; earned: number; spent: number; claimed: number; today: number; from_tasks: number; from_levels: number };
@@ -99,7 +99,7 @@ export interface BullyTest { id: string; member: { id: string; name: string; ava
 export interface QuizTest { id: string; member: { id: string; name: string; avatar: string }; questions: Required<QuizQuestion>[]; gems_each: number; answers: number[];
   right: number; finished_at: string | null; created_at: string }
 export interface KittenTest { id: string; member: { id: string; name: string; avatar: string }; answer: "" | "water" | "walk"; gems: number; posted: boolean; answered_at: string | null; created_at: string }
-export interface FeedbackItem { id: string; kind: "feature" | "bug"; text: string; page: string; name: string; read: boolean; done: boolean; created_at: string }
+export interface FeedbackItem { id: string; kind: "feature" | "bug"; text: string; page: string; name: string; read: boolean; done: boolean; reply: string; created_at: string }
 
 export class ApiError extends Error {
   status: number;
@@ -254,7 +254,8 @@ export const api = {
   feedback: () => request<{ items: FeedbackItem[]; unread: number }>("/feedback"),
   feedbackUnread: () => request<{ unread: number }>("/feedback/unread"),
   feedbackRead: () => request<{ ok: boolean }>("/feedback/read", send("POST", {})),
-  markFeedback: (id: string, done: boolean) => request<FeedbackItem>(`/feedback/${id}`, send("PATCH", { done })),
+  markFeedback: (id: string, done: boolean, reply?: string) => request<FeedbackItem>(`/feedback/${id}`, send("PATCH", reply === undefined ? { done } : { done, reply })),
+  feedbackSeen: (id: string) => request<{ ok: boolean }>(`/feedback/${id}/seen`, send("POST", {})),
   deleteFeedback: (id: string) => request<{ ok: boolean }>(`/feedback/${id}`, send("DELETE")),
   avatarNudge: (id: string) => request<AdminMember>(`/admin/members/${id}/avatar-nudge`, send("POST", {})),
   editMember: (id: string, body: Partial<Omit<AdminMember, "id" | "has_pin">> & { pin?: string | null }) => request<AdminMember>(`/admin/members/${id}`, send("PATCH", body)),

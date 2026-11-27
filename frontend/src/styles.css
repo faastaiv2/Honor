@@ -3324,3 +3324,17 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .ts-log .ts-log-body { flex: 1; display: grid; line-height: 1.3; }
 .ts-log .ts-log-body small { color: var(--mute); }
 .ts-log .good { color: #1c9a63; } .ts-log .bad { color: #c8392f; }
+/* "Added because of you!" */
+.rs-gift { position: relative; height: 110px; display: grid; place-items: center; }
+.rs-gift span { font-size: 74px; animation: rs-wobble 1.4s ease-in-out infinite; }
+@keyframes rs-wobble { 0%, 60%, 100% { transform: rotate(0) scale(1); } 70% { transform: rotate(-10deg) scale(1.08); } 80% { transform: rotate(10deg) scale(1.08); } 90% { transform: rotate(-5deg); } }
+.rs-gift i { position: absolute; left: 50%; top: 50%; font-style: normal; font-size: 18px; --a: calc(var(--i) * 45deg); animation: rs-spark 1.8s calc(var(--i) * .12s) ease-out infinite; opacity: 0; }
+@keyframes rs-spark { 0% { transform: translate(-50%, -50%) rotate(var(--a)) translateX(10px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-50%, -50%) rotate(var(--a)) translateX(70px); opacity: 0; } }
+.rs-quote { font-style: italic; }
+.rs-big { margin: 0; font-size: 64px; animation: avn-pop .5s cubic-bezier(.3,1.8,.5,1) both; }
+.rs-card.open h2 { animation: avn-pop .4s .1s ease both; }
+.inbox-reply { margin: -2px 0 8px !important; color: #1c9a63; font-weight: 700; }
+.inbox-resolve { display: grid; gap: 8px; margin-top: 6px; }
+.inbox-resolve label { display: grid; gap: 4px; font-weight: 700; font-size: 14px; }
+.inbox-resolve small { font-weight: 500; color: var(--mute); }
+.inbox-resolve input { font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); }

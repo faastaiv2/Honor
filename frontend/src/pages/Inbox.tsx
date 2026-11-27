@@ -16,7 +16,9 @@ export default function Inbox() {
   }).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load"));
   useEffect(() => { void load(); }, []);
 
-  const mark = async (f: FeedbackItem) => { await api.markFeedback(f.id, !f.done).catch(() => undefined); void load(); };
+  const [resolving, setResolving] = useState<string | null>(null);
+  const [reply, setReply] = useState("");
+  const mark = async (f: FeedbackItem, note?: string) => { await api.markFeedback(f.id, !f.done, note).catch(() => undefined); setResolving(null); setReply(""); void load(); };
   const remove = async (f: FeedbackItem) => { if (!confirm("Delete this message?")) return; await api.deleteFeedback(f.id).catch(() => undefined); void load(); };
   const shown = (items ?? []).filter((f) => filter === "done" ? f.done : !f.done && (filter === "open" || f.kind === filter));
   const n = (fn: (f: FeedbackItem) => boolean) => (items ?? []).filter(fn).length;
@@ -47,10 +49,20 @@ export default function Inbox() {
                   <small>{new Date(f.created_at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}{f.page ? ` · on ${PAGES[f.page] ?? f.page}` : ""}</small>
                 </div>
                 <p>{f.text}</p>
-                <div className="inbox-tools">
-                  <button onClick={() => mark(f)}>{f.done ? "↩ Reopen" : "✓ Mark done"}</button>
-                  <button className="danger" onClick={() => remove(f)}>Delete</button>
-                </div>
+                {f.done && f.reply && <p className="inbox-reply">✓ {f.reply}</p>}
+                {resolving === f.id ? (
+                  <form className="inbox-resolve" onSubmit={(e) => { e.preventDefault(); void mark(f, reply); }}>
+                    <label>What did you {f.kind === "bug" ? "fix" : "add"}? <small>{f.name} sees this in a “because of you!” pop-up</small>
+                      <input autoFocus maxLength={500} value={reply} onChange={(e) => setReply(e.target.value)}
+                        placeholder={f.kind === "bug" ? "e.g. The map opens properly now" : "e.g. Added a pet you can look after!"} /></label>
+                    <div className="inbox-tools"><button className="primary">✓ Done, tell {f.name || "them"}</button><button type="button" onClick={() => setResolving(null)}>Cancel</button></div>
+                  </form>
+                ) : (
+                  <div className="inbox-tools">
+                    <button onClick={() => (f.done ? mark(f) : (setResolving(f.id), setReply("")))}>{f.done ? "↩ Reopen" : "✓ Mark done"}</button>
+                    <button className="danger" onClick={() => remove(f)}>Delete</button>
+                  </div>
+                )}
               </div>
             </li>
           ))}

@@ -1361,3 +1361,15 @@ def test_tasks_appear_from_a_rank_and_grow_by_rank(client, family):
         bravo = next(r for r in lvl_b["rows"] if r["member"]["name"] == "Bravo")
         if bravo["tier"]["key"] in ("bronze", "silver", "member", "low"):
             assert new["key"] not in keys(h_bravo, family["B"])
+
+
+def test_resolved_help_message_shows_the_member_a_pop_up_once(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    client.post("/api/feedback", headers=h, json={"kind": "feature", "text": "A pet to look after"})
+    fid = client.get("/api/feedback", headers=ha).json()["items"][0]["id"]
+    assert client.get("/api/board/profile", headers=h).json()["resolved"] == []
+    client.patch(f"/api/feedback/{fid}", headers=ha, json={"done": True, "reply": "Added a pet shop!"})
+    got = client.get("/api/board/profile", headers=h).json()["resolved"]
+    assert got == [{"id": fid, "kind": "feature", "text": "A pet to look after", "reply": "Added a pet shop!"}]
+    client.post(f"/api/feedback/{fid}/seen", headers=h)
+    assert client.get("/api/board/profile", headers=h).json()["resolved"] == []

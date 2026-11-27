@@ -504,6 +504,11 @@ def _weekly_map(db: Session, m: Member, tier, p, today: date) -> dict:
                     for i, g in enumerate(WEEKLY_MAP)]}
 
 
+def _resolved(db: Session, member_id: str) -> list[dict]:
+    from app.routers.feedback import resolved_for
+    return resolved_for(db, member_id)
+
+
 def _test_for(fn: str, db: Session, member_id: str):
     from app.routers import tests
     return getattr(tests, fn)(db, member_id)
@@ -564,7 +569,7 @@ def _profile(db: Session, m: Member) -> dict:
             "week_days": _week_days(db, cfg, m, today, p),
             "event_win": unseen_win(db, m.id),
             "godfather": {"is": bool(m.godfather), "seen": bool(m.godfather_seen)},
-            "shaytan": _shaytan_for(db, m.id), "charity": _charity_for(db, m.id), "pigeon": _pigeon_for(db, m.id), "bully": _test_for("bully_for", db, m.id), "quiz": _test_for("quiz_for", db, m.id), "kitten": _test_for("kitten_for", db, m.id),
+            "shaytan": _shaytan_for(db, m.id), "charity": _charity_for(db, m.id), "pigeon": _pigeon_for(db, m.id), "bully": _test_for("bully_for", db, m.id), "quiz": _test_for("quiz_for", db, m.id), "kitten": _test_for("kitten_for", db, m.id), "resolved": _resolved(db, m.id),
             "oath": m.oath_at is not None, "oath_note": m.oath_note or "", "toured": bool(m.toured),
             "achievements_ready": sum(1 for a in achs if a["unlocked"] and not a["claimed"]),
             "achievements_new": [{k: a[k] for k in ("key", "name", "icon", "tier", "gems")} for a in achs if a["unlocked"] and not a["claimed"]]}
