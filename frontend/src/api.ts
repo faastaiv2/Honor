@@ -121,12 +121,27 @@ export const token = {
 
 export const UNAUTHORIZED_EVENT = "honor:unauthorized";
 
+declare const __BUILD__: string;
+/** A tab left open across an update runs the old app against the new server, which can break pages. When the server
+ *  says it is a newer version, reload once (at most every few minutes) to pick up the new app. */
+function checkBuild(server: string | null) {
+  const mine = typeof __BUILD__ === "string" ? __BUILD__ : "";
+  if (!server || !mine || server === mine) return;
+  try {
+    const last = Number(sessionStorage.getItem("honor.reloadedAt") || 0);
+    if (Date.now() - last < 5 * 60_000) return;
+    sessionStorage.setItem("honor.reloadedAt", String(Date.now()));
+  } catch { return; }
+  window.location.reload();
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   const t = token.get();
   if (t) headers.set("Authorization", `Bearer ${t}`);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   const res = await fetch(`${BASE}/api${path}`, { ...init, headers });
+  checkBuild(res.headers.get("X-Honor-Build"));
   if (!res.ok) {
     let message = res.statusText || "Something went wrong";
     try {

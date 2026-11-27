@@ -1373,3 +1373,13 @@ def test_resolved_help_message_shows_the_member_a_pop_up_once(client, family):
     assert got == [{"id": fid, "kind": "feature", "text": "A pet to look after", "reply": "Added a pet shop!"}]
     client.post(f"/api/feedback/{fid}/seen", headers=h)
     assert client.get("/api/board/profile", headers=h).json()["resolved"] == []
+
+
+def test_adding_a_note_to_an_already_resolved_message_shows_the_pop_up_again(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    client.post("/api/feedback", headers=h, json={"kind": "bug", "text": "Map broken"})
+    fid = client.get("/api/feedback", headers=ha).json()["items"][0]["id"]
+    client.patch(f"/api/feedback/{fid}", headers=ha, json={"done": True})
+    client.post(f"/api/feedback/{fid}/seen", headers=h)
+    client.patch(f"/api/feedback/{fid}", headers=ha, json={"done": True, "reply": "The map opens now"})
+    assert client.get("/api/board/profile", headers=h).json()["resolved"][0]["reply"] == "The map opens now"

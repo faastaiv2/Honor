@@ -125,6 +125,18 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+_BUILD = os.environ.get("VERCEL_GIT_COMMIT_SHA", "")
+
+
+@app.middleware("http")
+async def tell_the_build(request, call_next):
+    """The commit the server runs: an open tab with an older app reloads itself."""
+    response = await call_next(request)
+    if _BUILD:
+        response.headers["X-Honor-Build"] = _BUILD
+    return response
+
+
 @app.middleware("http")
 async def refuse_when_not_ready(request, call_next):
     path = request.url.path

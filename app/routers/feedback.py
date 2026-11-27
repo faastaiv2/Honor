@@ -62,9 +62,10 @@ def mark(fid: str, body: FeedbackEdit, _: Viewer = Depends(require_admin), db: S
         raise HTTPException(404, "Not found")
     was = f.done
     f.done, f.read = body.done, True
+    changed = body.reply is not None and body.reply.strip() != (f.reply or "")
     if body.reply is not None:
         f.reply = body.reply.strip()
-    if body.done and not was and f.member_id:
+    if body.done and (not was or changed) and f.member_id:
         f.done_seen = False  # the member gets a "added because of you!" pop-up
     if not body.done:
         f.done_seen = True
