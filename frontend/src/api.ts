@@ -62,11 +62,11 @@ export interface Achievement { key: string; name: string; text: string; group: s
 export interface Achievements { member: { id: string; name: string }; items: Achievement[]; unlocked: number; total: number }
 export interface EventEntry { id: string; member: { id: string; name: string; avatar: string }; title: string; place: number | null; gems: number; day: string }
 export interface ArtEvent {
-  id: string; day: string; title: string; prompt: string; opens: string; closes: string; prizes: Record<string, number>;
+  id: string; day: string; open_day: string; title: string; prompt: string; opens: string; closes: string; prizes: Record<string, number>;
   fee: number; banner: string; banner_image: boolean; state: "upcoming" | "open" | "closed";
 }
 export interface ArtEventIn {
-  day: string; title: string; prompt: string; opens: string; closes: string; prize1: number; prize2: number; prize3: number;
+  day: string; open_day: string; title: string; prompt: string; opens: string; closes: string; prize1: number; prize2: number; prize3: number;
   fee: number; banner: string; banner_image?: string | null;
 }
 export interface EventsInfo {

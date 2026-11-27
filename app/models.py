@@ -119,13 +119,15 @@ class Period(Base):
 
 
 class Event(Base):
-    """A tournament the admin sets up for a day (usually a Saturday), with a theme for the kids."""
+    """A tournament the admin posts any time. Submissions open on `open_day` at `opens` and close on `day` at `closes`
+    (the closing day identifies the tournament: its entries are filed under it)."""
     __tablename__ = "events"
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
-    day: Mapped[date] = mapped_column(Date, unique=True)
+    day: Mapped[date] = mapped_column(Date, unique=True)  # the day submissions close
+    open_day: Mapped[date | None] = mapped_column(Date, nullable=True)  # the day submissions open (None = `day`)
     title: Mapped[str] = mapped_column(String(80))
     prompt: Mapped[str] = mapped_column(String(200), default="")  # the theme, e.g. "Draw your favourite animal"
-    opens: Mapped[str] = mapped_column(String(5), default="00:00")  # time of day it opens and closes
+    opens: Mapped[str] = mapped_column(String(5), default="00:00")  # time submissions open (on open_day) and close (on day)
     closes: Mapped[str] = mapped_column(String(5), default="23:59")
     prize1: Mapped[int] = mapped_column(Integer, default=100)
     prize2: Mapped[int] = mapped_column(Integer, default=50)

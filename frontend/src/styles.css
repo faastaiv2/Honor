@@ -3418,3 +3418,6 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .ps-btns { display: grid; gap: 8px; }
 .ps-btns .primary { min-height: 48px; font-size: 17px; }
 @media (prefers-reduced-motion: reduce) { .ps *, .ps { animation-duration: .01s !important; animation-iteration-count: 1 !important; } }
+.ev-time { display: inline-flex !important; flex-direction: row !important; align-items: center; gap: 8px; margin-top: 6px; }
+.ev-time input { width: 140px; }
+.ev-post-note { margin: 4px 0 2px; }

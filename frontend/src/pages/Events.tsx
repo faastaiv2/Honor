@@ -7,8 +7,8 @@ import { fmt } from "../lib/dates";
 import { notifyChanged, useToast } from "../lib/events";
 
 /**
- * Events: the Saturday Art Tournament. On Saturday every member can send one picture of their art;
- * parents pick 1st, 2nd and 3rd for 100, 50 and 25 gems.
+ * Events: art tournaments. The admin posts one any time in the week and chooses when submissions open and close
+ * (they can span days). While it's open every member can send one picture of their art; parents pick 1st, 2nd and 3rd.
  */
 
 const PLACE = { 1: { name: "1st", medal: "🥇", cls: "gold" }, 2: { name: "2nd", medal: "🥈", cls: "silver" }, 3: { name: "3rd", medal: "🥉", cls: "bronze" } } as const;
@@ -44,8 +44,38 @@ export function ampm(t: string): string {
   const [h, m] = t.split(":").map(Number);
   return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 }
-const allDay = (ev: ArtEvent) => ev.opens === "00:00" && ev.closes === "23:59";
-const hours = (ev: ArtEvent) => (allDay(ev) ? "All day" : `${ampm(ev.opens)} – ${ampm(ev.closes)}`);
+const oneDay = (ev: { open_day?: string; day: string }) => !ev.open_day || ev.open_day === ev.day;
+const allDay = (ev: ArtEvent) => oneDay(ev) && ev.opens === "00:00" && ev.closes === "23:59";
+const dayName = (d: string, today?: string) => (d === today ? "Today" : fmt(d, { weekday: "short", day: "numeric", month: "short" }));
+/** When art can be sent: "All day", "9:00 AM – 6:00 PM", or across days "Fri 27 Nov 4:00 PM → Sat 28 Nov 8:00 PM". */
+const hours = (ev: ArtEvent, today?: string) => (allDay(ev) ? "All day" : oneDay(ev) ? `${ampm(ev.opens)} – ${ampm(ev.closes)}`
+  : `${dayName(ev.open_day, today)} ${ampm(ev.opens)} → ${dayName(ev.day, today)} ${ampm(ev.closes)}`);
+/** "today at 4:00 PM" / "Friday 27 Nov at 4:00 PM": when submissions open. */
+const opensWhen = (ev: ArtEvent, today: string) => `${ev.open_day === today ? "today" : fmt(ev.open_day, { weekday: "long", day: "numeric", month: "short" })}${ev.opens === "00:00" ? "" : ` at ${ampm(ev.opens)}`}`;
+const closesWhen = (ev: ArtEvent, today: string) => `${ev.day === today ? "" : `${fmt(ev.day, { weekday: "long" })} `}${ev.closes === "23:59" ? (ev.day === today ? "midnight" : "night") : ampm(ev.closes)}`;
+
+/** A strip of the next three weeks to tap a day, with a date box for anything else. */
+function DayPick({ value, onChange, min, label, today }: { value: string; onChange: (d: string) => void; min?: string; label: string; today: string }) {
+  return (
+    <>
+      <div className="ev-days" role="radiogroup" aria-label={label}>
+        {Array.from({ length: 21 }, (_, i) => {
+          const d = new Date(`${today}T12:00:00`); d.setDate(d.getDate() + i);
+          const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          if (min && iso < min) return null;
+          return (
+            <button type="button" key={iso} role="radio" aria-checked={value === iso} className={`ev-day${value === iso ? " on" : ""}${d.getDay() === 6 ? " sat" : ""}`} onClick={() => onChange(iso)}>
+              <small>{i === 0 ? "Today" : d.toLocaleDateString(undefined, { weekday: "short" })}</small>
+              <b>{d.getDate()}</b>
+              <small>{d.toLocaleDateString(undefined, { month: "short" })}</small>
+            </button>
+          );
+        })}
+      </div>
+      <label className="ev-other-day">Other date: <input type="date" min={min} value={value} onChange={(e) => e.target.value && onChange(e.target.value)} aria-label={`${label}: other date`} /></label>
+    </>
+  );
+}
 
 function Art({ id, alt, className = "" }: { id: string; alt: string; className?: string }) {
   const [src, setSrc] = useState<string | null>(null);
@@ -116,9 +146,9 @@ function EventEditor({ data, ev, onSaved, onCancel, onError }: {
   data: EventsInfo; ev?: ArtEvent; onSaved: (d: EventsInfo, msg: string) => void; onCancel: () => void; onError: (s: string) => void;
 }) {
   const [f, setF] = useState<ArtEventIn>(() => ev ? {
-    day: ev.day, title: ev.title, prompt: ev.prompt, opens: ev.opens, closes: ev.closes,
+    day: ev.day, open_day: ev.open_day || ev.day, title: ev.title, prompt: ev.prompt, opens: ev.opens, closes: ev.closes,
     prize1: ev.prizes["1"], prize2: ev.prizes["2"], prize3: ev.prizes["3"], fee: ev.fee, banner: ev.banner,
-  } : { day: data.suggested_day, title: "Saturday Art Tournament", prompt: "", opens: "09:00", closes: "18:00", prize1: 100, prize2: 50, prize3: 25, fee: 0, banner: "sunset" });
+  } : { day: data.suggested_day, open_day: data.today, title: "Art Tournament", prompt: "", opens: "09:00", closes: "18:00", prize1: 100, prize2: 50, prize3: 25, fee: 0, banner: "sunset" });
   const [upload, setUpload] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const upFile = useRef<HTMLInputElement>(null);
@@ -132,7 +162,7 @@ function EventEditor({ data, ev, onSaved, onCancel, onError }: {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (f.closes <= f.opens) { onError("It must close after it opens"); return; }
+    if (`${f.day} ${f.closes}` <= `${f.open_day} ${f.opens}`) { onError("It must close after it opens"); return; }
     if (custom && !hasCustom) { onError("Upload a banner picture or choose a ready-made one"); return; }
     setBusy(true);
     try {
@@ -147,34 +177,23 @@ function EventEditor({ data, ev, onSaved, onCancel, onError }: {
     <form className="ad-form ev-editor" onSubmit={save}>
       <div className="ev-ed-preview" style={{ background: previewBg }}>
         {!custom && <span aria-hidden="true">{BANNERS[f.banner]?.art}</span>}
-        <div><small>{fmt(f.day, { weekday: "long", day: "numeric", month: "short" })} · {f.opens === "00:00" && f.closes === "23:59" ? "All day" : `${ampm(f.opens)} – ${ampm(f.closes)}`}</small><b>{f.title || "Art Tournament"}</b></div>
+        <div><small>{oneDay(f) ? `${fmt(f.day, { weekday: "long", day: "numeric", month: "short" })} · ${f.opens === "00:00" && f.closes === "23:59" ? "All day" : `${ampm(f.opens)} – ${ampm(f.closes)}`}`
+          : `${dayName(f.open_day, data.today)} ${ampm(f.opens)} → ${dayName(f.day, data.today)} ${ampm(f.closes)}`}</small><b>{f.title || "Art Tournament"}</b></div>
       </div>
       <div className="ad-two">
         <label className="field"><span className="field-label">Name</span><input required maxLength={80} value={f.title} onChange={(e) => set("title", e.target.value)} /></label>
       </div>
+      <p className="field-hint ev-post-note">📣 The kids see it as soon as you create it, so post it any day of the week. Art can only be sent between the times below.</p>
       <div className="field">
-        <span className="field-label">Day · {fmt(f.day, { weekday: "long", day: "numeric", month: "long" })}</span>
-        <div className="ev-days" role="radiogroup" aria-label="Day of the event">
-          {Array.from({ length: 21 }, (_, i) => {
-            const d = new Date(`${data.today}T12:00:00`); d.setDate(d.getDate() + i);
-            const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-            const sat = d.getDay() === 6;
-            return (
-              <button type="button" key={iso} role="radio" aria-checked={f.day === iso} className={`ev-day${f.day === iso ? " on" : ""}${sat ? " sat" : ""}`} onClick={() => set("day", iso)}>
-                <small>{i === 0 ? "Today" : d.toLocaleDateString(undefined, { weekday: "short" })}</small>
-                <b>{d.getDate()}</b>
-                <small>{d.toLocaleDateString(undefined, { month: "short" })}</small>
-              </button>
-            );
-          })}
-        </div>
-        <label className="ev-other-day">Other date: <input type="date" min={ev ? undefined : data.today} value={f.day} onChange={(e) => e.target.value && set("day", e.target.value)} /></label>
-        <span className="field-hint">{new Date(`${f.day}T12:00:00`).getDay() === 6 ? "A Saturday ✓" : "Tip: Saturdays (gold) are tournament days"}</span>
+        <span className="field-label">📬 Submissions open · {fmt(f.open_day, { weekday: "long", day: "numeric", month: "long" })}</span>
+        <DayPick value={f.open_day} today={data.today} label="Day submissions open" min={ev ? undefined : data.today}
+          onChange={(d) => setF((o) => ({ ...o, open_day: d, day: o.day < d ? d : o.day }))} />
+        <label className="field ev-time"><span className="field-label">at</span><input type="time" required value={f.opens} onChange={(e) => set("opens", e.target.value)} aria-label="Opens at" /></label>
       </div>
-      <div className="ad-two">
-        <label className="field"><span className="field-label">Opens at</span><input type="time" required value={f.opens} onChange={(e) => set("opens", e.target.value)} /></label>
-        <label className="field"><span className="field-label">Closes at</span><input type="time" required value={f.closes} onChange={(e) => set("closes", e.target.value)} />
-          <span className="field-hint">Art can be sent only between these times</span></label>
+      <div className="field">
+        <span className="field-label">🏁 Submissions close · {fmt(f.day, { weekday: "long", day: "numeric", month: "long" })}</span>
+        <DayPick value={f.day} today={data.today} label="Day submissions close" min={f.open_day} onChange={(d) => set("day", d)} />
+        <label className="field ev-time"><span className="field-label">at</span><input type="time" required value={f.closes} onChange={(e) => set("closes", e.target.value)} aria-label="Closes at" /></label>
       </div>
       <p className={`ev-tz${f.day === data.today && f.closes <= data.clock ? " over" : ""}`}>
         {f.day === data.today && f.closes <= data.clock
@@ -258,7 +277,7 @@ function EventsAdmin({ data, editing, setEditing, onDone, onError }: {
               <span className="ev-up-sw" style={{ background: u.banner === "custom" ? "#888" : BANNERS[u.banner]?.bg }} aria-hidden="true">{u.banner === "custom" ? "📷" : BANNERS[u.banner]?.art}</span>
               <span className="ev-up-txt">
                 <b>{u.title}</b>
-                <small>{fmt(u.day, { weekday: "short", day: "numeric", month: "short" })} · {hours(u)}{u.state === "open" ? " · on now" : ""}</small>
+                <small>{oneDay(u) ? `${fmt(u.day, { weekday: "short", day: "numeric", month: "short" })} · ` : ""}{hours(u, data.today)}{u.state === "open" ? " · taking art now" : ""}</small>
                 <small>🥇{u.prizes["1"]} 🥈{u.prizes["2"]} 🥉{u.prizes["3"]} · {u.fee ? `Fee ${u.fee}` : "Free"}{u.prompt ? ` · ${u.prompt}` : ""}</small>
               </span>
               <span className="ev-up-btns">
@@ -356,7 +375,7 @@ export default function Events() {
       <section className={`ev-hero${data.open ? " live has-timer" : ""}${heroBg.art ? "" : " photo"}`} style={{ background: heroBg.bg }}>
         {heroBg.art && <div className="ev-hero-art" aria-hidden="true">{heroBg.art}</div>}
         <div>
-          <p className="ev-kicker">{data.open ? `Open now · until ${allDay(data.event!) ? "midnight" : ampm(data.event!.closes)}` : `${hero.day === data.today ? "Today" : fmt(hero.day, { weekday: "long", day: "numeric", month: "short" })} · ${hours(hero)}`}</p>
+          <p className="ev-kicker">{data.open ? `Open now · until ${closesWhen(data.event!, data.today)}` : `Opens ${opensWhen(hero, data.today)}${oneDay(hero) && !allDay(hero) ? ` · until ${ampm(hero.closes)}` : !oneDay(hero) ? ` · closes ${closesWhen(hero, data.today)}` : ""}`}</p>
           <h1>{hero.title}</h1>
           {hero.prompt ? <p className="ev-theme">Theme: <b>{hero.prompt}</b></p> : null}
           <p className="ev-sub">Make something beautiful, take a photo and send it in. The best three win gems!</p>
@@ -377,13 +396,13 @@ export default function Events() {
       {!data.open ? (
         <section className="card ev-closed">
           {data.next ? <>
-            <h2>🔒 Opens {data.next.day === data.today ? "today" : fmt(data.next.day, { weekday: "long", day: "numeric", month: "short" })}{allDay(data.next) ? "" : ` at ${ampm(data.next.opens)}`}</h2>
-            <Countdown day={data.next.day} at={data.next.opens} skew={boardSkew(data.today, data.clock)} onEnd={load} />
-            {!isAdmin && <button className="ev-enter" disabled>📷 Enter the tournament<small>Opens {data.next.day === data.today ? "today" : fmt(data.next.day, { weekday: "long" })}{allDay(data.next) ? "" : ` at ${ampm(data.next.opens)}`}</small></button>}
+            <h2>🔒 Opens {opensWhen(data.next, data.today)}</h2>
+            <Countdown day={data.next.open_day} at={data.next.opens} skew={boardSkew(data.today, data.clock)} onEnd={load} />
+            {!isAdmin && <button className="ev-enter" disabled>📷 Enter the tournament<small>Opens {opensWhen(data.next, data.today)}</small></button>}
             <p className="note">{data.next.prompt ? <>Get ready now: <b>{data.next.prompt}</b></> : <>Get your entry for {data.next.title} ready now.</>}</p>
           </> : <>
-            <h2>🗓️ New tournament next Saturday!</h2>
-            <p className="note">{isAdmin ? "Create it above so the kids can see when it opens." : "Start your art now, so it's ready for Saturday. The best three win gems!"}</p>
+            <h2>🗓️ A new tournament is coming soon!</h2>
+            <p className="note">{isAdmin ? "Create it above so the kids can see when it opens." : "Keep practising your art. The best three win gems!"}</p>
           </>}
         </section>
       ) : (
@@ -411,14 +430,14 @@ export default function Events() {
                 <button className="primary" disabled={!pic || busy} onClick={send}>{busy ? "Sending…" : fee ? <>Submit my art · {fee} <Gem /></> : "Submit my art"}</button>
                 {pic && <button onClick={() => setPic(null)}>Choose another</button>}
               </div>
-              <p className="note">One picture each. You can replace it until {ampm(data.event!.closes)}.{fee ? ` Entering costs ${fee} gems (paid once).` : ""}</p>
+              <p className="note">One picture each. You can replace it until {closesWhen(data.event!, data.today)}.{fee ? ` Entering costs ${fee} gems (paid once).` : ""}</p>
             </div>
           ))}
           <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
-          <div className="ev-head"><h2>Today's gallery</h2><span className="note">{data.current.length} entr{data.current.length === 1 ? "y" : "ies"}</span></div>
+          <div className="ev-head"><h2>Gallery so far</h2><span className="note">{data.current.length} entr{data.current.length === 1 ? "y" : "ies"}</span></div>
           {data.current.some((e) => e.place) && <Podium entries={data.current} />}
-          {data.current.length === 0 ? <p className="note">No art yet. Be the first!</p> : gallery(data.current, data.today, true)}
-          {judgeBar(data.today, data.current.length)}
+          {data.current.length === 0 ? <p className="note">No art yet. Be the first!</p> : gallery(data.current, data.event!.day, true)}
+          {judgeBar(data.event!.day, data.current.length)}
         </section>
       )}
 
@@ -426,7 +445,7 @@ export default function Events() {
         <summary><h2>📜 How to take part</h2></summary>
         <ol>
           <li><b>{hero?.prompt ? <>Make: {hero.prompt}</> : <>Make your entry for {hero?.title ?? "the tournament"}.</>}</b> It must be your own work.</li>
-          <li><b>Wait for the tournament to open.</b> {hero ? <>It opens {hero.day === data.today ? "today" : fmt(hero.day, { weekday: "long", day: "numeric", month: "short" })}{allDay(hero) ? "" : `, ${hours(hero)}`}.</> : "Usually on Saturdays."}</li>
+          <li><b>Wait for the tournament to open.</b> {hero ? <>Art can be sent from {opensWhen(hero, data.today)} until {closesWhen(hero, data.today)}.</> : "Watch this page for the next one."}</li>
           <li><b>Tap “Enter the tournament”</b>, take a photo of your art (or choose one), give it a name, and send it.{(hero?.fee ?? 0) > 0 ? <> Entering costs <b>{hero!.fee} gems</b>.</> : " It's free."}</li>
           <li><b>One picture each.</b> You can replace it until the tournament closes.</li>
         </ol>

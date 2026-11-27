@@ -716,7 +716,8 @@ def test_event_times_prizes_fee_banner_and_edit(client, family, db):
     with a, b, patch("app.routers.events.today_for", return_value=sat), patch("app.routers.events.clock_for", return_value="09:00"):
         r = client.post("/api/events/create", headers=ha, json={"day": sat.isoformat(), "title": "Calligraphy", "opens": "10:00",
                         "closes": "18:00", "prize1": 200, "prize2": 80, "prize3": 30, "fee": 20, "banner": "custom", "banner_image": PNG})
-        ev = r.json()["event"]
+        assert r.json()["event"] is None  # not taking art yet
+        ev = r.json()["next"]
         assert ev["state"] == "upcoming" and ev["prizes"] == {"1": 200, "2": 80, "3": 30} and ev["fee"] == 20 and ev["banner_image"]
         assert client.get(f"/api/events/banner/{ev['id']}", headers=h).status_code == 200
         assert client.post("/api/events/entry", headers=h, json={"title": "x", "image": PNG}).status_code == 403  # not open yet
@@ -1383,3 +1384,31 @@ def test_adding_a_note_to_an_already_resolved_message_shows_the_pop_up_again(cli
     client.post(f"/api/feedback/{fid}/seen", headers=h)
     client.patch(f"/api/feedback/{fid}", headers=ha, json={"done": True, "reply": "The map opens now"})
     assert client.get("/api/board/profile", headers=h).json()["resolved"][0]["reply"] == "The map opens now"
+
+
+def test_event_posted_midweek_opens_and_closes_on_chosen_days(client, family):
+    wed, fri, sat = date(2026, 11, 25), date(2026, 11, 27), date(2026, 11, 28)
+    ha, h = auth(client, admin=True), auth(client, family["A"])
+    def at(d, t):
+        a, b = at_today(d)
+        return a, b, patch("app.routers.events.today_for", return_value=d), patch("app.routers.events.clock_for", return_value=t)
+    a, b, c, d = at(wed, "10:00")
+    with a, b, c, d:
+        r = client.post("/api/events/create", headers=ha, json={"day": sat.isoformat(), "open_day": fri.isoformat(), "opens": "16:00",
+                                                                 "closes": "20:00", "title": "Weekend Art"}).json()
+        assert r["next"]["open_day"] == fri.isoformat() and r["next"]["state"] == "upcoming" and not r["open"]
+        assert client.post("/api/events/entry", headers=h, json={"title": "x", "image": PNG}).status_code == 403
+        bad = client.post("/api/events/create", headers=ha, json={"day": fri.isoformat(), "open_day": sat.isoformat(), "opens": "10:00", "closes": "18:00"})
+        assert bad.status_code == 400  # must close after it opens
+    a, b, c, d = at(fri, "17:00")
+    with a, b, c, d:
+        assert client.get("/api/events", headers=h).json()["open"] is True
+        assert client.post("/api/events/entry", headers=h, json={"title": "Friday art", "image": PNG}).status_code == 200
+    a, b, c, d = at(sat, "19:00")
+    with a, b, c, d:
+        info = client.get("/api/events", headers=h).json()
+        assert info["open"] and info["mine"]["title"] == "Friday art"  # still open on Saturday, same entry
+    a, b, c, d = at(sat, "20:30")
+    with a, b, c, d:
+        info = client.get("/api/events", headers=h).json()
+        assert not info["open"] and info["past"][0]["entries"][0]["title"] == "Friday art"
