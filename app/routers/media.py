@@ -37,6 +37,9 @@ KEYS = {
     "shaytan-goodjob", # a member fell into Low Honor: "Good job!" before he laughs
     "shaytan-flee",    # the third no: he is blown away
     "shaytan-cut",     # the Honor-cut screen after a deal
+    "charity-ask",     # the man in the cloak begs (a voice)
+    "charity-thanks",  # he thanks them and gives back more (a voice)
+    "charity-reveal",  # "Get lost": the cloak comes off, he's Shaytan: "Good job!" (a voice)
     "gobi-splat",      # a cauliflower splats on the screen of the person it hit
 } | {f"rankup-music-{r}" for r in ("bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond",
                                    "obsidian", "legendary")}  # music for one rank's show (else the general rank-up music)

@@ -1227,3 +1227,25 @@ def test_collecting_achievements_posts_to_community_except_the_oath(client, fami
     posts = [x for x in client.get("/api/news", headers=hb).json()["items"] if x["kind"] == "achievement"]
     assert len(posts) == 1 and len(posts[0]["data"]["items"]) == len(ready)  # one post for "Collect all"
     assert posts[0]["member"]["name"] == "Alpha" and "oath" not in [i["key"] for i in posts[0]["data"]["items"]]
+
+
+def test_man_in_the_cloak_gives_back_more_or_reveals_shaytan(client, family):
+    h, hb, ha = auth(client, family["A"]), auth(client, family["B"]), auth(client, admin=True)
+    for x in (family["A"], family["B"]):
+        client.post(f"/api/admin/members/{x.id}/gems", headers=ha, json={"balance": 30})
+    t = client.post("/api/tests/charity", headers=ha, json={"member_id": family["A"].id, "ask": 20, "give_back": 50}).json()
+    assert client.post("/api/tests/charity", headers=ha, json={"member_id": family["A"].id}).status_code == 400  # one at a time
+    assert client.get("/api/board/profile", headers=h).json()["charity"] == {"id": t["id"], "ask": 20}
+    assert client.post(f"/api/tests/charity/{t['id']}/answer", headers=hb, json={"give": True}).status_code == 403
+    r = client.post(f"/api/tests/charity/{t['id']}/answer", headers=h, json={"give": True}).json()
+    assert r == {"answer": "give", "given": 20, "give_back": 50}
+    p = client.get("/api/board/profile", headers=h).json()
+    assert p["charity"] is None and p["gems"]["balance"] == 60  # 30 − 20 + 50
+    ach = next(x for x in client.get("/api/board/achievements", headers=h).json()["items"] if x["key"] == "sadaqah")
+    assert ach["unlocked"] and ach["tier"] == "silver" and ach["gems"] == 40
+    # Get lost: nothing changes, no achievement
+    t2 = client.post("/api/tests/charity", headers=ha, json={"member_id": family["B"].id, "ask": 100, "give_back": 10}).json()
+    assert client.post(f"/api/tests/charity/{t2['id']}/answer", headers=hb, json={"give": False}).json()["answer"] == "refuse"
+    assert client.get("/api/board/profile", headers=hb).json()["gems"]["balance"] == 30
+    assert not next(x for x in client.get("/api/board/achievements", headers=hb).json()["items"] if x["key"] == "sadaqah")["unlocked"]
+    assert [x["answer"] for x in client.get("/api/tests/charity", headers=ha).json()] == ["refuse", "give"]

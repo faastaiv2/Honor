@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, ApiError, type AdminMember, type ShaytanTest } from "../api";
+import { api, ApiError, type AdminMember, type CharityTest, type ShaytanTest } from "../api";
+import CharityScene from "../lib/Charity";
 import Avatar from "../lib/Avatar";
 import Gem from "../lib/Gem";
 import { fmt } from "../lib/dates";
@@ -17,9 +18,16 @@ export default function Tests() {
   const [error, setError] = useState("");
   const [toast, setToast] = useToast();
   const [amount, setAmount] = useState<Record<string, string>>({});
+  const [charity, setCharity] = useState<CharityTest[] | null>(null);
+  const [cWho, setCWho] = useState("");
+  const [ask, setAsk] = useState("20");
+  const [giveBack, setGiveBack] = useState("50");
+  const [cPreview, setCPreview] = useState(false);
 
   const load = useCallback(() => {
     api.members().then((ms) => { setMembers(ms.filter((m) => m.active)); setWho((w) => w || ms.find((m) => m.active)?.id || ""); }).catch(() => undefined);
+    api.members().then((ms) => setCWho((w) => w || ms.find((m) => m.active)?.id || "")).catch(() => undefined);
+    api.charityTests().then(setCharity).catch(() => undefined);
     api.tests().then(setTests).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load"));
   }, []);
   useEffect(load, [load]);
@@ -50,8 +58,42 @@ export default function Tests() {
         {error && <p className="err">{error}</p>}
       </div>
 
+      <div className="card ts-deploy">
+        <h2>🧥 The man in the cloak</h2>
+        <p className="note">A poor man in a hooded cloak shuffles onto the member's screen and begs for gems.
+          If they <b>give</b>, the gems go (never more than they have), he thanks them and gives back the amount you set, and they earn the
+          “Sadaqah” achievement (Rare, +40 gems). If they say <b>get lost</b>, he throws off the cloak: it was Shaytan, who says “Good job!”, laughs and leaves.</p>
+        <div className="ts-row">
+          <select value={cWho} onChange={(e) => setCWho(e.target.value)} aria-label="Member">
+            {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+          <label className="ts-row">Begs for <input inputMode="numeric" value={ask} onChange={(e) => setAsk(e.target.value.replace(/\D/g, "").slice(0, 4))} aria-label="Gems he begs for" /> <Gem /></label>
+          <label className="ts-row">Gives back <input inputMode="numeric" value={giveBack} onChange={(e) => setGiveBack(e.target.value.replace(/\D/g, "").slice(0, 4))} aria-label="Gems he gives back" /> <Gem /></label>
+          <button className="ts-go" disabled={!cWho} onClick={() => act(() => api.deployCharity(cWho, Math.max(1, Number(ask) || 20), Math.max(0, Number(giveBack) || 0)),
+            `🧥 The man in the cloak is on his way to ${members.find((m) => m.id === cWho)?.name ?? ""}`)}>Send him</button>
+          <button onClick={() => setCPreview(true)}>👁 Preview</button>
+        </div>
+        {charity && charity.length > 0 && (
+          <ul className="ts-list">
+            {charity.map((t) => (
+              <li key={t.id} className="ts-item">
+                <div className="ts-head">
+                  <Avatar avatar={t.member.avatar} color="#ffffff" size={36} />
+                  <b>{t.member.name}</b>
+                  <span className={`ts-state ${t.answer === "give" ? "no" : t.answer === "refuse" ? "yes" : "wait"}`}>
+                    {t.answer === "give" ? `🤲 Gave ${t.given} · got ${t.give_back} back` : t.answer === "refuse" ? "👋 Said get lost" : "⏳ Waiting"}</span>
+                  <small className="note">{fmt(t.created_at.slice(0, 10), { day: "numeric", month: "short" })} · begs {t.ask}, gives back {t.give_back}</small>
+                </div>
+                {t.answer === "" && <div className="ts-row"><span className="ts-done">He appears the next time {t.member.name} opens the app.</span>
+                  <button onClick={() => act(() => api.cancelCharity(t.id), "Called off")}>Call off</button></div>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="card">
-        <h2>Results</h2>
+        <h2>Shaytan results</h2>
         {tests === null ? <p className="note">Loading…</p> : tests.length === 0 ? <p className="note">No tests yet.</p> : (
           <ul className="ts-list">
             {tests.map((t) => (
@@ -80,6 +122,7 @@ export default function Tests() {
         )}
       </div>
       {preview && <ShaytanScene name={name || "Preview"} offer={Math.max(1, Number(offer) || 50)} preview onDone={() => setPreview(false)} />}
+      {cPreview && <CharityScene name={members.find((m) => m.id === cWho)?.name || "Preview"} ask={Math.max(1, Number(ask) || 20)} balance={9999} preview onDone={() => setCPreview(false)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </section>
   );

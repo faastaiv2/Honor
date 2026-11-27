@@ -174,3 +174,81 @@ def seen(test_id: str, body: SeenIn, v: Viewer = Depends(current_viewer), db: Se
         t.reward_seen = True
     db.commit()
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- the man in the cloak (sadaqah)
+from app.models import CharityTest  # noqa: E402
+
+
+def _charity_out(t: CharityTest, m: Member | None) -> dict:
+    return {"id": t.id, "member": {"id": t.member_id, "name": m.name if m else "?", "avatar": m.avatar if m else ""},
+            "ask": t.ask, "give_back": t.give_back, "answer": t.answer, "given": t.given,
+            "answered_at": t.answered_at.isoformat() if t.answered_at else None, "created_at": t.created_at.isoformat()}
+
+
+class CharityIn(BaseModel):
+    member_id: str
+    ask: int = Field(default=20, ge=1, le=1000)
+    give_back: int = Field(default=50, ge=0, le=5000)
+
+
+@router.get("/charity")
+def list_charity(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
+    members = {m.id: m for m in db.scalars(select(Member))}
+    rows = db.scalars(select(CharityTest).order_by(CharityTest.created_at.desc()).limit(100))
+    return [_charity_out(t, members.get(t.member_id)) for t in rows]
+
+
+@router.post("/charity", status_code=201)
+def deploy_charity(body: CharityIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    m = db.get(Member, body.member_id)
+    if not m:
+        raise HTTPException(404, "Member not found")
+    if db.scalar(select(CharityTest.id).where(CharityTest.member_id == m.id, CharityTest.answer == "")):
+        raise HTTPException(400, f"The man in the cloak is already waiting for {m.name}")
+    t = CharityTest(member_id=m.id, ask=body.ask, give_back=body.give_back, created_by=v.name)
+    db.add(t)
+    db.commit()
+    return _charity_out(t, m)
+
+
+@router.delete("/charity/{test_id}", status_code=204)
+def cancel_charity(test_id: str, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> None:
+    t = db.get(CharityTest, test_id)
+    if t:
+        db.delete(t)
+        db.commit()
+
+
+def charity_for(db: Session, member_id: str) -> dict | None:
+    t = db.scalar(select(CharityTest).where(CharityTest.member_id == member_id, CharityTest.answer == "")
+                  .order_by(CharityTest.created_at).limit(1))
+    return {"id": t.id, "ask": t.ask} if t else None
+
+
+class CharityAnswerIn(BaseModel):
+    give: bool
+
+
+@router.post("/charity/{test_id}/answer")
+def answer_charity(test_id: str, body: CharityAnswerIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """Give: the gems go (never more than they have), and he gives back give_back. Get lost: nothing changes,
+    except that they find out who he really was."""
+    from app.services import gem_balance, get_settings_row
+    t = db.get(CharityTest, test_id)
+    if not t:
+        raise HTTPException(404, "No such test")
+    if v.kind != "member" or v.id != t.member_id:
+        raise HTTPException(403, "Not your test")
+    if t.answer:
+        raise HTTPException(400, "Already answered")
+    t.answer, t.answered_at = ("give" if body.give else "refuse"), datetime.now(timezone.utc)
+    if body.give:
+        m = db.get(Member, t.member_id)
+        t.given = max(0, min(t.ask, gem_balance(db, get_settings_row(db), m)))
+        if t.given:
+            db.add(GemGrant(member_id=t.member_id, delta=-t.given, note="Sadaqah to the man in the cloak", created_by="Honor"))
+        if t.give_back:
+            db.add(GemGrant(member_id=t.member_id, delta=t.give_back, note="The man in the cloak gave back more", created_by="Honor"))
+    db.commit()
+    return {"answer": t.answer, "given": t.given, "give_back": t.give_back if body.give else 0}

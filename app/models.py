@@ -303,3 +303,18 @@ class Feedback(Base):
     read: Mapped[bool] = mapped_column(Boolean, default=False)
     done: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class CharityTest(Base):
+    """A test the admin sends: a man in a cloak begs a member for gems. Give: he gives back more (sadaqah).
+    Get lost: he throws off the cloak, he was Shaytan all along, and he laughs."""
+    __tablename__ = "charity_tests"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    ask: Mapped[int] = mapped_column(Integer, default=20)  # gems he begs for
+    give_back: Mapped[int] = mapped_column(Integer, default=50)  # gems he returns if they give
+    answer: Mapped[str] = mapped_column(String(8), default="")  # "", "give" or "refuse"
+    given: Mapped[int] = mapped_column(Integer, default=0)  # gems actually given (never more than they had)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(120), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

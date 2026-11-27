@@ -37,7 +37,7 @@ export interface BoardRow extends Status {
 }
 export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary"; unlock?: { key: string; name: string; text: string; tier?: string; icon?: string }; special?: "godfather" }
 export interface Profile extends Status {
-  raid?: { stolen: number } | null; avatar_nudge?: boolean; new_likes?: { names: string[]; count: number; likes: number; what: string } | null; shaytan?: ShaytanShow | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[]; gobi_splat?: string[];
+  raid?: { stolen: number } | null; avatar_nudge?: boolean; new_likes?: { names: string[]; count: number; likes: number; what: string } | null; shaytan?: ShaytanShow | null; charity?: { id: string; ask: number } | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[]; gobi_splat?: string[];
   member: { id: string; name: string; avatar: string; frame: string; theme: string; shamed?: boolean; own_avatar?: string; own_frame?: string };
   week_delta: number; streak: number;
   gems: { balance: number; earned: number; spent: number; claimed: number; today: number; from_tasks: number; from_levels: number };
@@ -86,6 +86,8 @@ export interface ShaytanTest { id: string; member: { id: string; name: string; a
 export type ShaytanShow = { id: string; show: "offer"; offer: number; ladder: number[] } | { id: string; show: "cut"; levels: number } | { id: string; show: "reward"; gems: number };
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 
+export interface CharityTest { id: string; member: { id: string; name: string; avatar: string }; ask: number; give_back: number;
+  answer: "" | "give" | "refuse"; given: number; answered_at: string | null; created_at: string }
 export interface FeedbackItem { id: string; kind: "feature" | "bug"; text: string; page: string; name: string; read: boolean; done: boolean; created_at: string }
 
 export class ApiError extends Error {
@@ -98,7 +100,7 @@ export class ApiError extends Error {
 
 export type RankSoundKey = `rankup-music-${"bronze" | "silver" | "gold" | "platinum" | "emerald" | "sapphire" | "ruby" | "diamond" | "obsidian" | "legendary"}`;
 export type SoundKey = RankSoundKey | "quest-music" | "quest-thunder" | "quest-crack" | "rankup-music" | "chest" | "gems" | "gems-crack" | "collect" | "achievement" | "event-win" | "goblins" | "godfather"
-  | "shaytan-arrive" | "shaytan-offer1" | "shaytan-offer2" | "shaytan-offer3" | "shaytan-grumble" | "shaytan-laugh" | "shaytan-goodjob" | "shaytan-flee" | "shaytan-cut" | "gobi-splat";
+  | "shaytan-arrive" | "shaytan-offer1" | "shaytan-offer2" | "shaytan-offer3" | "shaytan-grumble" | "shaytan-laugh" | "shaytan-goodjob" | "shaytan-flee" | "shaytan-cut" | "gobi-splat" | "charity-ask" | "charity-thanks" | "charity-reveal";
 export interface MusicInfo { has: boolean; start: number; end: number; offset_ms: number; volume: number; size: number; updated: string | null }
 
 export const token = {
@@ -197,6 +199,10 @@ export const api = {
   godfatherSeen: () => request<{ ok: boolean }>("/board/profile/godfather-seen", send("POST", {})),
   setAdminTheme: (theme: "white" | "dark") => request<{ theme: string }>("/admin/theme", send("PUT", { theme })),
   tests: () => request<ShaytanTest[]>("/tests"),
+  charityTests: () => request<CharityTest[]>("/tests/charity"),
+  deployCharity: (member_id: string, ask: number, give_back: number) => request<CharityTest>("/tests/charity", send("POST", { member_id, ask, give_back })),
+  cancelCharity: (id: string) => request<void>(`/tests/charity/${id}`, send("DELETE")),
+  answerCharity: (id: string, give: boolean) => request<{ answer: string; given: number; give_back: number }>(`/tests/charity/${id}/answer`, send("POST", { give })),
   deployShaytan: (member_id: string, offer: number, cut: number) => request<ShaytanTest>("/tests/shaytan", send("POST", { member_id, offer, cut })),
   cancelTest: (id: string) => request<void>(`/tests/${id}`, { method: "DELETE" }),
   cutTest: (id: string, levels: number) => request<ShaytanTest>(`/tests/${id}/cut`, send("POST", { levels })),

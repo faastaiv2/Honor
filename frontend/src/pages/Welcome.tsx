@@ -15,6 +15,7 @@ import GodfatherReveal from "../lib/GodfatherReveal";
 import AchievementPop, { type NewAchievement } from "../lib/AchievementPop";
 import WeeklyMap, { MapButton } from "../lib/WeeklyMap";
 import ShaytanScene, { ShaytanCheer, ShaytanCut } from "../lib/Shaytan";
+import CharityScene from "../lib/Charity";
 import GobiSplat from "../lib/GobiSplat";
 import SoundGate from "../lib/SoundGate";
 
@@ -264,6 +265,16 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
         <SoundGate icon="😈"><ShaytanScene name={p.member.name} offer={s.show === "offer" ? s.offer : 50} ladder={s.show === "offer" ? s.ladder : undefined}
           onAnswer={async (accept, refusals) => { await api.answerShaytan(s.id, accept, refusals).catch(() => undefined); }}
           onDone={() => { api.profile().then(setP).catch(() => undefined); notifyChanged(); }} /></SoundGate>); })()}
+      {p?.charity && !p.shaytan && !godfather && raid === null && !rankUp && !reward && (() => { const c = p.charity!; return (
+        <SoundGate icon="🧥"><CharityScene name={p.member.name} ask={c.ask} balance={p.gems.balance}
+          onAnswer={(give) => api.answerCharity(c.id, give).catch(() => undefined)}
+          onDone={(back) => {
+            api.profile().then((np) => {
+              setP(np);
+              if (back > 0) setReward({ amount: back, from: Math.max(0, np.gems.balance - back), title: "Sadaqah · given back", chest: false });
+            }).catch(() => undefined);
+            notifyChanged();
+          }} /></SoundGate>); })()}
       {p?.shaytan?.show === "cut" && !rankUp && !reward && (() => { const s = p.shaytan!; return (
         <SoundGate icon="😈"><ShaytanCut levels={s.show === "cut" ? s.levels : 1}
           onDone={() => { api.shaytanSeen(s.id, "cut").then(() => api.profile()).then(setP).catch(() => undefined); notifyChanged(); }} /></SoundGate>); })()}

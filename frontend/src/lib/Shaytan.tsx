@@ -11,7 +11,7 @@ import type { SoundKey } from "../api";
  */
 
 /** Shaytan himself: an original cartoon imp. View box 0 0 200 220. */
-function Devil() {
+export function Devil() {
   return (
     <svg viewBox="0 0 200 220" className="sh-devil" aria-hidden="true">
       <defs>
