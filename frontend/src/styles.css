@@ -3777,11 +3777,6 @@ nav.tabs .who .help-btn { font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { .psl-dust i, .psl-chest, .psl-lid, .psl-aura, .psl-coin, .psl-gem { animation: none !important; } }
 
 /* ---- Legendary rank-up, upgraded: pillars of light, golden wings, a halo, and a sky that turns gold ---- */
-.ru-goldsky { position: absolute; inset: 0; opacity: 0; transition: opacity 1.4s ease; pointer-events: none;
-  background: radial-gradient(circle at 50% 40%, #fff6c8 0%, #ffd24a 22%, #d99a10 48%, #8a5a00 75%, #3a2300 100%); }
-.ru-legendary.act-4 .ru-goldsky, .ru-legendary.act-5 .ru-goldsky { opacity: 1; }
-.ru-legendary.act-4 .ru-drawn g, .ru-legendary.act-5 .ru-drawn g { stroke: #fff8dc; }
-.ru-legendary.act-4 .ru-arch, .ru-legendary.act-5 .ru-arch { border-color: #fff6c8; box-shadow: 0 0 40px #fff6c8, inset 0 0 50px #fff6c888; }
 .ru-pillars i { position: absolute; top: -10%; left: calc(10% + var(--i) * 20%); width: 7vw; max-width: 90px; height: 0; translate: -50% 0;
   background: linear-gradient(180deg, #fffbe6ee, #ffe58a66 60%, transparent); filter: blur(10px); opacity: 0; transition: height 1.6s calc(var(--i) * .22s) cubic-bezier(.2, .8, .3, 1), opacity 1s; }
 .ru-legendary.act-2 .ru-pillars i, .ru-legendary.act-3 .ru-pillars i { height: 120%; opacity: .55; }

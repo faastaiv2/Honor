@@ -65,9 +65,9 @@ const SCRIPTS: Record<string, (e: Engine, c: string[], at: At, shake: Shake) => 
     at(7500, () => { e.emit("petal", 40, 2500, c); e.emit("confetti", 45, 2500, c); });
     [7800, 8500, 9200].forEach((t) => at(t, () => e.firework(c)));
   },
-  // The ocean at night: rising bubbles, shooting stars, a star-tide pulls in.
+  // The ocean at night: shooting stars, a star-tide pulls in.
   sapphire: (e, c, at) => {
-    e.burst("star", 220, ["#ffffff", "#dbe8ff"]); e.emit("bubble", 12, FILM, ["#bfe0ff", "#7fb0ff"]);
+    e.burst("star", 220, ["#ffffff", "#dbe8ff"]);
     e.emit("streak", 1.4, FILM, ["#ffffff", "#bcd6ff"]);
     at(2500, () => e.emit("gold", 90, 2400, c));
     at(5000, () => { e.burst("sparkle", 200, c); e.burst("ring", 48, c); });
@@ -191,8 +191,8 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
       at(FILM, () => setReady(true));
     } else {
       // Legendary: a 19-second show in five acts. The heartbeat in the dark · golden stars draw themselves and
-      // pillars of light fall · the crown descends · a flash: the world turns gold ·
-      // the celebration (fireworks). From act 4 on the background stays gold.
+      // pillars of light fall · the crown descends · a flash ·
+      // the celebration (fireworks).
       setAct(1);
       e.burst("star", 260, ["#ffffff", "#ffe9a8"]);
       at(1800, () => e.burst("star", 120, ["#ffe9a8", "#ffd24a"]));
@@ -244,7 +244,6 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
       {lvl >= 6 && <div className="ru-beam" />}
       {legendary && <DrawnPattern />}
       {legendary && <div className="ru-arch" />}
-      {legendary && <div className="ru-goldsky" aria-hidden="true" />}
       {legendary && <div className="ru-pillars" aria-hidden="true">{Array.from({ length: 5 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
       <div className="ru-rings">{Array.from({ length: Math.min(4, 2 + Math.floor(lvl / 4)) }, (_, i) => <i key={i} style={{ animationDelay: `${0.5 + i * 0.35}s` }} />)}</div>
       <div className="ru-flash" />
