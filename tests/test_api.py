@@ -1318,3 +1318,22 @@ def test_thirsty_kitten_secret_mercy_unlocks_pharaoh_cat(client, family):
     assert pharaoh(h)["available"] and pharaoh(h)["unlock"]["name"] == "Mercy to All Creatures"
     client.post(f"/api/tests/kitten/{tb['id']}/answer", headers=hb, json={"water": False})
     assert not mercy(hb)["unlocked"] and not pharaoh(hb)["available"]
+
+
+def test_left_the_kitten_post_gets_reactions_not_likes(client, family):
+    h, hb, ha = auth(client, family["A"]), auth(client, family["B"]), auth(client, admin=True)
+    t = client.post("/api/tests/kitten", headers=ha, json={"member_id": family["A"].id}).json()
+    assert client.post(f"/api/tests/kitten/{t['id']}/post", headers=ha).status_code == 400  # not answered yet
+    client.post(f"/api/tests/kitten/{t['id']}/answer", headers=h, json={"water": False})
+    assert client.post(f"/api/tests/kitten/{t['id']}/post", headers=ha).json()["posted"] is True
+    assert client.post(f"/api/tests/kitten/{t['id']}/post", headers=ha).status_code == 400  # once
+    post = next(x for x in client.get("/api/news", headers=hb).json()["items"] if x["kind"] == "kitten")
+    assert "left the kitten" in post["title"] and post["reactions"] == {"👎": 0, "😤": 0, "😠": 0}
+    assert client.post(f"/api/news/{post['id']}/like", headers=hb).status_code == 400  # no ❤️ here
+    r = client.post(f"/api/news/{post['id']}/like", headers=hb, json={"reaction": "😤"}).json()
+    assert r["reactions"]["😤"] == 1 and r["my_reaction"] == "😤"
+    r = client.post(f"/api/news/{post['id']}/like", headers=hb, json={"reaction": "👎"}).json()  # switch
+    assert r["reactions"] == {"👎": 1, "😤": 0, "😠": 0}
+    client.post(f"/api/news/{post['id']}/like", headers=ha, json={"reaction": "😠"})
+    assert client.post(f"/api/news/{post['id']}/like", headers=hb, json={"reaction": "👎"}).json()["my_reaction"] == ""  # take back
+    assert client.get("/api/board/profile", headers=h).json()["new_likes"] is None  # no "people liked your post" pop-up

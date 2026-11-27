@@ -3241,3 +3241,37 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .gobi-standing { width: 100%; height: 100%; animation: gobi-taunt 1.2s ease-in-out infinite; transform-origin: 50% 100%; }
 .gobi-standing .bl-kid { width: 100%; height: 100%; }
 @keyframes gobi-taunt { 50% { transform: translateY(-4px) rotate(-2deg); } }
+/* Community: "left the kitten" posts */
+.cm-post.k-kitten { background: linear-gradient(180deg, color-mix(in srgb, #e8b866 22%, var(--paper)), var(--paper) 60%); border-color: color-mix(in srgb, #c08a40 40%, var(--line)); }
+.cm-desert { position: relative; height: 92px; margin-bottom: 10px; border-radius: 14px; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; gap: 18px; padding-bottom: 6px;
+  background: linear-gradient(180deg, #ffcf8a, #f2c27a 60%, #dca556 60%); filter: saturate(.7); font-size: 34px; }
+.cm-desert-sun { position: absolute; right: 14px; top: 10px; width: 30px; height: 30px; border-radius: 50%; background: #ffe08a; box-shadow: 0 0 20px #ffd24a; }
+.cm-desert-cat { font-size: 40px; animation: kt-sway 2.6s ease-in-out infinite; }
+.cm-reacts { display: inline-flex; gap: 8px; }
+.cm-react { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 12px; border-radius: 99px; font-weight: 800; }
+.cm-react span { font-size: 18px; transition: transform .15s; }
+.cm-react:active span { transform: scale(1.4); }
+.cm-react.on { background: color-mix(in srgb, #e0453a 14%, var(--paper)); border-color: color-mix(in srgb, #e0453a 45%, var(--line)); color: light-dark(#a02a20, #ff9a8a); }
+/* the kitten left thirsty: it goes still and its soul rises to Heaven */
+.kt.kt-still { filter: saturate(.4) brightness(.8); }
+.kt.kt-soul { filter: none; background: linear-gradient(180deg, #5a6a9a 0%, #a89ab8 45%, #d8c8b0 75%); }
+.kt.kt-soul .kt-sky, .kt.kt-leave .kt-sky { filter: saturate(.35) brightness(.75); }
+.c-still { filter: grayscale(.85) brightness(.9); transition: filter 1.5s; }
+.kt-beam { position: absolute; left: 50%; top: 0; bottom: 24%; width: min(240px, 56vw); transform: translateX(-50%); pointer-events: none; z-index: 1;
+  background: linear-gradient(180deg, #fffbe8 0%, #fff3c0cc 40%, #fff6d855 80%, transparent); clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%); filter: blur(2px);
+  animation: kt-beam 1.6s ease-out both; }
+@keyframes kt-beam { from { opacity: 0; transform: translateX(-50%) scaleY(.2); transform-origin: 50% 0; } }
+.kt-beam i { position: absolute; bottom: 0; left: calc(10% + var(--i) * 8%); width: 4px; height: 4px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px #fff8c0;
+  animation: kt-mote 3s calc(var(--i) * .3s) linear infinite; }
+@keyframes kt-mote { from { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } to { transform: translateY(-60vh); opacity: 0; } }
+.kt-ghost { position: absolute; inset: 0; z-index: 3; opacity: .85; filter: brightness(1.6) saturate(.3) drop-shadow(0 0 18px #fff6c0);
+  animation: kt-ascend 6.5s 1s cubic-bezier(.45,0,.55,1) both; }
+@keyframes kt-ascend { 0% { transform: translateY(10%) scale(.9); opacity: 0; } 15% { opacity: .85; } 85% { opacity: .75; } 100% { transform: translateY(-120vh) scale(.8); opacity: 0; } }
+.kt-ghost .kt-cat { position: absolute; inset: 0; }
+.kt-halo { position: absolute; left: 50%; top: 2%; width: 44%; height: 9%; transform: translateX(-50%); border-radius: 50%; border: 5px solid #ffd24a; box-shadow: 0 0 16px #ffd24a, inset 0 0 8px #fff3a0; z-index: 2; animation: kt-halo-glow 1.4s ease-in-out infinite alternate; }
+@keyframes kt-halo-glow { to { box-shadow: 0 0 28px #ffe680, inset 0 0 12px #fff8c0; } }
+.kt-wing { position: absolute; top: 52%; width: 30%; height: 22%; background: radial-gradient(ellipse at 100% 50%, #fff, #f4f0ff 60%, transparent 70%); border-radius: 80% 10% 60% 40%; animation: kt-flutter .6s ease-in-out infinite alternate; }
+.kt-wing.l { left: 8%; transform-origin: 100% 50%; } .kt-wing.r { right: 8%; transform: scaleX(-1); transform-origin: 0 50%; }
+@keyframes kt-flutter { to { rotate: -14deg; } }
+.kt-bubble.soul { background: #fffdf4; color: #5a4a6a; box-shadow: 0 0 30px #fff6c0aa; }
+.kt-bubble.soul small { font-weight: 600; opacity: .8; }

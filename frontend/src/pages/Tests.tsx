@@ -118,6 +118,8 @@ export default function Tests() {
                     {t.answer === "water" ? `💧 Gave water (all ${t.gems} gems, returned)` : t.answer === "walk" ? "🚶 Walked past" : "⏳ Waiting"}</span>
                   <small className="note">{fmt(t.created_at.slice(0, 10), { day: "numeric", month: "short" })}</small>
                 </div>
+                {t.answer === "walk" && <div className="ts-row">{t.posted ? <span className="ts-done">Posted to Community ✓</span>
+                  : <button onClick={() => act(() => api.postKitten(t.id), "Posted to Community")}>📣 Post “{t.member.name} left the kitten to die in the desert”</button>}</div>}
                 {!t.answer && <div className="ts-row"><span className="ts-done">The kitten appears the next time {t.member.name} opens the app.</span>
                   <button onClick={() => act(() => api.cancelKitten(t.id), "Called off")}>Call off</button></div>}
               </li>

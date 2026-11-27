@@ -68,7 +68,17 @@ def _out(a: Announcement, seen: datetime | None, likes: list[PostLike] | None = 
             "data": a.data or {},
             "member": {"id": m.id, "name": m.name, "avatar": m.avatar, "frame": m.frame} if m else None,
             "likes": len(likes), "liked": any(x.who == me for x in likes), "likers": [x.name for x in likes][:8],
-            "liker_looks": [_look(x, members) for x in likes][:8]}
+            "liker_looks": [_look(x, members) for x in likes][:8],
+            **({"reactions": _reactions(likes), "my_reaction": next((x.reaction for x in likes if x.who == me), "")}
+               if a.kind in REACTION_KINDS else {})}
+
+
+REACTIONS = ("👎", "😤", "😠")
+REACTION_KINDS = {"kitten"}  # posts people react to with 👎 😤 😠 instead of ❤️
+
+
+def _reactions(likes: list[PostLike]) -> dict:
+    return {r: sum(1 for x in likes if x.reaction == r) for r in REACTIONS}
 
 
 def _look(x: PostLike, members: dict | None) -> dict:
@@ -107,20 +117,35 @@ def mark_seen(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)
     return {"unread": 0}
 
 
+class ReactIn(BaseModel):
+    reaction: str = ""
+
+
 @router.post("/{news_id}/like")
-def like(news_id: str, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
-    """❤️ a post, or take the ❤️ back."""
+def like(news_id: str, body: ReactIn | None = None, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """❤️ a post, or take the ❤️ back. On "left the kitten" posts: 👎 😤 or 😠 instead (one each; the same again takes it back)."""
     a = db.get(Announcement, news_id)
     if not a:
         raise HTTPException(404, "No such post")
+    react = a.kind in REACTION_KINDS
+    r = (body.reaction if body else "") if react else ""
+    if react and r not in REACTIONS:
+        raise HTTPException(400, "React with 👎, 😤 or 😠")
     mine = db.scalar(select(PostLike).where(PostLike.post_id == a.id, PostLike.who == _who(v)))
-    if mine:
+    on = True
+    if mine and (not react or mine.reaction == r):
         db.delete(mine)
+        on = False
+    elif mine:
+        mine.reaction = r
     else:
-        db.add(PostLike(post_id=a.id, who=_who(v), name=v.name))
+        db.add(PostLike(post_id=a.id, who=_who(v), name=v.name, reaction=r))
     db.commit()
     rows = list(db.scalars(select(PostLike).where(PostLike.post_id == a.id).order_by(PostLike.created_at)))
-    return {"likes": len(rows), "liked": not mine, "likers": [x.name for x in rows][:8]}
+    out = {"likes": len(rows), "liked": on, "likers": [x.name for x in rows][:8]}
+    if react:
+        out |= {"reactions": _reactions(rows), "my_reaction": r if on else ""}
+    return out
 
 
 @router.post("", status_code=201)

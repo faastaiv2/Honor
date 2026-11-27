@@ -859,7 +859,7 @@ def _new_likes(db: Session, m: Member) -> dict | None:
     since = m.likes_seen_at if m.likes_seen_at.tzinfo else m.likes_seen_at.replace(tzinfo=timezone.utc)
     rows = db.execute(select(PostLike.name, PostLike.created_at, Announcement.kind, Announcement.data)
                       .join(Announcement, Announcement.id == PostLike.post_id)
-                      .where(Announcement.member_id == m.id, PostLike.who != f"member:{m.id}")
+                      .where(Announcement.member_id == m.id, PostLike.who != f"member:{m.id}", Announcement.kind != "kitten")
                       .order_by(PostLike.created_at.desc())).all()
     rows = [r for r in rows if (r[1] if r[1].tzinfo else r[1].replace(tzinfo=timezone.utc)) > since]
     if not rows:

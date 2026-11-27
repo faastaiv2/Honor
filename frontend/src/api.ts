@@ -75,11 +75,12 @@ export interface EventsInfo {
 export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number>; members: string[] }
 export interface Period extends PeriodIn { id: string }
 export interface News {
-  id: string; kind: "post" | "picture" | "win" | "shaytan" | "achievement"; title: string; body: string; emoji: string; pinned: boolean; author: string; created_at: string; new: boolean;
+  id: string; kind: "post" | "picture" | "win" | "shaytan" | "achievement" | "kitten"; title: string; body: string; emoji: string; pinned: boolean; author: string; created_at: string; new: boolean;
   data: { avatar?: string; picture?: string; entry_id?: string; art?: string; event?: string; gems?: number; items?: { key: string; name: string; icon: string; tier: string; tier_name: string; gems: number }[] };
   member: { id: string; name: string; avatar: string; frame: string } | null;
   likes: number; liked: boolean; likers: string[];
   liker_looks?: { name: string; avatar: string; frame: string; parent: boolean }[];
+  reactions?: Record<string, number>; my_reaction?: string;
 }
 export interface NewsIn { title: string; body: string; emoji: string; pinned: boolean }
 export interface ShaytanTest { id: string; member: { id: string; name: string; avatar: string }; offer: number; answer: "" | "yes" | "no";
@@ -96,7 +97,7 @@ export interface QuizShow { id: string; gems_each: number; answers: number[]; qu
 export interface BullyTest { id: string; member: { id: string; name: string; avatar: string }; answer: "" | "gobi" | "mean" | "kind"; paid: number; answered_at: string | null; created_at: string }
 export interface QuizTest { id: string; member: { id: string; name: string; avatar: string }; questions: Required<QuizQuestion>[]; gems_each: number; answers: number[];
   right: number; finished_at: string | null; created_at: string }
-export interface KittenTest { id: string; member: { id: string; name: string; avatar: string }; answer: "" | "water" | "walk"; gems: number; answered_at: string | null; created_at: string }
+export interface KittenTest { id: string; member: { id: string; name: string; avatar: string }; answer: "" | "water" | "walk"; gems: number; posted: boolean; answered_at: string | null; created_at: string }
 export interface FeedbackItem { id: string; kind: "feature" | "bug"; text: string; page: string; name: string; read: boolean; done: boolean; created_at: string }
 
 export class ApiError extends Error {
@@ -166,7 +167,7 @@ export const api = {
   watched: (member_id: string, date: string, task: string) =>
     request<{ watched: string[] }>("/board/watched", send("POST", { member_id, date, task })),
   news: () => request<{ items: News[]; unread: number; family?: { id: string; name: string; avatar: string; frame: string }[] }>("/news"),
-  likeNews: (id: string) => request<{ likes: number; liked: boolean; likers: string[] }>(`/news/${encodeURIComponent(id)}/like`, send("POST", {})),
+  likeNews: (id: string, reaction = "") => request<{ likes: number; liked: boolean; likers: string[] }>(`/news/${encodeURIComponent(id)}/like`, send("POST", reaction ? { reaction } : {})),
   newsSeen: () => request<{ unread: number }>("/news/seen", send("POST", {})),
   addNews: (body: NewsIn) => request<News>("/news", send("POST", body)),
   editNews: (id: string, body: Partial<NewsIn>) => request<News>(`/news/${encodeURIComponent(id)}`, send("PATCH", body)),
@@ -210,6 +211,7 @@ export const api = {
   tests: () => request<ShaytanTest[]>("/tests"),
   kittenTests: () => request<KittenTest[]>("/tests/kitten"),
   sendKitten: (member_id: string) => request<KittenTest>("/tests/kitten", send("POST", { member_id })),
+  postKitten: (id: string) => request<KittenTest>(`/tests/kitten/${id}/post`, send("POST", {})),
   cancelKitten: (id: string) => request<void>(`/tests/kitten/${id}`, send("DELETE")),
   answerKitten: (id: string, water: boolean) => request<{ answer: string; gems: number }>(`/tests/kitten/${id}/answer`, send("POST", { water })),
   bullyTests: () => request<BullyTest[]>("/tests/bully"),

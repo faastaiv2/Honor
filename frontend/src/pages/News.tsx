@@ -101,8 +101,21 @@ export default function NewsPage({ admin }: { admin: boolean }) {
     setItems((xs) => xs && xs.map((x) => x.id === n.id ? { ...x, liked: !x.liked, likes: x.likes + (x.liked ? -1 : 1) } : x));
     try { await api.likeNews(n.id); load(); } catch { load(); }
   };
+  // "Left the kitten" posts: 👎 😤 😠 instead of ❤️ (one each; tap the same again to take it back).
+  const react = async (n: News, r: string) => {
+    setItems((xs) => xs && xs.map((x) => {
+      if (x.id !== n.id) return x;
+      const re = { ...(x.reactions ?? {}) };
+      if (x.my_reaction) re[x.my_reaction] = Math.max(0, (re[x.my_reaction] ?? 1) - 1);
+      const mine = x.my_reaction === r ? "" : r;
+      if (mine) re[mine] = (re[mine] ?? 0) + 1;
+      return { ...x, reactions: re, my_reaction: mine };
+    }));
+    try { await api.likeNews(n.id, r); load(); } catch { load(); }
+  };
   // Double-tap a post to like it.
   const tap = (n: News) => {
+    if (n.kind === "kitten") return;
     const now = Date.now(), l = lastTap.current;
     if (l && l.id === n.id && now - l.t < 350) { lastTap.current = null; if (!n.liked) void like(n); else { setBurst(n.id); window.setTimeout(() => setBurst(null), 700); } }
     else lastTap.current = { id: n.id, t: now };
@@ -114,7 +127,7 @@ export default function NewsPage({ admin }: { admin: boolean }) {
   const count = (f: Filter) => (items ?? []).filter((n) => f === "all" || (n.kind || "post") === f).length;
 
   const author = (n: News & { member: News["member"] }) => {
-    if ((n.kind === "picture" || n.kind === "win" || n.kind === "shaytan" || n.kind === "achievement") && n.member) return { look: { name: n.member.name, avatar: n.member.avatar, frame: n.member.frame } as Look, name: n.member.name, tag: null };
+    if ((n.kind === "picture" || n.kind === "win" || n.kind === "shaytan" || n.kind === "achievement" || n.kind === "kitten") && n.member) return { look: { name: n.member.name, avatar: n.member.avatar, frame: n.member.frame } as Look, name: n.member.name, tag: null };
     return { look: { name: n.author || "Admin", avatar: "", frame: "", parent: true } as Look, name: n.author || "Admin", tag: "Admin" };
   };
 
@@ -209,6 +222,13 @@ export default function NewsPage({ admin }: { admin: boolean }) {
                 </ul>
               </div>
             )}
+            {kind === "kitten" && (
+              <div className="cm-body kitten">
+                <div className="cm-desert" aria-hidden="true"><span className="cm-desert-sun" /><span>🏜️</span><span className="cm-desert-cat">😿</span></div>
+                <p className="cm-text big">{n.title}</p>
+                {n.body && <p className="cm-text">{n.body}</p>}
+              </div>
+            )}
             {kind === "shaytan" && (
               <div className="cm-body shaytan">
                 <p className="cm-text big">😈 {n.title}</p>
@@ -223,7 +243,15 @@ export default function NewsPage({ admin }: { admin: boolean }) {
             )}
 
             <footer className="cm-foot" onClick={(e) => e.stopPropagation()}>
-              <Likes n={n} onLike={() => like(n)} burst={burst === n.id} />
+              {kind === "kitten" ? (
+                <span className="cm-reacts" role="group" aria-label="React">
+                  {["👎", "😤", "😠"].map((r) => (
+                    <button key={r} className={`cm-react${n.my_reaction === r ? " on" : ""}`} aria-pressed={n.my_reaction === r} onClick={() => react(n, r)}>
+                      <span aria-hidden="true">{r}</span><b>{n.reactions?.[r] ?? 0}</b>
+                    </button>
+                  ))}
+                </span>
+              ) : <Likes n={n} onLike={() => like(n)} burst={burst === n.id} />}
               {admin && (
                 <span className="news-tools">
                   {kind === "post" && <button onClick={() => edit(n)}>Edit</button>}

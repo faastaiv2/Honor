@@ -495,7 +495,7 @@ from app.models import KittenTest  # noqa: E402
 
 
 def _kitten_out(db: Session, t: KittenTest) -> dict:
-    return {"id": t.id, "member": _member_brief(db, t.member_id), "answer": t.answer, "gems": t.gems,
+    return {"id": t.id, "member": _member_brief(db, t.member_id), "answer": t.answer, "gems": t.gems, "posted": t.posted,
             "answered_at": t.answered_at.isoformat() if t.answered_at else None, "created_at": t.created_at.isoformat()}
 
 
@@ -523,6 +523,25 @@ def cancel_kitten(test_id: str, _: Viewer = Depends(require_admin), db: Session 
     if t and not t.answer:
         db.delete(t)
         db.commit()
+
+
+@router.post("/kitten/{test_id}/post")
+def post_kitten(test_id: str, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    """Tell the family: they walked past and left the kitten in the desert. People react with 👎 😤 😠."""
+    t = db.get(KittenTest, test_id)
+    if not t:
+        raise HTTPException(404, "No such test")
+    if t.answer != "walk":
+        raise HTTPException(400, "Only when they walked past the kitten")
+    if t.posted:
+        raise HTTPException(400, "Already posted")
+    m = db.get(Member, t.member_id)
+    from app.routers.news import system_post
+    system_post(db, "kitten", m, f"{m.name} left the kitten to die in the middle of the desert 😿", {}, emoji="😿",
+                body=f"A thin, thirsty kitten begged for water, and {m.name} just walked past.")
+    t.posted = True
+    db.commit()
+    return _kitten_out(db, t)
 
 
 def kitten_for(db: Session, member_id: str) -> dict | None:

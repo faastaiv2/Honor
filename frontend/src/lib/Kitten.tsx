@@ -11,7 +11,7 @@ import { playSound } from "./sounds";
  * lies down sadly, with nothing lost.
  */
 
-type Mood = "thirsty" | "drink" | "happy" | "sad";
+type Mood = "thirsty" | "drink" | "happy" | "sad" | "still";
 
 /** Big shiny kitten eyes (teary when thirsty). */
 function KEyes({ teary }: { teary: boolean }) {
@@ -37,7 +37,7 @@ function Cat({ mood }: { mood: Mood }) {
   return (
     <svg viewBox="0 0 200 200" className={`kt-cat c-${mood}`} aria-hidden="true">
       <ellipse cx="100" cy="190" rx="54" ry="7" fill="#0002" />
-      {mood === "sad" ? (
+      {mood === "sad" || mood === "still" ? (
         <g>
           {/* curled up, ears flat */}
           <path d="M46 184 Q34 154 72 150 Q132 144 156 164 Q166 180 146 186 Q100 194 46 184Z" fill={fur} stroke={line} strokeWidth="2" />
@@ -47,7 +47,7 @@ function Cat({ mood }: { mood: Mood }) {
             <ellipse cx="60" cy="106" rx="38" ry="32" fill={fur} stroke={line} strokeWidth="2" />
             <path d="M54 76 q6 -6 12 0" stroke={dark} strokeWidth="5" fill="none" strokeLinecap="round" />
             <path d="M40 106 q7 5 14 0 M66 106 q7 5 14 0" stroke="#3a2412" strokeWidth="3.4" fill="none" strokeLinecap="round" />
-            <path d="M47 114 v7 M73 114 v7" stroke="#9ad8ff" strokeWidth="3" strokeLinecap="round" className="kt-tear" />
+            {mood === "sad" && <path d="M47 114 v7 M73 114 v7" stroke="#9ad8ff" strokeWidth="3" strokeLinecap="round" className="kt-tear" />}
             <path d="M56 118 h8 l-4 4z" fill="#ff8aa6" />
           </g>
         </g>
@@ -94,7 +94,7 @@ function Cat({ mood }: { mood: Mood }) {
   );
 }
 
-type Stage = "arrive" | "choose" | "pay" | "drink" | "happy" | "pharaoh" | "walk" | "leave";
+type Stage = "arrive" | "choose" | "pay" | "drink" | "happy" | "pharaoh" | "walk" | "still" | "soul" | "leave";
 
 export default function KittenScene({ name, balance, onAnswer, onDone, preview = false }: {
   name: string; balance: number;
@@ -117,13 +117,17 @@ export default function KittenScene({ name, balance, onAnswer, onDone, preview =
       later(5200, () => setStage("happy"));
       later(7600, () => { setStage("pharaoh"); void playSound("kitten-pharaoh"); });
     } else {
+      // Left thirsty: it lies down, goes still, and its little soul rises to Heaven in a beam of light.
       setStage("walk");
-      later(5500, () => setStage("leave"));
-      later(6500, () => onDone(0));
+      later(3200, () => setStage("still"));
+      later(5200, () => setStage("soul"));
+      later(12000, () => setStage("leave"));
+      later(13000, () => onDone(0));
     }
   }
 
-  const mood: Mood = stage === "drink" ? "drink" : stage === "happy" ? "happy" : stage === "walk" || stage === "leave" ? "sad" : "thirsty";
+  const mood: Mood = stage === "drink" ? "drink" : stage === "happy" ? "happy" : stage === "walk" ? "sad"
+    : stage === "still" || stage === "soul" || stage === "leave" ? "still" : "thirsty";
   return createPortal(
     <div className={`kt kt-${stage}`} role="dialog" aria-modal="true" aria-label="A thirsty kitten in the desert">
       <div className="kt-sky" aria-hidden="true">
@@ -150,8 +154,10 @@ export default function KittenScene({ name, balance, onAnswer, onDone, preview =
         </div>
       ) : (
         <>
+          {(stage === "soul" || stage === "leave") && <div className="kt-beam" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
           <div className="kt-stage">
             <div className="kt-catwrap"><Cat mood={mood} /></div>
+            {(stage === "soul" || stage === "leave") && <div className="kt-ghost" aria-hidden="true"><span className="kt-halo" /><Cat mood="happy" /><span className="kt-wing l" /><span className="kt-wing r" /></div>}
             {(stage === "pay" || stage === "drink" || stage === "happy") && <div className="kt-bowl" aria-hidden="true"><span className="kt-water" /></div>}
             {stage === "pay" && <div className="kt-gems" aria-hidden="true">{Array.from({ length: Math.min(14, Math.max(4, balance)) }, (_, i) => <span key={i} style={{ ["--i" as string]: i }}><Gem size={20} /></span>)}</div>}
             {stage === "happy" && <div className="kt-hearts" aria-hidden="true">{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }}>{i % 2 ? "💛" : "✨"}</i>)}</div>}
@@ -170,7 +176,9 @@ export default function KittenScene({ name, balance, onAnswer, onDone, preview =
             {stage === "pay" && <p className="kt-bubble">You gave everything you had… 💧</p>}
             {stage === "drink" && <p className="kt-bubble">*lap lap lap* 💦</p>}
             {stage === "happy" && <p className="kt-bubble good">Purrrr… 💛 Thank you, {name}!</p>}
-            {(stage === "walk" || stage === "leave") && <p className="kt-bubble sad">You walked past… the kitten is still thirsty 😿</p>}
+            {stage === "walk" && <p className="kt-bubble sad">You walked past… the kitten is still thirsty 😿</p>}
+            {stage === "still" && <p className="kt-bubble sad">The little kitten couldn't go on… 💔</p>}
+            {(stage === "soul" || stage === "leave") && <p className="kt-bubble soul">Its little soul rose up to Heaven… 🕊️<br /><small>A cup of water was all it needed.</small></p>}
           </div>
         </>
       )}

@@ -253,6 +253,7 @@ class PostLike(Base):
     post_id: Mapped[str] = mapped_column(ForeignKey("announcements.id", ondelete="CASCADE"), index=True)
     who: Mapped[str] = mapped_column(String(48))  # "member:<id>" or "admin:<id>"
     name: Mapped[str] = mapped_column(String(80), default="")
+    reaction: Mapped[str] = mapped_column(String(8), default="")  # "" = ❤️; on "left the kitten" posts: 👎 😤 or 😠
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
@@ -367,6 +368,7 @@ class KittenTest(Base):
     member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
     answer: Mapped[str] = mapped_column(String(8), default="")  # "", "water" or "walk"
     gems: Mapped[int] = mapped_column(Integer, default=0)  # what they were ready to give
+    posted: Mapped[bool] = mapped_column(Boolean, default=False)  # the admin posted "left the kitten" to Community
     answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by: Mapped[str] = mapped_column(String(120), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
