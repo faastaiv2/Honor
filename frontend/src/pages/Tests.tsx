@@ -138,8 +138,8 @@ export default function Tests() {
       <div className="card ts-deploy">
         <h2>🐱 The thirsty kitten</h2>
         <p className="note">Inspired by the hadith of the man who gave water to a thirsty dog. A thin kitten meows in the desert with the pyramids behind.
-          Water costs <b>all</b> the member's gems. If they give it, the kitten drinks, turns into the Pharaoh Cat, every gem comes back, and they unlock
-          a <b>secret</b> achievement (“???” until then: Mercy to All Creatures, Epic, +100) and the Pharaoh Cat picture. Walking past costs nothing; the kitten just lies down sadly.</p>
+          Water costs <b>all</b> the member's gems. If they give it, the kitten drinks, turns into the Oasis Kitten, every gem comes back, and they unlock
+          a <b>secret</b> achievement (“???” until then: Mercy to All Creatures, Epic, +100) and the Rare Oasis Kitten picture. Walking past costs nothing; the kitten just lies down sadly.</p>
         <div className="ts-row">
           <select value={kWho} onChange={(e) => setKWho(e.target.value)} aria-label="Member">
             {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}

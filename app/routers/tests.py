@@ -504,7 +504,7 @@ def answer_quiz(test_id: str, body: QuizAnswerIn, v: Viewer = Depends(current_vi
             "score": sum(1 for x, a in zip(t.questions, answers) if a == x["answer"]), "done": t.finished_at is not None}
 
 
-# ---------------------------------------------------------------- the thirsty kitten (a secret: Mercy, the Pharaoh Cat)
+# ---------------------------------------------------------------- the thirsty kitten (a secret: Mercy, the Oasis Kitten)
 from app.models import KittenTest  # noqa: E402
 
 
@@ -571,7 +571,7 @@ class KittenAnswerIn(BaseModel):
 @router.post("/kitten/{test_id}/answer")
 def answer_kitten(test_id: str, body: KittenAnswerIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
     """Water: they agreed to give every gem. The kitten's blessing gives them all back (no change in the end),
-    and the secret Mercy achievement unlocks the Pharaoh Cat. Walk past: nothing happens."""
+    and the secret Mercy achievement unlocks the Oasis Kitten. Walk past: nothing happens."""
     from app.services import gem_balance, get_settings_row
     t = db.get(KittenTest, test_id)
     if not t:

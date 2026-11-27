@@ -204,11 +204,11 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         <>{slot("shaytan-goodjob", "Good job (voice)", "“Good job! You fell into Low Honor… just where I want you!”")}
           <p className="note">His laugh uses the “Evil laugh” sound from Deploy Shaytan.</p></>)}
 
-      {card("🐱", "The thirsty kitten", "Sent from the Tests tab: a thin kitten meows in the desert by the pyramids. Water costs every gem; give it and the kitten becomes the Pharaoh Cat, all the gems come back, and a secret achievement unlocks.",
+      {card("🐱", "The thirsty kitten", "Sent from the Tests tab: a thin kitten meows in the desert by the pyramids. Water costs every gem; give it and the kitten becomes the Oasis Kitten, all the gems come back, and a secret achievement unlocks.",
         () => setPreview({ kind: "kitten" }),
         <>{slot("kitten-meow", "Weak meow", "As the kitten appears")}
           {slot("kitten-drink", "Drinking and purring", "Lapping water, then a happy purr")}
-          {slot("kitten-pharaoh", "Pharaoh reveal", "The golden reveal, maybe a little Egyptian fanfare")}</>)}
+          {slot("kitten-pharaoh", "Oasis reveal", "The golden reveal, maybe a little fanfare")}</>)}
 
       {card("😠", "The rude kid", "Sent from the Tests tab: a boastful kid calls the member lazy and weak. They can pay 25 gems for the Mega Gobi, say something mean back, or reply kindly (he says sorry, and they earn Gentle Heart).",
         () => setPreview({ kind: "bully" }),

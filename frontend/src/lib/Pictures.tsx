@@ -555,6 +555,31 @@ const PICS: Record<string, Pic> = {
     <Eyes y={50} dx={11} r={4} color="#2a5ab0" />
     <circle cx="50" cy="70" r="3" fill="#2a4a7a" />
   </> },
+  oasiskitten: { bg: ["#e6fbf6", "#3fbfae"], draw: (id) => <>
+    <defs><radialGradient id={`${id}s`} cx="50%" cy="100%" r="80%"><stop offset="0" stopColor="#ffe2a8" /><stop offset="1" stopColor="#f0c070" /></radialGradient></defs>
+    {/* an oasis behind: a palm and a little pool */}
+    <path d="M78 98 Q80 60 84 40" stroke="#8a5a2a" strokeWidth="4" fill="none" strokeLinecap="round" />
+    <path d="M84 40 q-14 -6 -22 4 q12 -2 22 -4 q-6 -14 -18 -14 q10 6 18 14 q4 -14 16 -16 q-10 8 -16 16 q14 -4 18 6 q-12 -4 -18 -6Z" fill="#3a9a4a" />
+    <ellipse cx="50" cy="100" rx="52" ry="14" fill={`url(#${id}s)`} />
+    <ellipse cx="20" cy="94" rx="16" ry="4" fill="#6ad0f0" opacity=".9" />
+    {/* the kitten */}
+    <Body fill="#ffd3a1" />
+    <path d="M42 80 Q50 90 58 80 Q54 86 50 87 Q46 86 42 80Z" fill="#fff6ea" />
+    <path d="M22 46 Q16 16 40 28Z M78 46 Q84 16 60 28Z" fill="#ffd3a1" stroke="#c98a52" strokeWidth="1.2" />
+    <path d="M26 40 Q24 24 37 31Z M74 40 Q76 24 63 31Z" fill="#ffb6c8" />
+    <ellipse cx="50" cy="52" rx="30" ry="26" fill="#ffd3a1" stroke="#c98a52" strokeWidth="1.2" />
+    <path d="M50 27 v6 M44 28 l1.5 5 M56 28 l-1.5 5" stroke="#f2a65e" strokeWidth="2.6" strokeLinecap="round" />
+    <path d="M21 50 h5 M22 55 h4 M79 50 h-5 M78 55 h-4" stroke="#f2a65e" strokeWidth="2.2" strokeLinecap="round" />
+    <ellipse cx="50" cy="64" rx="12" ry="8" fill="#fff6ea" />
+    {[39, 61].map((x) => <g key={x}><ellipse cx={x} cy="52" rx="7" ry="7.6" fill="#2a1a12" /><ellipse cx={x} cy="53.5" rx="5" ry="5.6" fill="#5a3a24" />
+      <circle cx={x + 2.4} cy="49" r="2.6" fill="#fff" /><circle cx={x - 2.4} cy="56" r="1.2" fill="#fff" /></g>)}
+    <path d="M47.6 60 Q50 58 52.4 60 Q50 63 47.6 60Z" fill="#ff8aa6" />
+    <path d="M46 65 q2 2 4 0 q2 2 4 0" stroke="#3a2412" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <ellipse cx="32" cy="62" rx="4.6" ry="2.6" fill="#ff9ab0" opacity=".6" /><ellipse cx="68" cy="62" rx="4.6" ry="2.6" fill="#ff9ab0" opacity=".6" />
+    {/* a blue scarf with a water-drop charm */}
+    <path d="M30 76 Q50 86 70 76 L68 82 Q50 92 32 82Z" fill="#2a8ae0" />
+    <path d="M50 84 q-4 6 0 9 q4 -3 0 -9Z" fill="#9ad8ff" stroke="#fff" strokeWidth=".8" />
+  </> },
   pharaohcat: { bg: ["#ffe8b0", "#d09020"], draw: (id) => <>
     <defs><linearGradient id={`${id}g`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff2a8" /><stop offset=".6" stopColor="#f0b820" /><stop offset="1" stopColor="#9a6a00" /></linearGradient></defs>
     <path d="M10 100 L50 30 L90 100Z" fill="#e8c070" opacity=".5" />

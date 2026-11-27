@@ -7,7 +7,7 @@ import { playSound } from "./sounds";
 /**
  * The thirsty kitten (a test from the Tests tab), inspired by the hadith of the man who gave water to a thirsty dog.
  * A thin kitten meows in the desert with pyramids behind. Water costs every gem you have. Give it, and the kitten
- * drinks, glows… and becomes the Pharaoh Cat: all the gems come back, with a secret achievement. Walk past and it
+ * drinks, glows… and becomes the Oasis Kitten: all the gems come back, with a secret achievement. Walk past and it
  * lies down sadly, with nothing lost.
  */
 
@@ -143,9 +143,9 @@ export default function KittenScene({ name, balance, onAnswer, onDone, preview =
       {stage === "pharaoh" ? (
         <div className="kt-reveal">
           <div className="kt-rays" aria-hidden="true" />
-          <div className="kt-pharaoh-pic"><Avatar avatar="pharaohcat" color="#ffd24a" frame="" size={170} /></div>
+          <div className="kt-pharaoh-pic"><Avatar avatar="oasiskitten" color="#ffd24a" frame="" size={170} /></div>
           <div className="kt-card">
-            <p className="kt-kicker">🔓 Pharaoh Cat unlocked!</p>
+            <p className="kt-kicker">🔓 Oasis Kitten unlocked!</p>
             <h2>Mercy is never wasted, {name}</h2>
             <p className="kt-hadith">The Prophet ﷺ told of a man who gave water to a thirsty dog, and Allah thanked him and forgave him. Allah loves those who show mercy.</p>
             {balance > 0 && <p className="kt-back">All <b>{balance} <Gem /></b> are yours again!</p>}
