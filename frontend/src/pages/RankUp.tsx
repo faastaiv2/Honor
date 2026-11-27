@@ -31,7 +31,7 @@ const SCRIPTS: Record<string, (e: Engine, c: string[], at: At, shake: Shake) => 
     at(5000, () => { e.burst("sparkle", 120, c); e.burst("ring", 48, c); });
     at(7500, () => e.emit("confetti", 45, 2500, c));
   },
-  // A moonlit night: soft snow, silver mist gathers into the badge.
+  // A silver night: soft snow, silver mist gathers into the badge.
   silver: (e, c, at) => {
     e.burst("star", 170, ["#ffffff", "#dfe6ee"]); e.emit("crystal", 6, FILM, ["#ffffff", "#dfe6ee"]);
     at(2500, () => e.emit("gold", 70, 2400, c));
@@ -192,7 +192,7 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
     } else {
       // Legendary: a 19-second show in five acts. The heartbeat in the dark · golden stars draw themselves and
       // pillars of light fall · the crown descends · a flash: the world turns gold ·
-      // the celebration (fireworks, a halo). From act 4 on the background stays gold.
+      // the celebration (fireworks). From act 4 on the background stays gold.
       setAct(1);
       e.burst("star", 260, ["#ffffff", "#ffe9a8"]);
       at(1800, () => e.burst("star", 120, ["#ffe9a8", "#ffd24a"]));
@@ -255,7 +255,6 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
         <div className="ru-stage">
           {legendary && (
             <div className="ru-crown-wrap" aria-hidden="true">
-              <span className="ru-halo" />
               <div className="ru-crown"><RankIcon rank="legendary" className="ru-crest" /></div>
             </div>
           )}
