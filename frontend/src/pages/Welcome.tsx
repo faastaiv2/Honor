@@ -72,9 +72,9 @@ function WeekStrip({ days }: { days: Profile["week_days"] }) {
 
 function cheer(done: number, of: number, weekend: boolean): string {
   if (of && done >= of) return "All done! MashaAllah, Honor earned today 🌟";
-  if (weekend && done === 0) return "It's the weekend: tasks are optional, but a full day still earns +20 gems.";
+  if (weekend && done === 0) return "It's the weekend: tasks are optional, but a full day still earns Honor and today's treasure on your map.";
   if (done === 0) return "Bismillah! Tick your first task to start the day.";
-  if (done / of < 0.5) return "Good start! Finish them all for +20 gems.";
+  if (done / of < 0.5) return "Good start! Finish them all to open today's treasure on your map 🗺️";
   if (of - done <= 3) return `Almost there! Just ${of - done} more to go.`;
   return "Great progress, keep it up!";
 }
