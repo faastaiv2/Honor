@@ -3206,8 +3206,8 @@ nav.tabs .who .help-btn { font-weight: 700; }
 @keyframes kt-fill { from { transform: scaleY(0); opacity: 0; } }
 .kt-drink .kt-water { animation: kt-sip 3s ease-in forwards; }
 @keyframes kt-sip { to { transform: scaleY(.2); opacity: .4; } }
-.kt-drink .kt-head { animation: kt-lap .35s ease-in-out infinite alternate; }
-@keyframes kt-lap { to { transform: translate(0, 56px) rotate(18deg); } }
+.kt-drink .kt-head { transform-box: fill-box; transform-origin: 50% 100%; transform: translateY(26px) rotate(8deg); animation: kt-lap .35s ease-in-out infinite alternate; }
+@keyframes kt-lap { from { transform: translateY(24px) rotate(8deg); } to { transform: translateY(32px) rotate(10deg); } }
 .kt-gems span { position: absolute; left: 50%; bottom: 10%; animation: kt-gem 1.4s calc(var(--i) * .08s) cubic-bezier(.4,0,.6,1) both; }
 @keyframes kt-gem { from { transform: translate(calc((var(--i) - 7) * 22px), 50vh) scale(1.2); opacity: 0; } 30% { opacity: 1; } to { transform: translate(-50%, 0) scale(.4); opacity: 0; } }
 .kt-happy .kt-catwrap { animation: kt-bounce .6s ease-in-out 3; }

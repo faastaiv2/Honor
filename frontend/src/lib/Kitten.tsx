@@ -13,55 +13,80 @@ import { playSound } from "./sounds";
 
 type Mood = "thirsty" | "drink" | "happy" | "sad";
 
-/** The kitten: an original drawing, a thin little tabby. View box 0 0 200 200. */
+/** Big shiny kitten eyes (teary when thirsty). */
+function KEyes({ teary }: { teary: boolean }) {
+  return (
+    <g>
+      {[78, 122].map((x) => (
+        <g key={x}>
+          <ellipse cx={x} cy="96" rx="15" ry="16.5" fill="#2a1a12" />
+          <ellipse cx={x} cy="99" rx="11" ry="12" fill="#5a3a24" />
+          <circle cx={x + 5} cy="89" r="5.6" fill="#fff" />
+          <circle cx={x - 5} cy="104" r="2.6" fill="#fff" />
+          {teary && <path d={`M${x - 12} 108 Q${x} 114 ${x + 12} 108`} stroke="#9ad8ff" strokeWidth="3" fill="none" strokeLinecap="round" />}
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** The kitten: an original chibi drawing, a little cream-and-ginger kitten. View box 0 0 200 200. */
 function Cat({ mood }: { mood: Mood }) {
-  const down = mood === "drink";
+  const down = mood === "drink"; // the head dips to the bowl (see .kt-drink .kt-head)
+  const fur = "#ffd3a1", dark = "#f2a65e", line = "#c98a52";
   return (
     <svg viewBox="0 0 200 200" className={`kt-cat c-${mood}`} aria-hidden="true">
-      <ellipse cx="100" cy="188" rx="58" ry="8" fill="#0002" />
+      <ellipse cx="100" cy="190" rx="54" ry="7" fill="#0002" />
       {mood === "sad" ? (
         <g>
-          {/* lying down, curled */}
-          <path d="M40 180 Q30 150 70 146 Q130 140 158 160 Q170 176 150 184 Q100 192 40 180Z" fill="#e8a560" stroke="#b8763a" strokeWidth="2" />
-          <path d="M70 152 q4 14 0 26 M90 148 q4 16 0 32 M112 148 q4 16 0 32" stroke="#c07a3a" strokeWidth="4" fill="none" strokeLinecap="round" />
-          <path d="M150 176 Q186 176 180 158" stroke="#e8a560" strokeWidth="10" strokeLinecap="round" fill="none" />
-          <g transform="translate(4 52)">
-            <path d="M30 96 L26 70 L50 86Z M74 92 L84 68 L90 96Z" fill="#e8a560" stroke="#b8763a" strokeWidth="2" />
-            <ellipse cx="58" cy="112" rx="34" ry="28" fill="#f0b46e" stroke="#b8763a" strokeWidth="2" />
-            <path d="M42 108 q6 4 12 0 M64 108 q6 4 12 0" stroke="#3a2410" strokeWidth="3" fill="none" strokeLinecap="round" />
-            <path d="M44 116 v6 M74 116 v6" stroke="#6ac8ff" strokeWidth="3" strokeLinecap="round" className="kt-tear" />
-            <path d="M54 124 h8 l-4 4z" fill="#e0607a" />
+          {/* curled up, ears flat */}
+          <path d="M46 184 Q34 154 72 150 Q132 144 156 164 Q166 180 146 186 Q100 194 46 184Z" fill={fur} stroke={line} strokeWidth="2" />
+          <path d="M146 182 Q184 182 176 160" stroke={dark} strokeWidth="12" strokeLinecap="round" fill="none" />
+          <g transform="translate(-6 58)">
+            <path d="M28 98 Q22 78 44 84Z M92 98 Q98 78 76 84Z" fill={dark} stroke={line} strokeWidth="2" />
+            <ellipse cx="60" cy="106" rx="38" ry="32" fill={fur} stroke={line} strokeWidth="2" />
+            <path d="M54 76 q6 -6 12 0" stroke={dark} strokeWidth="5" fill="none" strokeLinecap="round" />
+            <path d="M40 106 q7 5 14 0 M66 106 q7 5 14 0" stroke="#3a2412" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+            <path d="M47 114 v7 M73 114 v7" stroke="#9ad8ff" strokeWidth="3" strokeLinecap="round" className="kt-tear" />
+            <path d="M56 118 h8 l-4 4z" fill="#ff8aa6" />
           </g>
         </g>
       ) : (
         <g className="kt-sit">
-          {/* tail */}
-          <path d="M136 178 Q178 172 170 136 Q166 120 176 110" stroke="#e8a560" strokeWidth="10" strokeLinecap="round" fill="none" className="kt-tail" />
-          {/* thin body (fuller when happy) */}
-          <path d={mood === "happy" ? "M64 184 Q54 124 100 116 Q146 124 136 184Z" : "M74 184 Q66 128 100 120 Q134 128 126 184Z"} fill="#e8a560" stroke="#b8763a" strokeWidth="2" />
-          {mood !== "happy" && <path d="M86 150 q14 4 28 0 M86 160 q14 4 28 0 M88 170 q12 3 24 0" stroke="#b8763a" strokeWidth="1.6" fill="none" opacity=".7" />}
-          <path d="M88 184 v-14 M112 184 v-14" stroke="#b8763a" strokeWidth="2" />
-          {/* head (lowered to drink) */}
-          <g transform={down ? "translate(0 52) rotate(18 100 90)" : undefined} className="kt-head">
-            <path d="M58 70 L54 26 L88 52Z M142 70 L146 26 L112 52Z" fill="#e8a560" stroke="#b8763a" strokeWidth="2" />
-            <path d="M62 62 L60 36 L80 52Z M138 62 L140 36 L120 52Z" fill="#ffb8c8" />
-            <ellipse cx="100" cy="82" rx="46" ry="40" fill="#f0b46e" stroke="#b8763a" strokeWidth="2" />
-            <path d="M100 44 v12 M88 46 l3 10 M112 46 l-3 10" stroke="#c07a3a" strokeWidth="4" strokeLinecap="round" />
+          {/* fluffy tail */}
+          <path d="M132 176 Q176 176 172 140 Q170 124 182 114" stroke={dark} strokeWidth="14" strokeLinecap="round" fill="none" className="kt-tail" />
+          {/* small body (rounder once it has had water) */}
+          <path d={mood === "happy" ? "M66 186 Q58 132 100 126 Q142 132 134 186Z" : "M74 186 Q68 136 100 130 Q132 136 126 186Z"} fill={fur} stroke={line} strokeWidth="2" />
+          <path d="M86 140 Q100 158 114 140 Q108 150 100 152 Q92 150 86 140Z" fill="#fff6ea" />
+          {mood !== "happy" && <path d="M88 162 q12 3 24 0 M90 170 q10 3 20 0" stroke={line} strokeWidth="1.4" fill="none" opacity=".55" />}
+          {/* little paws */}
+          <ellipse cx="86" cy="186" rx="11" ry="7" fill="#fff6ea" stroke={line} strokeWidth="1.6" />
+          <ellipse cx="114" cy="186" rx="11" ry="7" fill="#fff6ea" stroke={line} strokeWidth="1.6" />
+          <path d="M82 184 v4 M86 184 v4 M90 184 v4 M110 184 v4 M114 184 v4 M118 184 v4" stroke={line} strokeWidth="1.2" />
+          {/* big head (lowered to drink) */}
+          <g className="kt-head">
+            {/* ears: droopy when thirsty, perky when happy */}
+            <g transform={mood === "thirsty" ? "rotate(-14 60 64)" : undefined}><path d="M48 72 Q40 26 80 48Z" fill={fur} stroke={line} strokeWidth="2" /><path d="M54 64 Q50 38 74 52Z" fill="#ffb6c8" /></g>
+            <g transform={mood === "thirsty" ? "rotate(14 140 64)" : undefined}><path d="M152 72 Q160 26 120 48Z" fill={fur} stroke={line} strokeWidth="2" /><path d="M146 64 Q150 38 126 52Z" fill="#ffb6c8" /></g>
+            <ellipse cx="100" cy="96" rx="56" ry="48" fill={fur} stroke={line} strokeWidth="2" />
+            {/* ginger stripes and a cream muzzle */}
+            <path d="M100 50 v12 M88 52 q2 6 3 11 M112 52 q-2 6 -3 11" stroke={dark} strokeWidth="5" strokeLinecap="round" />
+            <path d="M46 92 h10 M47 100 h8 M154 92 h-10 M153 100 h-8" stroke={dark} strokeWidth="4" strokeLinecap="round" />
+            <ellipse cx="100" cy="122" rx="24" ry="16" fill="#fff6ea" />
             {mood === "happy"
-              ? <path d="M72 80 q10 -10 20 0 M108 80 q10 -10 20 0" stroke="#3a2410" strokeWidth="4" fill="none" strokeLinecap="round" />
+              ? <path d="M64 98 q14 -14 28 0 M108 98 q14 -14 28 0" stroke="#3a2412" strokeWidth="4.5" fill="none" strokeLinecap="round" />
               : down
-                ? <path d="M72 82 q10 6 20 0 M108 82 q10 6 20 0" stroke="#3a2410" strokeWidth="4" fill="none" strokeLinecap="round" />
-                : <><ellipse cx="82" cy="80" rx="9" ry="10" fill="#4a7a3a" /><ellipse cx="118" cy="80" rx="9" ry="10" fill="#4a7a3a" />
-                  <ellipse cx="82" cy="81" rx="3.5" ry="8" fill="#1a1a0a" /><ellipse cx="118" cy="81" rx="3.5" ry="8" fill="#1a1a0a" />
-                  <circle cx="85" cy="76" r="2.6" fill="#fff" /><circle cx="121" cy="76" r="2.6" fill="#fff" />
-                  <path d="M70 68 L92 72 M130 68 L108 72" stroke="#b8763a" strokeWidth="3" strokeLinecap="round" /></>}
-            <path d="M95 94 h10 l-5 5z" fill="#e0607a" />
+                ? <path d="M66 100 q12 8 24 0 M110 100 q12 8 24 0" stroke="#3a2412" strokeWidth="4.5" fill="none" strokeLinecap="round" />
+                : <KEyes teary />}
+            {mood === "thirsty" && <path d="M62 76 Q72 72 84 78 M138 76 Q128 72 116 78" stroke={line} strokeWidth="3" fill="none" strokeLinecap="round" />}
+            <path d="M95 114 Q100 110 105 114 Q100 120 95 114Z" fill="#ff8aa6" />
             {mood === "happy"
-              ? <path d="M88 102 q6 6 12 0 q6 6 12 0" stroke="#3a2410" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-              : <><path d="M90 104 q10 -4 20 0" stroke="#3a2410" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-                <path d="M96 104 q4 12 8 0" fill="#ff8a9a" stroke="#c0405a" strokeWidth="1.2" className="kt-tongue" /></>}
-            <path d="M60 94 h-22 M60 100 l-20 6 M140 94 h22 M140 100 l20 6" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
-            {mood === "happy" && <><ellipse cx="72" cy="96" rx="8" ry="4" fill="#ff8a9a" opacity=".55" /><ellipse cx="128" cy="96" rx="8" ry="4" fill="#ff8a9a" opacity=".55" /></>}
+              ? <path d="M90 122 q5 6 10 0 q5 6 10 0" stroke="#3a2412" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+              : <><path d="M92 123 q4 4 8 0 q4 4 8 0" stroke="#3a2412" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+                <path d="M97 125 q3 9 6 0" fill="#ff9ab0" stroke="#d0607a" strokeWidth="1" className="kt-tongue" /></>}
+            <ellipse cx="66" cy="116" rx="9" ry="5" fill="#ff9ab0" opacity={mood === "happy" ? .75 : .45} />
+            <ellipse cx="134" cy="116" rx="9" ry="5" fill="#ff9ab0" opacity={mood === "happy" ? .75 : .45} />
+            <path d="M72 120 h-24 M72 126 l-22 6 M128 120 h24 M128 126 l22 6" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" opacity=".9" />
           </g>
         </g>
       )}
