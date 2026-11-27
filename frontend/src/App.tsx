@@ -46,11 +46,12 @@ export default function App() {
   const [unread, setUnread] = useState(0);
   // A red dot on Avatar when the shop has something new (just added, unlocked or affordable).
   const [shopNew, setShopNew] = useState(0);
+  const [achReady, setAchReady] = useState(0); // achievements unlocked and waiting to be collected
   useEffect(() => {
-    if (!viewer || viewer.is_admin) { setShopNew(0); return; }
+    if (!viewer || viewer.is_admin) { setShopNew(0); setAchReady(0); return; }
     let prof: Profile | null = null;
     const count = () => { if (prof) setShopNew(newItems(prof).size); };
-    api.profile().then((x) => { prof = x; count(); }).catch(() => undefined);
+    api.profile().then((x) => { prof = x; count(); setAchReady(x.achievements_ready ?? 0); }).catch(() => undefined);
     window.addEventListener(SHOP_NEW_EVENT, count);
     return () => window.removeEventListener(SHOP_NEW_EVENT, count);
   }, [viewer, changes]);
@@ -99,7 +100,7 @@ export default function App() {
           <nav className="tabs scroll" aria-label="Sections">
             <NavLink to="/" end>Today</NavLink>
             {!viewer.is_admin && <NavLink to="/leaderboard">Leaderboard</NavLink>}
-            {!viewer.is_admin && <NavLink to="/achievements">Achievements</NavLink>}
+            {!viewer.is_admin && <NavLink to="/achievements">Achievements{achReady > 0 && <i className="red-dot" aria-label={`${achReady} ready to collect`} />}</NavLink>}
             <NavLink to="/news">Community{unread > 0 && <span className="nbadge" aria-label={`${unread} new`}>{unread}</span>}</NavLink>
             <NavLink to="/events">Events</NavLink>
             {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Avatar{shopNew > 0 && <i className="red-dot" aria-label="Something new" />}</NavLink>}

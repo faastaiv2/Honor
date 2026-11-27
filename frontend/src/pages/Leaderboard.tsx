@@ -63,7 +63,8 @@ export default function Leaderboard({ info, full = false }: { info: TodayInfo | 
         return;
       }
       setLit(i);
-      floorRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      // (not during the welcome tour: it shows the page itself and mustn't be scrolled away)
+      if (document.documentElement.dataset.tour !== "on") floorRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 280);
   }, [full, target, meFloor]);
 

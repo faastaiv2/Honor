@@ -18,7 +18,7 @@ const STEPS: Step[] = [
     text: <>Do the task first, then tick it. That's your word. Sick or travelling? Tap <b>⋯</b> and give an honest reason.</> },
   { path: "/", target: ".wm-btn", title: "Daily treasure map 🗺️",
     text: <>Finish your tasks and collect a stop each day: <b>+5, +10 … +30 <Gem /></b>, and a mystery chest on Day 7. A new map every Sunday.</> },
-  { path: "/leaderboard", target: ".floors", title: "Leaderboard 🏆",
+  { path: "/leaderboard", target: ".floors .floor", title: "Leaderboard 🏆",
     text: <>Everyone's rank, floor by floor. Fall below Member and you land on the <b>Pillar of Shame</b>.</> },
   { path: "/achievements", target: ".ach-hero", title: "Achievements 🏅",
     text: <>Win medals for streaks, perfect days and more. Each one gives gems, and some unlock pictures and themes.</> },
@@ -40,9 +40,16 @@ export default function GuidedTour({ onDone }: { onDone: () => void }) {
   const nav = useNavigate();
   const { pathname } = useLocation();
   const bubble = useRef<HTMLDivElement>(null);
+  const lastScroll = useRef(0);
   const [bh, setBh] = useState(160);
   const step = STEPS[i];
   const last = i === STEPS.length - 1;
+
+  // While the tour runs, pages don't scroll themselves (the Leaderboard's "finding you" animation).
+  useEffect(() => {
+    document.documentElement.dataset.tour = "on";
+    return () => { delete document.documentElement.dataset.tour; };
+  }, []);
 
   // Go to the step's page, wait for its spot to appear, scroll it into view.
   useEffect(() => {
@@ -66,6 +73,11 @@ export default function GuidedTour({ onDone }: { onDone: () => void }) {
       const el = pathname === step.path ? document.querySelector(step.target) : null;
       if (el) {
         const r = el.getBoundingClientRect();
+        // Scrolled away (by a finger or the page itself)? Bring the spot back, so the tour is never lost.
+        if ((r.bottom < 40 || r.top > window.innerHeight - 40) && performance.now() - lastScroll.current > 1200) {
+          lastScroll.current = performance.now();
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
         setBox((b) => (b && Math.abs(b.top - r.top) < .5 && Math.abs(b.left - r.left) < .5 && Math.abs(b.width - r.width) < .5 && Math.abs(b.height - r.height) < .5)
           ? b : { top: r.top, left: r.left, width: r.width, height: r.height });
       }
