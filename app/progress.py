@@ -62,7 +62,8 @@ class Progress:
 
 def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[date, int], quest_starts: list[date],
              score_from: date, today: date, cut_misses: int, week_from: date | None = None,
-             tasks: list | None = None, periods: list | None = None, grace_day: date | None = None) -> Progress:
+             tasks: list | None = None, periods: list | None = None, grace_day: date | None = None,
+             legendary_gems: int = GEMS_FOR_LEGENDARY, quest_day_gems: int = 0) -> Progress:
     """logs: day -> (tasks, excuse). adjustments: day -> total change that day."""
     p = Progress(level=base)
     starts = set(quest_starts)
@@ -82,11 +83,12 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
         skip = entry[2] if len(entry) > 2 else None  # single tasks excused that day
         prev = logs.get(d - timedelta(days=1), ([], ""))[0]
         # Tasks are set by the highest rank reached so far (they don't get easier after a fall).
-        r_i = scoring.RANK_ORDER.index("legendary") if p.legendary else max(1, scoring.rank_index(tier_for(min(best, CAP_WITHOUT_LEGENDARY), False).key))
+        # On the Legendary quest (and once Legendary) tasks are set as for the Legendary rank.
+        r_i = scoring.RANK_ORDER.index("legendary") if p.legendary or quest_active else max(1, scoring.rank_index(tier_for(min(best, CAP_WITHOUT_LEGENDARY), False).key))
         p.day_rank[d] = r_i
         if quest_active:
             p.quest_days_on.add(d)
-        plan = scoring.day_plan(tasks, periods, d, r_i) if tasks is not None else None
+        plan = scoring.day_plan(tasks, periods, d, r_i, quest=quest_active) if tasks is not None else None
         counted = scoring.credited(ticks, prev, plan, first_day=d == score_from)
         s = scoring.score_day(d, counted, excuse, today, cut_misses, plan, skip, bonus_on=quest_active)
         day_keys = ({t.key for t in plan} | {"bonus"}) if plan is not None else gem_keys
@@ -122,11 +124,12 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
         if quest_active and finished:
             if perfect:
                 p.quest_days += 1
+                p.gems_levels += quest_day_gems
             else:
                 quest_active, p.quest_broken_on, p.quest_start = False, d, None
         if quest_active and p.level >= LEGENDARY_LEVEL and perfect:
             p.legendary, p.legendary_since, quest_active, p.quest_start = True, d, False, None
-            p.gems_levels += GEMS_FOR_LEGENDARY
+            p.gems_levels += legendary_gems
 
         if p.legendary and finished and not s.weekend:
             misses = 0 if s.gain else misses + 1

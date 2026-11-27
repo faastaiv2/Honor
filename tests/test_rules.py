@@ -62,10 +62,10 @@ def test_legendary_fifteen_a_week_any_day():
     assert check_week(leg, {SAT: {"fajr": SAT + timedelta(days=1)}})  # next week is too late
 
 
-def run(base, days, quest=(), today=None, start=MON):
+def run(base, days, quest=(), today=None, start=MON, **kw):
     today = today or start + timedelta(days=len(days))
     logs = {start + timedelta(days=i): (t, "") for i, t in enumerate(days)}
-    return simulate(base, logs, {}, list(quest), start, today, 5)
+    return simulate(base, logs, {}, list(quest), start, today, 5, **kw)
 
 
 def test_level_is_capped_at_49_without_legendary():
@@ -160,3 +160,21 @@ def test_level_never_goes_below_minus_three():
     sick = {MON - timedelta(days=1) + timedelta(days=i): ([], "sick") for i in range(4)}
     up = simulate(0, sick, {MON: -10, TUE: 2}, [], MON - timedelta(days=1), TUE + timedelta(days=1), 5)
     assert up.level == -1  # climbing back starts from −III, not from −X
+
+
+def test_quest_prize_and_quest_day_gems_follow_the_settings():
+    base = run(47, [FULL] * 26, quest=[MON])
+    more = run(47, [FULL] * 26, quest=[MON], legendary_gems=50, quest_day_gems=3)
+    assert more.legendary and more.gems_levels == base.gems_levels - 1000 + 50 + 3 * more.quest_days
+
+
+def test_quest_days_use_the_quest_number_and_legendary_only_tasks():
+    from datetime import date as _d
+    from app.scoring import TaskSpec, day_plan, RANK_ORDER
+    specs = [TaskSpec("push", "{n} push-ups", "Fitness", number=10, rank_step=2, quest_number=99),
+             TaskSpec("extra", "Quest extra", "Fitness", min_rank="legendary")]
+    leg = RANK_ORDER.index("legendary")
+    normal = day_plan(specs, None, _d(2026, 11, 24), 1)
+    assert [t.key for t in normal] == ["push"] and normal[0].label_on(_d(2026, 11, 24)) == "10 push-ups"
+    quest = day_plan(specs, None, _d(2026, 11, 24), leg, quest=True)
+    assert [t.key for t in quest] == ["push", "extra"] and quest[0].label_on(_d(2026, 11, 24)) == "99 push-ups"

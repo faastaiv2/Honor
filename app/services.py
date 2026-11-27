@@ -93,7 +93,7 @@ def load_tasks(db: Session) -> list[scoring.TaskSpec]:
         return list(scoring.DEFAULT_SPECS)
     return [scoring.TaskSpec(r.key, r.label, r.group, r.fitness, r.number, r.step, r.every, r.start_day, r.next_day,
                              r.not_before, tuple(r.links) if r.links and len(r.links) == 7 else (),
-                             r.rank_step or 0, r.min_rank or "") for r in rows]
+                             r.rank_step or 0, r.min_rank or "", quest_number=r.quest_number) for r in rows]
 
 
 @_request_cache
@@ -141,7 +141,9 @@ def progress_for(db: Session, cfg: AppSettings, members: list[Member], today: da
                 continue
             adj[d] = adj.get(d, 0) + delta
         out[m.id] = simulate(m.base_honor, mine, adj, starts, start, today, cfg.cut_misses, week_from, tasks, scoring.for_member(periods, m.id),
-                             grace_day=start if start > cfg.score_from else None)
+                             grace_day=start if start > cfg.score_from else None,
+                             legendary_gems=cfg.legendary_gems if cfg.legendary_gems is not None else 1000,
+                             quest_day_gems=cfg.quest_day_gems or 0)
     return out
 
 

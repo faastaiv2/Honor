@@ -120,6 +120,8 @@ class TaskSpec:
     rank_step: int = 0  # added to the number for every rank above Bronze
     min_rank: str = ""  # "" = every rank; else the task appears from this rank on
     at_rank: int = 1  # the member's rank (index in RANK_ORDER) this task is shown for; set by day_plan
+    quest_number: int | None = None  # the number while on the Legendary quest (None: the Legendary rank's number)
+    on_quest: bool = False  # set by day_plan on Legendary quest days
 
     def link_on(self, d: date) -> str | None:
         return (self.links[d.weekday()] or None) if len(self.links) == 7 else None
@@ -127,6 +129,8 @@ class TaskSpec:
     def number_on(self, d: date) -> int | None:
         if self.number is None:
             return None
+        if self.on_quest and self.quest_number is not None:
+            return max(0, self.quest_number)
         daily = self.step * ((d - self.start_day).days // max(1, self.every)) if self.step else 0
         return max(0, self.number + daily + self.rank_step * max(0, self.at_rank - 1))
 
@@ -222,11 +226,11 @@ def for_member(periods: list | None, member_id: str) -> list:
     return [p for p in (periods or []) if not (getattr(p, "members", None) or []) or member_id in p.members]
 
 
-def day_plan(specs: list, periods: list | None, d: date, rank: int | None = None) -> list:
+def day_plan(specs: list, periods: list | None, d: date, rank: int | None = None, quest: bool = False) -> list:
     """The tasks that apply on day `d` for a member of rank `rank` (index in RANK_ORDER): tasks get harder with rank,
     some only appear from a rank on, and special periods (like Ramadan) can pause tasks or fix a smaller number."""
     if rank is not None:
-        specs = [replace(t, at_rank=rank) for t in specs
+        specs = [replace(t, at_rank=rank, on_quest=quest) for t in specs
                  if not getattr(t, "min_rank", "") or rank >= rank_index(t.min_rank)]
     if not periods:
         return specs

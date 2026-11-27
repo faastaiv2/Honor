@@ -37,6 +37,8 @@ const Benefits = lazyPage(() => import("./pages/Benefits"));
 const Tasks = lazyPage(() => import("./pages/Tasks"));
 const NewsPage = lazyPage(() => import("./pages/News"));
 const TestsPage = lazyPage(() => import("./pages/Tests"));
+const PollsPage = lazyPage(() => import("./pages/Polls"));
+const LegendaryPage = lazyPage(() => import("./pages/Legendary"));
 
 
 export default function App() {
@@ -63,6 +65,11 @@ export default function App() {
     window.addEventListener(SHOP_NEW_EVENT, count);
     return () => window.removeEventListener(SHOP_NEW_EVENT, count);
   }, [viewer, changes]);
+  const [pollsWaiting, setPollsWaiting] = useState(0); // member: open polls not answered yet
+  useEffect(() => {
+    if (!viewer || viewer.is_admin) { setPollsWaiting(0); return; }
+    api.polls().then((r) => setPollsWaiting(r.waiting)).catch(() => undefined);
+  }, [viewer, changes, pathname]);
   useEffect(() => {
     if (!viewer || viewer.is_admin) { setUnread(0); return; }
     if (pathname === "/news") { setUnread(0); return; }
@@ -111,6 +118,8 @@ export default function App() {
             {!viewer.is_admin && <NavLink to="/achievements">Achievements{achReady > 0 && <i className="red-dot" aria-label={`${achReady} ready to collect`} />}</NavLink>}
             <NavLink to="/news">Community{unread > 0 && <span className="nbadge" aria-label={`${unread} new`}>{unread}</span>}</NavLink>
             <NavLink to="/events">Events</NavLink>
+            <NavLink to="/polls">Polls{pollsWaiting > 0 && <i className="red-dot" aria-label={`${pollsWaiting} to answer`} />}</NavLink>
+            <NavLink to="/legendary">👑 Legendary</NavLink>
             {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Avatar{shopNew > 0 && <i className="red-dot" aria-label="Something new" />}</NavLink>}
             <NavLink to="/benefits">Benefits</NavLink>
             {viewer.is_admin && <NavLink to="/tasks">Tasks</NavLink>}
@@ -147,6 +156,8 @@ export default function App() {
             <Route path="/animations" element={viewer.is_admin ? <Animations info={info} /> : <Navigate to="/" />} />
             <Route path="/benefits" element={<Benefits info={info} />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/polls" element={<PollsPage admin={viewer.is_admin} />} />
+            <Route path="/legendary" element={<LegendaryPage />} />
             <Route path="/news" element={<NewsPage admin={viewer.is_admin} />} />
             <Route path="/achievements" element={viewer.is_admin ? <Navigate to="/" /> : <Achievements />} />
             <Route path="/rules" element={<Navigate to="/benefits" />} />

@@ -56,6 +56,8 @@ class SettingsIn(BaseModel):
     score_from: date | None = None
     cut_misses: int | None = Field(default=None, ge=1, le=17)
     timezone: str | None = None
+    legendary_gems: int | None = Field(default=None, ge=0, le=100_000)
+    quest_day_gems: int | None = Field(default=None, ge=0, le=10_000)
 
 
 class ImportIn(BaseModel):
@@ -231,10 +233,16 @@ def delete_adjustment(adj_id: str, _: Viewer = Depends(require_admin), db: Sessi
         db.commit()
 
 
+def _settings_out(s) -> dict:
+    return {"score_from": s.score_from.isoformat(), "cut_misses": s.cut_misses, "timezone": s.timezone,
+            "legendary_gems": s.legendary_gems if s.legendary_gems is not None else 1000,
+            "quest_day_gems": s.quest_day_gems or 0}
+
+
 @router.get("/settings")
 def read_settings(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
     s = get_settings_row(db)
-    return {"score_from": s.score_from.isoformat(), "cut_misses": s.cut_misses, "timezone": s.timezone}
+    return _settings_out(s)
 
 
 @router.put("/settings")
@@ -248,8 +256,12 @@ def write_settings(body: SettingsIn, _: Viewer = Depends(require_admin), db: Ses
         s.score_from = body.score_from
     if body.cut_misses is not None:
         s.cut_misses = body.cut_misses
+    if body.legendary_gems is not None:
+        s.legendary_gems = body.legendary_gems
+    if body.quest_day_gems is not None:
+        s.quest_day_gems = body.quest_day_gems
     db.commit()
-    return {"score_from": s.score_from.isoformat(), "cut_misses": s.cut_misses, "timezone": s.timezone}
+    return _settings_out(s)
 
 
 @router.post("/import")
@@ -330,6 +342,7 @@ class TaskPatch(BaseModel):
     every: int | None = Field(default=None, ge=1, le=365)
     rank_step: int | None = Field(default=None, ge=-1000, le=10_000)
     min_rank: str | None = Field(default=None, pattern=RANK_PATTERN)
+    quest_number: int | None = Field(default=None, ge=-1, le=100_000)  # -1 clears it (back to the Legendary rank's number)
     move: int | None = Field(default=None, ge=-1, le=1)  # -1 up, +1 down
     next_day: bool | None = None
     not_before: str | None = Field(default=None, pattern=r"^(([01]\d|2[0-3]):[0-5]\d)?$")  # "" clears it
@@ -348,7 +361,7 @@ class TaskPatch(BaseModel):
 
 def _spec(t: TaskDef) -> TaskSpec:
     return TaskSpec(t.key, t.label, t.group, t.fitness, t.number, t.step, t.every, t.start_day, rank_step=t.rank_step or 0,
-                    min_rank=t.min_rank or "")
+                    min_rank=t.min_rank or "", quest_number=t.quest_number)
 
 
 def _task_out(t: TaskDef, today: date) -> dict:
@@ -361,6 +374,8 @@ def _task_out(t: TaskDef, today: date) -> dict:
             "not_before": t.not_before or None, "links": list(t.links) if t.links and len(t.links) == 7 else [""] * 7,
             "number_today": spec.number_on(today),
             "step": t.step, "every": t.every, "rank_step": t.rank_step or 0, "min_rank": t.min_rank or "",
+            "quest_number": t.quest_number,
+            "on_quest": _with(spec, at_rank=RANK_ORDER.index("legendary"), on_quest=True).label_on(today),
             "by_rank": by_rank, "shown_today": spec.label_on(today),
             "shown_tomorrow": spec.label_on(today + timedelta(days=1))}
 
@@ -450,6 +465,8 @@ def edit_task(key: str, body: TaskPatch, _: Viewer = Depends(require_admin), db:
         t.rank_step = body.rank_step
     if body.min_rank is not None:
         t.min_rank = body.min_rank
+    if body.quest_number is not None:
+        t.quest_number = None if body.quest_number < 0 else body.quest_number
     db.commit()
     return _task_out(t, today)
 

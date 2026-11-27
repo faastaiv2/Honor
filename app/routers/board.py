@@ -16,7 +16,7 @@ from app.progress import Progress, gems_earned
 from app.routers.events import placings, unseen_win
 from app.services import (achievement_gems, active_members, clock_for, chests_opened, load_periods, can_start_quest, gems_claimed, gems_granted, gems_spent, get_settings_row, load_tasks, logs_between,
                           member_start, owned_items, progress_for, tier_of_progress, today_for, week_info)
-from app.tiers import (THEME_UNLOCKS, WEEKLY_MAP, PICTURE_UNLOCKS, shown_look, CAP_WITHOUT_LEGENDARY, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
+from app.tiers import (LEGENDARY_LEVEL, THEME_UNLOCKS, WEEKLY_MAP, PICTURE_UNLOCKS, shown_look, CAP_WITHOUT_LEGENDARY, FRAME_KEYS, GEMS_FOR_FULL_DAY, GEMS_PER_LEVEL, GEMS_PER_TASK, RANK_GEMS, THEME_KEYS,
                        FREE_AVATARS, TIERS, catalogue, item_available, next_tier, price_of, roman, shop_key, tier_dict,
                        tier_for)
 
@@ -150,7 +150,7 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
     i = scoring.day_index(d, cfg.score_from)
     groups: dict[str, list] = {}
     rank_i, bonus_on = _rank_and_bonus(p, d, today)
-    specs = scoring.day_plan(load_tasks(db), periods, d, rank_i)
+    specs = scoring.day_plan(load_tasks(db), periods, d, rank_i, quest=bonus_on)
     first = member_start(cfg, member)
     counted = scoring.credited(done, _prev_ticks(db, member.id, d), specs, first_day=d == first)
     for t in specs:
@@ -222,7 +222,7 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
         raise HTTPException(403, f"The program starts on {cfg.score_from:%A %-d %B}. Until then the tasks are a preview")
     prog = progress_for(db, cfg, [m], today)[m.id]
     rank_i, bonus_on = _rank_and_bonus(prog, body.date, today)
-    specs = scoring.day_plan(load_tasks(db), scoring.for_member(load_periods(db), m.id), body.date, rank_i)
+    specs = scoring.day_plan(load_tasks(db), scoring.for_member(load_periods(db), m.id), body.date, rank_i, quest=bonus_on)
     tasks = {k for k in body.tasks if k in ({"gate", "bonus"} if bonus_on else {"gate"}) | {t.key for t in specs}}
     log = db.scalar(select(DayLog).where(DayLog.member_id == m.id, DayLog.day == body.date))
     before = set(log.tasks if log else [])
@@ -318,7 +318,7 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
     for m in members:
         p = prog[m.id]
         rank_i, bonus_on = _rank_and_bonus(p, today, today)
-        specs = scoring.day_plan(all_tasks, scoring.for_member(all_periods, m.id), today, rank_i)
+        specs = scoring.day_plan(all_tasks, scoring.for_member(all_periods, m.id), today, rank_i, quest=bonus_on)
         log, prev = logs.get((m.id, today)), logs.get((m.id, yesterday))
         counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, specs,
                                    first_day=today == member_start(cfg, m))
@@ -375,7 +375,7 @@ def history(days: int = Query(default=14, ge=1, le=62), v: Viewer = Depends(curr
                 continue
             log, prev = logs.get((m.id, d)), logs.get((m.id, d - timedelta(days=1)))
             rank_i, bonus_on = _rank_and_bonus(prog[m.id], d, today)
-            plan = scoring.day_plan(specs, scoring.for_member(periods, m.id), d, rank_i)
+            plan = scoring.day_plan(specs, scoring.for_member(periods, m.id), d, rank_i, quest=bonus_on)
             counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, plan, first_day=d == first)
             s = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, plan,
                                   (log.task_excuses or {}) if log else None, bonus_on=bonus_on)
@@ -480,7 +480,7 @@ def _week_days(db: Session, cfg, m: Member, today: date, p: Progress | None = No
             state = "future" if d > today else "pre"
         else:
             rank_i, bonus_on = _rank_and_bonus(p, d, today) if p else (None, False)
-            plan = scoring.day_plan(specs, scoring.for_member(periods, m.id), d, rank_i)
+            plan = scoring.day_plan(specs, scoring.for_member(periods, m.id), d, rank_i, quest=bonus_on)
             counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, plan, first_day=d == first)
             sc = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, plan,
                                    (log.task_excuses or {}) if log else None, bonus_on=bonus_on)
@@ -968,3 +968,29 @@ def start_quest(body: QuestIn, v: Viewer = Depends(current_viewer), db: Session 
     m.quest_starts = [*(m.quest_starts or []), f"{today.isoformat()}@{datetime.now(timezone.utc).isoformat()}"]
     db.commit()
     return _status(progress_for(db, cfg, [m], today)[m.id])
+
+
+@router.get("/quest-info")
+def quest_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """The Legendary quest page: the prize, the tasks as they are on the quest, and who is on it or Legendary now."""
+    cfg = get_settings_row(db)
+    today = today_for(cfg)
+    leg = scoring.RANK_ORDER.index("legendary")
+    plan = scoring.day_plan(load_tasks(db), None, today, leg, quest=True)
+    members = active_members(db)
+    prog = progress_for(db, cfg, members, today)
+    people = []
+    for m in members:
+        p = prog[m.id]
+        state = "legendary" if p.legendary else "quest" if p.quest_start is not None else "ready" if can_start_quest(p) else ""
+        if state:
+            people.append({"id": m.id, "name": m.name, "avatar": m.avatar, "state": state, "days": p.quest_days,
+                           "level": p.level, "since": p.legendary_since.isoformat() if p.legendary_since else None})
+    me = None
+    if v.kind == "member" and v.id in prog:
+        p = prog[v.id]
+        me = {"status": _status(p), "level": p.level, "goal": LEGENDARY_LEVEL}
+    return {"prize": cfg.legendary_gems if cfg.legendary_gems is not None else 1000, "day_gems": cfg.quest_day_gems or 0,
+            "goal": LEGENDARY_LEVEL, "bonus": True,
+            "tasks": [{"key": t.key, "label": t.label_on(today), "group": t.group, "quest_only": t.min_rank == "legendary"} for t in plan],
+            "people": people, "me": me}

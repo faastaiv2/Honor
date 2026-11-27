@@ -57,7 +57,7 @@ export interface History {
 export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean; avatar: string; early_ticks: number; godfather: boolean; avatar_nudge?: boolean }
 export interface Adjustment { id: string; member_id: string; delta: number; note: string; created_at: string; created_by: string }
 export interface TaskDef { key: string; label: string; group: string; fitness: boolean; next_day: boolean; not_before: string | null; links?: string[]; number_today: number | null; step: number; every: number; shown_today: string; shown_tomorrow: string;
-  rank_step: number; min_rank: string; by_rank: { rank: string; label: string }[] }
+  rank_step: number; min_rank: string; quest_number: number | null; on_quest: string; by_rank: { rank: string; label: string }[] }
 export interface Achievement { key: string; name: string; text: string; group: string; icon: string; tier: string; gems: number; goal: number; progress: number; unlocked: boolean; claimed: boolean; picture?: { key: string; name: string }; theme?: { key: string; name: string } }
 export interface Achievements { member: { id: string; name: string }; items: Achievement[]; unlocked: number; total: number }
 export interface EventEntry { id: string; member: { id: string; name: string; avatar: string }; title: string; place: number | null; gems: number; day: string }
@@ -87,7 +87,14 @@ export interface NewsIn { title: string; body: string; emoji: string; pinned: bo
 export interface ShaytanTest { id: string; member: { id: string; name: string; avatar: string }; offer: number; answer: "" | "yes" | "no";
   answered_at: string | null; auto_cut: number; refusals: number; final_offer: number; ladder: number[]; cut: number; reward: number; posted: boolean; created_at: string }
 export type ShaytanShow = { id: string; show: "offer"; offer: number; ladder: number[] } | { id: string; show: "cut"; levels: number } | { id: string; show: "reward"; gems: number };
-export interface Settings { score_from: string; cut_misses: number; timezone: string }
+export interface Settings { score_from: string; cut_misses: number; timezone: string; legendary_gems: number; quest_day_gems: number }
+export interface PollItem { id: string; question: string; options: string[]; multi: boolean; anonymous: boolean; show_results: boolean;
+  closed: boolean; created_at: string; mine: number[] | null; voters: number; counts: number[] | null; who?: string[][] }
+export interface Polls { items: PollItem[]; waiting: number }
+export interface QuestInfo { prize: number; day_gems: number; goal: number;
+  tasks: { key: string; label: string; group: string; quest_only: boolean }[];
+  people: { id: string; name: string; avatar: string; state: "legendary" | "quest" | "ready"; days: number; level: number; since: string | null }[];
+  me: { status: Status; level: number; goal: number } | null }
 
 export interface CharityTest { id: string; member: { id: string; name: string; avatar: string }; ask: number; give_back: number;
   answer: "" | "give" | "refuse"; given: number; answered_at: string | null; created_at: string }
@@ -260,6 +267,12 @@ export const api = {
   celebrated: () => request<Profile>("/board/profile/celebrated", send("POST", {})),
   saveProfile: (body: { avatar?: string; frame?: string; theme?: string }) => request<Profile>("/board/profile", send("PUT", body)),
   buy: (kind: "frame" | "theme" | "avatar", key: string) => request<Profile>("/board/shop/buy", send("POST", { kind, key })),
+  questInfo: () => request<QuestInfo>("/board/quest-info"),
+  polls: () => request<Polls>("/polls"),
+  addPoll: (body: { question: string; options: string[]; multi: boolean; anonymous: boolean; show_results: boolean }) => request<Polls>("/polls", send("POST", body)),
+  votePoll: (id: string, choices: number[]) => request<Polls>(`/polls/${id}/vote`, send("POST", { choices })),
+  closePoll: (id: string, closed: boolean) => request<Polls>(`/polls/${id}`, send("PATCH", { closed })),
+  deletePoll: (id: string) => request<Polls>(`/polls/${id}`, { method: "DELETE" }),
   startQuest: (member_id: string) => request<Status>("/board/quest", send("POST", { member_id })),
   history: (days = 14) => request<History>(`/board/history?days=${days}`),
 
@@ -285,7 +298,7 @@ export const api = {
   editPeriod: (id: string, body: PeriodIn) => request<Period>(`/admin/periods/${encodeURIComponent(id)}`, send("PUT", body)),
   deletePeriod: (id: string) => request<void>(`/admin/periods/${encodeURIComponent(id)}`, send("DELETE")),
   addTask: (body: { label: string; group: string; fitness: boolean; next_day: boolean; not_before?: string | null; links?: string[]; number_today: number | null; step?: number; every?: number; rank_step?: number; min_rank?: string }) => request<TaskDef>("/admin/tasks", send("POST", body)),
-  editTask: (key: string, body: Partial<{ label: string; group: string; fitness: boolean; next_day: boolean; not_before: string; links: string[]; number_today: number; clear_number: boolean; step: number; every: number; rank_step: number; min_rank: string; move: number }>) => request<TaskDef>(`/admin/tasks/${encodeURIComponent(key)}`, send("PATCH", body)),
+  editTask: (key: string, body: Partial<{ label: string; group: string; fitness: boolean; next_day: boolean; not_before: string; links: string[]; number_today: number; clear_number: boolean; step: number; every: number; rank_step: number; min_rank: string; quest_number: number; move: number }>) => request<TaskDef>(`/admin/tasks/${encodeURIComponent(key)}`, send("PATCH", body)),
   deleteTask: (key: string) => request<void>(`/admin/tasks/${encodeURIComponent(key)}`, { method: "DELETE" }),
   settings: () => request<Settings>("/admin/settings"),
   saveSettings: (body: Partial<Settings>) => request<Settings>("/admin/settings", send("PUT", body)),

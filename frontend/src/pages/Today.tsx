@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { preloadCrack, preloadQuestMusic } from "../lib/questMusic";
-import { preloadSound } from "../lib/sounds";
 import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import Brazier from "../lib/Brazier";
-import QuestFilm from "./QuestFilm";
+import { Link } from "react-router-dom";
 import { api, ApiError, type DayView, type SignInMember, type TaskItem, type TodayInfo } from "../api";
 import { useAuth } from "../auth";
 import { addDays, fmt } from "../lib/dates";
@@ -28,9 +26,8 @@ function withToggled(v: DayView, key: string, on: boolean): DayView {
   };
 }
 
-function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQuest: () => void }) {
+function Perks({ view, canAct }: { view: DayView; canAct: boolean }) {
   const st = view.status;
-  const [sure, setSure] = useState(false);
   return (
     <div className="perks" style={{ ["--tc" as string]: st.tier.color }}>
       <div className="perks-top">
@@ -47,35 +44,8 @@ function Perks({ view, canAct, onQuest }: { view: DayView; canAct: boolean; onQu
       {st.quest.active && <p className="quest"><RankIcon rank="legendary" /> Legendary quest, day {st.quest.days + 1}: finish every task <b>and</b> the bonus every day until L.</p>}
       {st.quest.broken_on && !st.quest.active && st.tier.key !== "bronze" && <p className="note">The last Legendary quest ended on {fmt(st.quest.broken_on, { day: "numeric", month: "short" })}.</p>}
       {st.banned && <p className="note">Legendary Honor was lost and cannot be received again.</p>}
-      {st.can_start_quest && canAct && (
-        <div className="quest">
-          <p style={{ margin: "0 0 8px" }}><RankIcon rank="legendary" /> <b>Legendary quest.</b> Give up <RankIcon rank={st.tier.key} /> {st.tier.name}, start again from <RankIcon rank="bronze" /> Bronze I, and finish <b>every task and every bonus, every day</b> until L. One missed day ends the quest.</p>
-          <button className="primary" onClick={() => { setSure(true); void preloadQuestMusic(); void preloadCrack(); void preloadSound("quest-thunder"); }}>Start the Legendary quest</button>
-        </div>
-      )}
-      {sure && (
-        <div className="qc" role="dialog" aria-modal="true" aria-labelledby="qc-title">
-          <div className="qc-sky" aria-hidden="true" />
-          <div className="qc-card">
-            <div className="qc-crests" aria-hidden="true">
-              <span className="qc-from"><RankIcon rank={st.tier.key} className="ru-crest" /></span>
-              <span className="qc-arrow">→</span>
-              <span className="qc-to"><RankIcon rank="bronze" className="ru-crest" /></span>
-              <span className="qc-arrow">→</span>
-              <span className="qc-goal"><RankIcon rank="legendary" className="ru-crest" /></span>
-            </div>
-            <p className="qc-kicker">The Legendary quest</p>
-            <h2 id="qc-title">Give up {st.tier.name}?</h2>
-            <ul className="qc-rules">
-              <li><span>⬇️</span><span>Your {st.tier.name} title is gone. You start again at <b>Bronze I</b>.</span></li>
-              <li><span>✅</span><span>Finish <b>every task and the bonus, every day</b>, all the way to L.</span></li>
-              <li><span>⚠️</span><span><b>One missed day</b> ends the quest.</span></li>
-              <li><span>👑</span><span>Reach L and you become <b>Legendary</b>, the highest honor.</span></li>
-            </ul>
-            <button className="qc-yes" onClick={() => { setSure(false); onQuest(); }}>Yes, give up my {st.tier.name} title and start</button>
-            <button className="qc-no" onClick={() => setSure(false)}>Not now</button>
-          </div>
-        </div>
+      {(st.can_start_quest || st.quest.active) && canAct && (
+        <Link to="/legendary" className="quest lq-link"><RankIcon rank="legendary" /> {st.quest.active ? "Your Legendary quest" : <><b>The Legendary quest is open to you.</b> See the rules and start</>} →</Link>
       )}
     </div>
   );
@@ -108,7 +78,6 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
   useEffect(load, [load]);
 
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const [questFilm, setQuestFilm] = useState(false);
   const [excusing, setExcusing] = useState<{ key: string; reason: string } | null>(null);
 
   function save(next: DayView, nextExcuse: string, taskExcuses?: Record<string, string>): Promise<DayView | undefined> {
@@ -302,9 +271,7 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
       </form>
       {view.mode === "locked" && <p className="note">This day is locked. {view.date < today ? "Your rank does not allow making it up now; a parent can still change it." : ""}</p>}
       {error && <p className="err" role="alert">{error}</p>}
-      <Perks view={view} canAct={isMe || !!viewer?.is_admin}
-        onQuest={async () => { try { await api.startQuest(view.member.id); load(); if (isMe) setQuestFilm(true); else { notifyChanged(); setToast("The Legendary quest has begun"); } } catch (e) { setError(e instanceof ApiError ? e.message : "Could not start"); } }} />
-      {questFilm && <QuestFilm name={view.member.name} onClose={() => { setQuestFilm(false); notifyChanged(); }} />}
+      <Perks view={view} canAct={isMe || !!viewer?.is_admin} />
       {toast && <div className="toast" role="status">{toast}</div>}
     </section>
   );

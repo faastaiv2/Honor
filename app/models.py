@@ -103,6 +103,8 @@ class AppSettings(Base):
     score_from: Mapped[date] = mapped_column(Date, default=date(2026, 11, 22))
     cut_misses: Mapped[int] = mapped_column(Integer, default=1)  # 1 = any missed task cuts Honor
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")
+    legendary_gems: Mapped[int] = mapped_column(Integer, default=1000)  # the prize for finishing the Legendary quest
+    quest_day_gems: Mapped[int] = mapped_column(Integer, default=0)  # gems for each perfect day on the quest
 
 
 class Period(Base):
@@ -206,6 +208,7 @@ class TaskDef(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     rank_step: Mapped[int] = mapped_column(Integer, default=0)  # added to the number for every rank above Bronze
     min_rank: Mapped[str] = mapped_column(String(12), default="")  # "" = every rank; else appears from this rank on
+    quest_number: Mapped[int | None] = mapped_column(Integer, nullable=True)  # the number on the Legendary quest (None: by rank)
 
 
 class Media(Base):
@@ -379,4 +382,28 @@ class KittenTest(Base):
     posted: Mapped[bool] = mapped_column(Boolean, default=False)  # the admin posted "left the kitten" to Community
     answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by: Mapped[str] = mapped_column(String(120), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Poll(Base):
+    """A survey or poll the admin asks the family. One or more answers can be picked."""
+    __tablename__ = "polls"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    question: Mapped[str] = mapped_column(String(200))
+    options: Mapped[list] = mapped_column(JSON, default=list)  # the answers to choose from
+    multi: Mapped[bool] = mapped_column(Boolean, default=False)  # pick more than one
+    anonymous: Mapped[bool] = mapped_column(Boolean, default=False)  # the admin doesn't see who picked what
+    show_results: Mapped[bool] = mapped_column(Boolean, default=True)  # members see the results after voting
+    closed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_by: Mapped[str] = mapped_column(String(120), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class PollVote(Base):
+    __tablename__ = "poll_votes"
+    __table_args__ = (UniqueConstraint("poll_id", "member_id", name="uq_poll_vote"),)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    poll_id: Mapped[str] = mapped_column(ForeignKey("polls.id", ondelete="CASCADE"), index=True)
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"))
+    choices: Mapped[list] = mapped_column(JSON, default=list)  # indexes into the poll's options
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

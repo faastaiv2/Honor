@@ -1413,3 +1413,46 @@ def test_event_posted_midweek_opens_and_closes_on_chosen_days(client, family):
     with a, b, c, d:
         info = client.get("/api/events", headers=h).json()
         assert not info["open"] and info["past"][0]["entries"][0]["title"] == "Friday art"
+
+
+def test_polls_vote_change_and_results(client, family):
+    h, hb, ha = auth(client, family["A"]), auth(client, family["B"]), auth(client, admin=True)
+    assert client.post("/api/polls", headers=h, json={"question": "Q", "options": ["a", "b"]}).status_code == 403
+    r = client.post("/api/polls", headers=ha, json={"question": "Where shall we go on Sunday?", "options": ["Park", "Zoo", "Beach"]}).json()
+    pid = r["items"][0]["id"]
+    mine = client.get("/api/polls", headers=h).json()
+    assert mine["waiting"] == 1 and mine["items"][0]["counts"] is None  # results only after voting
+    assert client.post(f"/api/polls/{pid}/vote", headers=h, json={"choices": [0, 1]}).status_code == 400  # one answer
+    r = client.post(f"/api/polls/{pid}/vote", headers=h, json={"choices": [1]}).json()
+    assert r["waiting"] == 0 and r["items"][0]["counts"] == [0, 1, 0] and r["items"][0]["mine"] == [1]
+    client.post(f"/api/polls/{pid}/vote", headers=h, json={"choices": [2]})  # change of mind
+    client.post(f"/api/polls/{pid}/vote", headers=hb, json={"choices": [2]})
+    adm = client.get("/api/polls", headers=ha).json()["items"][0]
+    assert adm["counts"] == [0, 0, 2] and adm["who"][2] == ["Alpha", "Bravo"]
+    client.patch(f"/api/polls/{pid}", headers=ha, json={"closed": True})
+    assert client.post(f"/api/polls/{pid}/vote", headers=h, json={"choices": [0]}).status_code == 400
+    anon = client.post("/api/polls", headers=ha, json={"question": "Secret?", "options": ["yes", "no"], "anonymous": True, "multi": True}).json()["items"][0]
+    client.post(f"/api/polls/{anon['id']}/vote", headers=h, json={"choices": [0, 1]})
+    assert "who" not in client.get("/api/polls", headers=ha).json()["items"][0]
+
+
+def test_admin_sets_quest_prize_and_quest_numbers(client, family):
+    ha = auth(client, admin=True)
+    r = client.put("/api/admin/settings", headers=ha, json={"legendary_gems": 600, "quest_day_gems": 5}).json()
+    assert r["legendary_gems"] == 600 and r["quest_day_gems"] == 5
+    tasks = client.get("/api/admin/tasks", headers=ha).json()
+    push = next(t for t in tasks if t["key"] == "push")
+    t = client.patch("/api/admin/tasks/push", headers=ha, json={"quest_number": 77}).json()
+    assert t["quest_number"] == 77 and "77" in t["on_quest"]
+    t = client.patch("/api/admin/tasks/push", headers=ha, json={"quest_number": -1}).json()
+    assert t["quest_number"] is None and push["key"] == "push"
+
+
+def test_quest_info_shows_prize_tasks_and_people(client, family):
+    ha, h = auth(client, admin=True), auth(client, family["A"])
+    client.put("/api/admin/settings", headers=ha, json={"legendary_gems": 700})
+    client.patch("/api/admin/tasks/push", headers=ha, json={"quest_number": 88})
+    r = client.get("/api/board/quest-info", headers=h).json()
+    assert r["prize"] == 700 and r["goal"] == 50 and r["me"]["goal"] == 50
+    assert any("88" in t["label"] for t in r["tasks"] if t["key"] == "push")
+    assert client.get("/api/board/quest-info", headers=ha).json()["me"] is None
