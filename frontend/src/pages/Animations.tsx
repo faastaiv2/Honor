@@ -6,6 +6,8 @@ import GodfatherReveal from "../lib/GodfatherReveal";
 import ShaytanScene, { ShaytanCheer } from "../lib/Shaytan";
 import CharityScene from "../lib/Charity";
 import PigeonScene from "../lib/Pigeon";
+import BullyScene from "../lib/Bully";
+import QuizScene from "../lib/Quiz";
 import GobiSplat from "../lib/GobiSplat";
 import RankIcon from "../lib/RankIcon";
 import { playMusic, playSound, resetSounds, stopMusic } from "../lib/sounds";
@@ -37,7 +39,7 @@ const MOMENT: Partial<Record<SoundKey, string>> = {
   achievement: "the reward appears", "event-win": "the prize chest appears",
 };
 
-type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" } | { kind: "godfather" } | { kind: "shaytan" } | { kind: "splat" } | { kind: "cheer" } | { kind: "charity" } | { kind: "pigeon" };
+type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" } | { kind: "godfather" } | { kind: "shaytan" } | { kind: "splat" } | { kind: "cheer" } | { kind: "charity" } | { kind: "pigeon" } | { kind: "bully" } | { kind: "quiz" };
 
 /** One sound slot: upload, test, start point, volume, remove. */
 function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
@@ -201,6 +203,18 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         <>{slot("shaytan-goodjob", "Good job (voice)", "“Good job! You fell into Low Honor… just where I want you!”")}
           <p className="note">His laugh uses the “Evil laugh” sound from Deploy Shaytan.</p></>)}
 
+      {card("😠", "The rude kid", "Sent from the Tests tab: a boastful kid calls the member lazy and weak. They can pay 25 gems for the Mega Gobi, say something mean back, or reply kindly (he says sorry, and they earn Gentle Heart).",
+        () => setPreview({ kind: "bully" }),
+        <>{slot("bully-taunt", "His boasting (voice)", "“You are very bad and lazy! I am better than you! I am very powerful and strong… and you are WEAK!”")}
+          {slot("bully-sorry", "Sorry (voice)", "“…I'm sorry. I was just being mean. You're actually really nice. Friends?”")}
+          {slot("bully-cry", "Crying", "After the Mega Gobi: “WAAAAH!”")}</>)}
+
+      {card("🦉", "The owl's quiz", "Sent from the Tests tab: an owl sage flies in with your questions. A right answer earns gems; all right and the owl bows.",
+        () => setPreview({ kind: "quiz" }),
+        <>{slot("owl-hoot", "Owl arrives", "A hoot as he lands")}
+          {slot("quiz-right", "Right answer", "A happy chime")}
+          {slot("quiz-wrong", "Wrong answer", "A soft “oops”")}</>)}
+
       {card("🕊️", "Carrier pigeon", "Sent from the Tests tab: a pigeon flies in with a scroll on its leg. Tap the note and it unrolls: a thank-you in old English from whoever sent it, with a gift of gems.",
         () => setPreview({ kind: "pigeon" }),
         <>{slot("pigeon-coo", "Flutter and coo", "As the pigeon flies in and lands")}
@@ -233,6 +247,11 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
       {card("🎨", "Art tournament win", "A 1st, 2nd or 3rd place: a golden chest with the prize.", () => setPreview({ kind: "win" }),
         slot("event-win", "Win", "Plays when the prize chest appears"))}
 
+      {preview?.kind === "bully" && <BullyScene name="Preview" balance={100} preview onDone={() => setPreview(null)} />}
+      {preview?.kind === "quiz" && <QuizScene name="Preview" preview onDone={() => setPreview(null)} quiz={{ id: "p", gems_each: 10, answers: [-1, -1, -1], questions: [
+        { q: "How many surahs are in the Quran?", options: ["99", "114", "120"], answer: 1 },
+        { q: "Which surah is called the Mother of the Book?", options: ["Al-Fatihah", "Al-Ikhlas", "Yasin"], answer: 0 },
+        { q: "What do we say before eating?", options: ["Alhamdulillah", "SubhanAllah", "Bismillah"], answer: 2 }] }} />}
       {preview?.kind === "pigeon" && <PigeonScene name="Preview" sender={info?.viewer.name || "Admin"} gems={50} preview onDone={() => setPreview(null)} />}
       {preview?.kind === "charity" && <CharityScene name="Preview" ask={20} balance={100} preview onDone={() => setPreview(null)} />}
       {preview?.kind === "cheer" && <ShaytanCheer name="Preview" preview onDone={() => setPreview(null)} />}

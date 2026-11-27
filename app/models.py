@@ -331,3 +331,29 @@ class PigeonNote(Base):
     opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by: Mapped[str] = mapped_column(String(120), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class BullyTest(Base):
+    """A test the admin sends: a rude kid boasts and calls the member weak. They can pay 25 gems to launch a
+    mega gobi at him, say something mean back, or reply kindly (he says sorry and becomes a friend)."""
+    __tablename__ = "bully_tests"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    answer: Mapped[str] = mapped_column(String(8), default="")  # "", "gobi", "mean" or "kind"
+    paid: Mapped[int] = mapped_column(Integer, default=0)  # gems paid for the gobi
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(120), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class QuizTest(Base):
+    """The quiz scroll: an owl sage brings three questions the admin wrote. Each right answer earns gems."""
+    __tablename__ = "quiz_tests"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
+    questions: Mapped[list] = mapped_column(JSON, default=list)  # [{"q": str, "options": [str], "answer": int}]
+    gems_each: Mapped[int] = mapped_column(Integer, default=10)
+    answers: Mapped[list] = mapped_column(JSON, default=list)  # the member's choice for each question (-1 = not yet)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(120), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

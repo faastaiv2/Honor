@@ -319,3 +319,172 @@ def open_pigeon(note_id: str, v: Viewer = Depends(current_viewer), db: Session =
         db.add(GemGrant(member_id=t.member_id, delta=t.gems, note=f"A gift from {t.sender} (carrier pigeon)", created_by="Honor"))
     db.commit()
     return {"gems": t.gems}
+
+
+# ---------------------------------------------------------------- the rude kid (Gentle Heart)
+from app.models import BullyTest, QuizTest  # noqa: E402
+
+BULLY_GOBI_PRICE = 25
+
+
+def _member_brief(db: Session, member_id: str) -> dict:
+    m = db.get(Member, member_id)
+    return {"id": member_id, "name": m.name if m else "?", "avatar": m.avatar if m else ""}
+
+
+def _bully_out(db: Session, t: BullyTest) -> dict:
+    return {"id": t.id, "member": _member_brief(db, t.member_id), "answer": t.answer, "paid": t.paid,
+            "answered_at": t.answered_at.isoformat() if t.answered_at else None, "created_at": t.created_at.isoformat()}
+
+
+class MemberOnlyIn(BaseModel):
+    member_id: str
+
+
+@router.get("/bully")
+def list_bully(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
+    return [_bully_out(db, t) for t in db.scalars(select(BullyTest).order_by(BullyTest.created_at.desc()).limit(100))]
+
+
+@router.post("/bully", status_code=201)
+def send_bully(body: MemberOnlyIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    m = db.get(Member, body.member_id)
+    if not m:
+        raise HTTPException(404, "Member not found")
+    if db.scalar(select(BullyTest.id).where(BullyTest.member_id == m.id, BullyTest.answer == "")):
+        raise HTTPException(400, f"The rude kid is already waiting for {m.name}")
+    t = BullyTest(member_id=m.id, created_by=v.name)
+    db.add(t)
+    db.commit()
+    return _bully_out(db, t)
+
+
+@router.delete("/bully/{test_id}", status_code=204)
+def cancel_bully(test_id: str, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> None:
+    t = db.get(BullyTest, test_id)
+    if t and not t.answer:
+        db.delete(t)
+        db.commit()
+
+
+def bully_for(db: Session, member_id: str) -> dict | None:
+    t = db.scalar(select(BullyTest).where(BullyTest.member_id == member_id, BullyTest.answer == "")
+                  .order_by(BullyTest.created_at).limit(1))
+    return {"id": t.id, "price": BULLY_GOBI_PRICE} if t else None
+
+
+class BullyAnswerIn(BaseModel):
+    choice: str = Field(pattern="^(gobi|mean|kind)$")
+
+
+@router.post("/bully/{test_id}/answer")
+def answer_bully(test_id: str, body: BullyAnswerIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    from app.services import gem_balance, get_settings_row
+    t = db.get(BullyTest, test_id)
+    if not t:
+        raise HTTPException(404, "No such test")
+    if v.kind != "member" or v.id != t.member_id:
+        raise HTTPException(403, "Not your test")
+    if t.answer:
+        raise HTTPException(400, "Already answered")
+    if body.choice == "gobi":
+        m = db.get(Member, t.member_id)
+        if gem_balance(db, get_settings_row(db), m) < BULLY_GOBI_PRICE:
+            raise HTTPException(400, f"You need {BULLY_GOBI_PRICE} gems for the Mega Gobi")
+        db.add(GemGrant(member_id=t.member_id, delta=-BULLY_GOBI_PRICE, note="Launched a Mega Gobi at the rude kid", created_by="Honor"))
+        t.paid = BULLY_GOBI_PRICE
+    t.answer, t.answered_at = body.choice, datetime.now(timezone.utc)
+    db.commit()
+    return {"answer": t.answer, "paid": t.paid}
+
+
+# ---------------------------------------------------------------- the owl's quiz scroll
+class QuizQuestionIn(BaseModel):
+    q: str = Field(min_length=1, max_length=300)
+    options: list[str] = Field(min_length=2, max_length=4)
+    answer: int = Field(ge=0, le=3)
+
+
+class QuizIn(BaseModel):
+    member_id: str
+    questions: list[QuizQuestionIn] = Field(min_length=1, max_length=5)
+    gems_each: int = Field(default=10, ge=0, le=1000)
+
+
+def _quiz_out(db: Session, t: QuizTest) -> dict:
+    right = sum(1 for q, a in zip(t.questions, t.answers) if a == q["answer"])
+    return {"id": t.id, "member": _member_brief(db, t.member_id), "questions": t.questions, "gems_each": t.gems_each,
+            "answers": t.answers, "right": right, "finished_at": t.finished_at.isoformat() if t.finished_at else None,
+            "created_at": t.created_at.isoformat()}
+
+
+@router.get("/quiz")
+def list_quiz(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
+    return [_quiz_out(db, t) for t in db.scalars(select(QuizTest).order_by(QuizTest.created_at.desc()).limit(100))]
+
+
+@router.post("/quiz", status_code=201)
+def send_quiz(body: QuizIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    m = db.get(Member, body.member_id)
+    if not m:
+        raise HTTPException(404, "Member not found")
+    qs = []
+    for q in body.questions:
+        opts = [o.strip() for o in q.options]
+        if any(not o or len(o) > 120 for o in opts) or q.answer >= len(opts):
+            raise HTTPException(400, "Every answer needs some text, and the right one must be one of them")
+        qs.append({"q": q.q.strip(), "options": opts, "answer": q.answer})
+    t = QuizTest(member_id=m.id, questions=qs, gems_each=body.gems_each, answers=[-1] * len(qs), created_by=v.name)
+    db.add(t)
+    db.commit()
+    return _quiz_out(db, t)
+
+
+@router.delete("/quiz/{test_id}", status_code=204)
+def cancel_quiz(test_id: str, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> None:
+    t = db.get(QuizTest, test_id)
+    if t and all(a == -1 for a in t.answers):
+        db.delete(t)
+        db.commit()
+
+
+def quiz_for(db: Session, member_id: str) -> dict | None:
+    """The next unfinished quiz, without the right answers (except for questions already answered)."""
+    t = db.scalar(select(QuizTest).where(QuizTest.member_id == member_id, QuizTest.finished_at.is_(None))
+                  .order_by(QuizTest.created_at).limit(1))
+    if not t:
+        return None
+    return {"id": t.id, "gems_each": t.gems_each, "answers": t.answers,
+            "questions": [{"q": q["q"], "options": q["options"], **({"answer": q["answer"]} if a != -1 else {})}
+                          for q, a in zip(t.questions, t.answers)]}
+
+
+class QuizAnswerIn(BaseModel):
+    index: int = Field(ge=0, le=4)
+    choice: int = Field(ge=0, le=3)
+
+
+@router.post("/quiz/{test_id}/answer")
+def answer_quiz(test_id: str, body: QuizAnswerIn, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """One answer at a time (one try each): right earns gems_each straight away."""
+    t = db.get(QuizTest, test_id)
+    if not t:
+        raise HTTPException(404, "No such quiz")
+    if v.kind != "member" or v.id != t.member_id:
+        raise HTTPException(403, "Not your quiz")
+    if body.index >= len(t.questions):
+        raise HTTPException(400, "No such question")
+    answers = list(t.answers)
+    if answers[body.index] != -1:
+        raise HTTPException(400, "Already answered")
+    q = t.questions[body.index]
+    answers[body.index] = body.choice
+    t.answers = answers
+    right = body.choice == q["answer"]
+    if right and t.gems_each:
+        db.add(GemGrant(member_id=t.member_id, delta=t.gems_each, note="A right answer on the owl's quiz", created_by="Honor"))
+    if all(a != -1 for a in answers):
+        t.finished_at = datetime.now(timezone.utc)
+    db.commit()
+    return {"right": right, "answer": q["answer"], "gems": t.gems_each if right else 0,
+            "score": sum(1 for x, a in zip(t.questions, answers) if a == x["answer"]), "done": t.finished_at is not None}

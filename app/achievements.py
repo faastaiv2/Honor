@@ -24,6 +24,7 @@ class Facts:
     godfather: int = 0  # 1 if the admin made them a Godfather
     shaytan: int = 0  # times they turned Shaytan down three times
     sadaqah: int = 0  # times they gave to the man in the cloak
+    kindness: int = 0  # times they replied kindly to the rude kid
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,8 @@ ACHIEVEMENTS: list[Achievement] = [
                 lambda f: f.shaytan, reward=30),
     Achievement("sadaqah", "Sadaqah", "Give to someone in need when they ask", "Honor", "heart", "silver", 1,
                 lambda f: f.sadaqah),
+    Achievement("kindness", "Gentle Heart", "Reply kindly when someone is rude to you", "Honor", "heart", "silver", 1,
+                lambda f: f.kindness),
     Achievement("godfather", "The Godfather", "Be named a Godfather of the family", "Honor", "godfather", "godfather", 1,
                 lambda f: f.godfather, reward=313, only_godfather=True),
     # Streaks

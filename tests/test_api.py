@@ -1264,3 +1264,39 @@ def test_carrier_pigeon_brings_a_note_and_gems_once(client, family):
     assert after["pigeon"] is None and after["gems"]["balance"] == before["gems"]["balance"] + 75
     t2 = client.post("/api/tests/pigeon", headers=ha, json={"member_id": family["B"].id}).json()
     assert t2["sender"] == "Parent" and t2["gems"] == 50  # from the admin by default
+
+
+def test_rude_kid_gobi_costs_gems_and_kindness_earns_gentle_heart(client, family):
+    h, hb, ha = auth(client, family["A"]), auth(client, family["B"]), auth(client, admin=True)
+    client.post(f"/api/admin/members/{family['A'].id}/gems", headers=ha, json={"balance": 30})
+    client.post(f"/api/admin/members/{family['B'].id}/gems", headers=ha, json={"balance": 10})
+    ta = client.post("/api/tests/bully", headers=ha, json={"member_id": family["A"].id}).json()
+    tb = client.post("/api/tests/bully", headers=ha, json={"member_id": family["B"].id}).json()
+    assert client.get("/api/board/profile", headers=h).json()["bully"] == {"id": ta["id"], "price": 25}
+    assert client.post(f"/api/tests/bully/{tb['id']}/answer", headers=hb, json={"choice": "gobi"}).status_code == 400  # only 10 gems
+    assert client.post(f"/api/tests/bully/{ta['id']}/answer", headers=h, json={"choice": "gobi"}).json() == {"answer": "gobi", "paid": 25}
+    assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == 5
+    assert client.post(f"/api/tests/bully/{tb['id']}/answer", headers=hb, json={"choice": "kind"}).json()["answer"] == "kind"
+    gentle = lambda hh: next(x for x in client.get("/api/board/achievements", headers=hh).json()["items"] if x["key"] == "kindness")
+    assert gentle(hb)["unlocked"] and gentle(hb)["tier"] == "silver" and not gentle(h)["unlocked"]
+
+
+def test_owl_quiz_one_try_per_question_and_gems_for_right_answers(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    qs = [{"q": "How many surahs are in the Quran?", "options": ["114", "100", "99"], "answer": 0},
+          {"q": "First surah?", "options": ["Al-Baqarah", "Al-Fatihah"], "answer": 1},
+          {"q": "Dua before eating?", "options": ["Bismillah", "Alhamdulillah"], "answer": 0}]
+    assert client.post("/api/tests/quiz", headers=ha, json={"member_id": family["A"].id, "questions": [{"q": "x", "options": ["a", ""], "answer": 0}]}).status_code == 400
+    t = client.post("/api/tests/quiz", headers=ha, json={"member_id": family["A"].id, "questions": qs, "gems_each": 10}).json()
+    b0 = client.get("/api/board/profile", headers=h).json()
+    assert "answer" not in b0["quiz"]["questions"][0]  # no peeking
+    assert client.post(f"/api/tests/quiz/{t['id']}/answer", headers=h, json={"index": 0, "choice": 0}).json()["right"] is True
+    assert client.post(f"/api/tests/quiz/{t['id']}/answer", headers=h, json={"index": 0, "choice": 1}).status_code == 400  # one try
+    r = client.post(f"/api/tests/quiz/{t['id']}/answer", headers=h, json={"index": 1, "choice": 0}).json()
+    assert r["right"] is False and r["answer"] == 1 and not r["done"]
+    assert client.get("/api/board/profile", headers=h).json()["quiz"]["questions"][1]["answer"] == 1  # shown once answered
+    r = client.post(f"/api/tests/quiz/{t['id']}/answer", headers=h, json={"index": 2, "choice": 0}).json()
+    assert r["done"] and r["score"] == 2
+    p = client.get("/api/board/profile", headers=h).json()
+    assert p["quiz"] is None and p["gems"]["balance"] == b0["gems"]["balance"] + 20
+    assert client.get("/api/tests/quiz", headers=ha).json()[0]["right"] == 2

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import Gem from "./Gem";
@@ -34,9 +34,15 @@ export function Cauliflower({ size = 40 }: { size?: number }) {
 
 type Phase = "aim" | "fly" | "hit" | "miss" | "done";
 
-export default function GobiGame({ name, avatar, frame, color, onHit, onClose }: {
+export default function GobiGame({ name, avatar, frame, color, onHit, onClose, target: targetArt, mega = false, winText }: {
   name: string; avatar: string; frame: string; color: string; onHit: () => Promise<number>; onClose: () => void;
+  /** Something else to aim at instead of a member's picture (the rude kid). */
+  target?: ReactNode;
+  /** The upgraded launcher: a golden slingshot, a bigger cauliflower and a sparkly trail. */
+  mega?: boolean;
+  winText?: ReactNode;
 }) {
+  const [trail, setTrail] = useState<{ x: number; y: number }[]>([]);
   const svg = useRef<SVGSVGElement>(null);
   const [gobi, setGobi] = useState(REST);
   const [phase, setPhase] = useState<Phase>("aim");
@@ -104,6 +110,7 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose }:
       last = t;
       vy += GRAVITY * dt; x += vx * dt; y += vy * dt;
       setGobi({ x, y });
+      if (mega) setTrail((tr) => [...tr.slice(-10), { x, y }]);
       const tg = targetRef.current;
       if (Math.hypot(x - tg.x, y - tg.y) < TARGET_R + GOBI_R) { hit({ x, y }); return; }
       if (x < -60 || x > W + 60 || y > H + 60 || y < -200) { miss(); return; }
@@ -119,6 +126,7 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose }:
   }
   function miss() {
     misses.current++;
+    setTrail([]);
     setPhase("miss");
     window.setTimeout(() => { setGobi(REST); setPhase("aim"); }, 900);
   }
@@ -139,6 +147,7 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose }:
       <div className="gobi-box">
       <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="gobi-stage" onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
         <defs>
+          <linearGradient id="gobi-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff0a0" /><stop offset=".5" stopColor="#e8a317" /><stop offset="1" stopColor="#a86a00" /></linearGradient>
           <linearGradient id="gobi-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7ec8ff" /><stop offset=".7" stopColor="#d8f0ff" /><stop offset="1" stopColor="#f4fbff" /></linearGradient>
           <clipPath id="gobi-target"><circle r={TARGET_R} /></clipPath>
         </defs>
@@ -155,9 +164,9 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose }:
         <g transform={`translate(${target.x} ${target.y})`}>
           <circle r={TARGET_R + 8} fill="#ff4a4a22" stroke="#ff4a4a" strokeWidth="2" strokeDasharray="4 5" className="gobi-aim" />
           <foreignObject x={-TARGET_R - 12} y={-TARGET_R - 12} width={(TARGET_R + 12) * 2} height={(TARGET_R + 12) * 2}>
-            <div className="gobi-face"><Avatar avatar={avatar} color={color} frame={frame} size={TARGET_R * 2} /></div>
+            <div className="gobi-face">{targetArt ?? <Avatar avatar={avatar} color={color} frame={frame} size={TARGET_R * 2} />}</div>
           </foreignObject>
-          <text y={TARGET_R + 30} textAnchor="middle" className="gobi-name">⛓️ {name}</text>
+          <text y={TARGET_R + 30} textAnchor="middle" className="gobi-name">{targetArt ? name : `⛓️ ${name}`}</text>
           {splat && <g className="gobi-splat">
             {Array.from({ length: 12 }, (_, i) => {
               const a = (i / 12) * Math.PI * 2, r = 22 + (i % 3) * 10;
@@ -170,8 +179,10 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose }:
 
         {/* the slingshot */}
         <path d={`M${REST.x} ${H - 60} V${REST.y + 22} M${REST.x} ${REST.y + 30} L${FORK[0].x} ${FORK[0].y} M${REST.x} ${REST.y + 30} L${FORK[1].x} ${FORK[1].y}`}
-          stroke="#7a4a22" strokeWidth="11" strokeLinecap="round" fill="none" />
-        {phase === "aim" && <path d={`M${FORK[0].x} ${FORK[0].y} L${gobi.x} ${gobi.y} L${FORK[1].x} ${FORK[1].y}`} stroke="#c0392b" strokeWidth="4" fill="none" strokeLinejoin="round" />}
+          stroke={mega ? "url(#gobi-gold)" : "#7a4a22"} strokeWidth={mega ? 14 : 11} strokeLinecap="round" fill="none" />
+        {mega && FORK.map((f, i) => <circle key={i} cx={f.x} cy={f.y} r="9" fill="#ffd24a" stroke="#a86a00" strokeWidth="2" className="gobi-gem-tip" />)}
+        {phase === "aim" && <path d={`M${FORK[0].x} ${FORK[0].y} L${gobi.x} ${gobi.y} L${FORK[1].x} ${FORK[1].y}`} stroke={mega ? "#ff7a00" : "#c0392b"} strokeWidth={mega ? 6 : 4} fill="none" strokeLinejoin="round" />}
+        {mega && phase === "fly" && trail.map((t, i) => <circle key={i} cx={t.x} cy={t.y} r={3 + i * 1.3} fill={i % 2 ? "#ffd24a" : "#ff8a2a"} opacity={(i + 1) / trail.length * .8} />)}
         {guide.map((g, i) => <circle key={i} cx={g.x} cy={g.y} r={4 - i * 0.4} fill="#ffffff" stroke="#2a6ad0" strokeWidth="1" opacity={1 - i * 0.12} />)}
 
         {/* the cauliflower */}
@@ -179,13 +190,13 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose }:
           <g transform={`translate(${gobi.x} ${gobi.y}) rotate(${phase === "fly" ? (gobi.x * 3) % 360 : 0})`}
             onPointerDown={down} style={{ touchAction: "none", cursor: phase === "aim" ? "grab" : "default" }}>
             <circle r={GOBI_R + 14} fill="transparent" />
-            <g className={phase === "aim" ? "gobi-ball" : ""}><Cauliflower size={GOBI_R * 1.7} /></g>
+            <g className={phase === "aim" ? "gobi-ball" : ""} transform={mega ? "scale(1.3)" : undefined}><Cauliflower size={GOBI_R * 1.7} /></g>
           </g>
         )}
       </svg>
 
       <div className="gobi-top">
-        <b>🥦 Launch Gobi</b>
+        <b>{mega ? "🥦✨ Mega Gobi" : "🥦 Launch Gobi"}</b>
         <button className="gobi-x" aria-label="Close" onClick={onClose}>×</button>
       </div>
       <p className={`gobi-say${phase === "miss" ? " miss" : ""}`}>
@@ -195,7 +206,7 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose }:
       {(phase === "hit" || phase === "done") && (
         <div className="gobi-win">
           <b>SPLAT! 🥦</b>
-          {error ? <p className="err">{error}</p> : <p>You hit {name}! <span className="gobi-gems">+{won || 10} <Gem /></span></p>}
+          {error ? <p className="err">{error}</p> : winText ? <p>{winText}</p> : <p>You hit {name}! <span className="gobi-gems">+{won || 10} <Gem /></span></p>}
           {phase === "done" && <button className="primary" onClick={onClose}>Done</button>}
         </div>
       )}

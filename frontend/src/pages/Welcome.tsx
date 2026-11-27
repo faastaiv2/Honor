@@ -17,6 +17,8 @@ import WeeklyMap, { MapButton } from "../lib/WeeklyMap";
 import ShaytanScene, { ShaytanCheer, ShaytanCut } from "../lib/Shaytan";
 import CharityScene from "../lib/Charity";
 import PigeonScene from "../lib/Pigeon";
+import BullyScene from "../lib/Bully";
+import QuizScene from "../lib/Quiz";
 import GobiSplat from "../lib/GobiSplat";
 import SoundGate from "../lib/SoundGate";
 
@@ -265,6 +267,20 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       {p?.shaytan?.show === "offer" && !godfather && raid === null && !rankUp && !reward && (() => { const s = p.shaytan!; return (
         <SoundGate icon="😈"><ShaytanScene name={p.member.name} offer={s.show === "offer" ? s.offer : 50} ladder={s.show === "offer" ? s.ladder : undefined}
           onAnswer={async (accept, refusals) => { await api.answerShaytan(s.id, accept, refusals).catch(() => undefined); }}
+          onDone={() => { api.profile().then(setP).catch(() => undefined); notifyChanged(); }} /></SoundGate>); })()}
+      {p?.quiz && !p.bully && !p.pigeon && !p.charity && !p.shaytan && !godfather && raid === null && !rankUp && !reward && (() => { const qz = p.quiz!; return (
+        <SoundGate icon="🦉"><QuizScene name={p.member.name} quiz={qz}
+          onAnswer={(i, c) => api.answerQuiz(qz.id, i, c)}
+          onDone={(g) => {
+            api.profile().then((np) => {
+              setP(np);
+              if (g > 0) setReward({ amount: g, from: Math.max(0, np.gems.balance - g), title: "The owl's quiz", chest: false });
+            }).catch(() => undefined);
+            notifyChanged();
+          }} /></SoundGate>); })()}
+      {p?.bully && !p.pigeon && !p.charity && !p.shaytan && !godfather && raid === null && !rankUp && !reward && (() => { const b = p.bully!; return (
+        <SoundGate icon="😠"><BullyScene name={p.member.name} balance={p.gems.balance} price={b.price}
+          onAnswer={(c) => api.answerBully(b.id, c)}
           onDone={() => { api.profile().then(setP).catch(() => undefined); notifyChanged(); }} /></SoundGate>); })()}
       {p?.pigeon && !p.charity && !p.shaytan && !godfather && raid === null && !rankUp && !reward && (() => { const n = p.pigeon!; return (
         <SoundGate icon="🕊️"><PigeonScene name={p.member.name} sender={n.sender} gems={n.gems} message={n.message}

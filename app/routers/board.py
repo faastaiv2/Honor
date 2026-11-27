@@ -485,6 +485,11 @@ def _weekly_map(db: Session, m: Member, tier, p, today: date) -> dict:
                     for i, g in enumerate(WEEKLY_MAP)]}
 
 
+def _test_for(fn: str, db: Session, member_id: str):
+    from app.routers import tests
+    return getattr(tests, fn)(db, member_id)
+
+
 def _pigeon_for(db: Session, member_id: str):
     from app.routers.tests import pigeon_for
     return pigeon_for(db, member_id)
@@ -540,7 +545,7 @@ def _profile(db: Session, m: Member) -> dict:
             "week_days": _week_days(db, cfg, m, today),
             "event_win": unseen_win(db, m.id),
             "godfather": {"is": bool(m.godfather), "seen": bool(m.godfather_seen)},
-            "shaytan": _shaytan_for(db, m.id), "charity": _charity_for(db, m.id), "pigeon": _pigeon_for(db, m.id),
+            "shaytan": _shaytan_for(db, m.id), "charity": _charity_for(db, m.id), "pigeon": _pigeon_for(db, m.id), "bully": _test_for("bully_for", db, m.id), "quiz": _test_for("quiz_for", db, m.id),
             "oath": m.oath_at is not None, "oath_note": m.oath_note or "", "toured": bool(m.toured),
             "achievements_ready": sum(1 for a in achs if a["unlocked"] and not a["claimed"]),
             "achievements_new": [{k: a[k] for k in ("key", "name", "icon", "tier", "gems")} for a in achs if a["unlocked"] and not a["claimed"]]}
@@ -742,12 +747,20 @@ def _sadaqah_given(db: Session, member_id: str) -> int:
                                                                              CharityTest.answer == "give")) or 0)
 
 
+def _kind_replies(db: Session, member_id: str) -> int:
+    from sqlalchemy import func
+
+    from app.models import BullyTest
+    return int(db.scalar(select(func.count()).select_from(BullyTest).where(BullyTest.member_id == member_id,
+                                                                           BullyTest.answer == "kind")) or 0)
+
+
 def _achievements(db: Session, m: Member, p: Progress) -> list[dict]:
     _, got = achievement_gems(db, m.id)
     purchases = len(owned_items(db, m.id))
     facts = Facts(p=p, gems_earned=gems_earned(p) + gems_claimed(db, m.id), purchases=purchases, chests=chests_opened(db, m.id),
                   quests=len(m.quest_starts or []), oath=1 if m.oath_at else 0, godfather=1 if m.godfather else 0,
-                  shaytan=_shaytan_beaten(db, m.id), sadaqah=_sadaqah_given(db, m.id), **dict(zip(("first", "second", "third"), placings(db, m.id).values())))
+                  shaytan=_shaytan_beaten(db, m.id), sadaqah=_sadaqah_given(db, m.id), kindness=_kind_replies(db, m.id), **dict(zip(("first", "second", "third"), placings(db, m.id).values())))
     return evaluate_achievements(facts, got)
 
 
