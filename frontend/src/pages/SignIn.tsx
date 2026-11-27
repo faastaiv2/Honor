@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError, type SignInMember } from "../api";
 import { useAuth } from "../auth";
 import Avatar from "../lib/Avatar";
 
 /** An eight-pointed star (two overlapping squares), the medallion at the top of the arch. */
-function Star({ size = 64 }: { size?: number }) {
+function Star({ size = 64, onDot }: { size?: number; onDot?: () => void }) {
   return (
     <svg className="medallion" width={size} height={size} viewBox="-50 -50 100 100" aria-hidden="true">
       <g fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round">
@@ -14,6 +14,8 @@ function Star({ size = 64 }: { size?: number }) {
         <circle r="17" />
       </g>
       <circle r="6" fill="currentColor" />
+      {/* The secret way to the parent sign-in: tap the small dot in the middle. */}
+      {onDot && <circle className="medallion-dot" r="11" fill="transparent" onClick={onDot} />}
     </svg>
   );
 }
@@ -23,6 +25,7 @@ const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "del", "0", "go"];
 /** The main page signs members in; /admin shows only the parent (admin) sign-in. */
 export default function SignIn({ admin = false }: { admin?: boolean }) {
   const { signIn } = useAuth();
+  const nav = useNavigate();
   const [members, setMembers] = useState<SignInMember[] | null>(null);
   const [pick, setPick] = useState<SignInMember | null>(null);
   const [pin, setPin] = useState("");
@@ -93,11 +96,10 @@ export default function SignIn({ admin = false }: { admin?: boolean }) {
 
   return (
     <main className="welcome">
-      {!admin && <Link to="/admin" className="corner-login">Login</Link>}
       {admin && <Link to="/" className="corner-login">← Home</Link>}
       <div className="arch">
         <div className="arch-inner">
-          <Star />
+          <Star onDot={admin ? undefined : () => nav("/admin")} />
           <h1>Honor</h1>
           <p className="ar arch-ar">شَرَف</p>
           <p className="arch-tag">Mark your deeds. Climb the ranks.</p>
