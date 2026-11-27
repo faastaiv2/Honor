@@ -29,32 +29,35 @@ type MacawColors = { body: [string, string]; wingTop: string; wingBottom: string
 const macaw = (c: MacawColors): Draw => (id) => <>
     <defs>
       <linearGradient id={`${id}r`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c.body[0]} /><stop offset="1" stopColor={c.body[1]} /></linearGradient>
-      <linearGradient id={`${id}w`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c.wingTop} /><stop offset=".35" stopColor={c.wingTop} /><stop offset=".4" stopColor={c.wingBottom} /><stop offset="1" stopColor={c.tail} /></linearGradient>
+      <linearGradient id={`${id}w`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c.wingTop} /><stop offset=".45" stopColor={c.wingTop} /><stop offset=".5" stopColor={c.wingBottom} /><stop offset="1" stopColor={c.tail} /></linearGradient>
     </defs>
-    {/* jungle leaves behind */}
-    <path d="M0 30 Q18 22 26 40 Q12 40 0 46Z M100 22 Q80 18 74 36 Q88 34 100 40Z M0 70 Q14 60 24 76 Q10 78 0 84Z" fill="#1e8a4a" opacity=".8" />
-    {/* the branch it sits on */}
-    <path d="M4 92 Q50 84 96 94" stroke="#7a4a22" strokeWidth="7" fill="none" strokeLinecap="round" />
-    {/* long tail feathers */}
-    <path d="M44 84 L38 104 M50 86 L50 106 M56 84 L62 104" stroke={c.tail} strokeWidth="6" strokeLinecap="round" />
-    <path d="M50 86 L50 106" stroke={c.tailMid} strokeWidth="4" strokeLinecap="round" />
-    {/* wings */}
-    <path d="M30 50 Q16 66 26 88 Q36 84 40 70Z" fill={`url(#${id}w)`} stroke="#123a5a" strokeWidth="1" />
-    <path d="M70 50 Q84 66 74 88 Q64 84 60 70Z" fill={`url(#${id}w)`} stroke="#123a5a" strokeWidth="1" />
-    {/* body and head */}
-    <ellipse cx="50" cy="66" rx="20" ry="22" fill={`url(#${id}r)`} />
-    <circle cx="50" cy="40" r="20" fill={`url(#${id}r)`} />
-    <path d="M42 22 Q46 12 52 14 Q48 18 50 22Z" fill={c.crest} />
-    {/* white face patches with tiny feather lines */}
-    <path d="M32 40 Q34 30 44 32 Q46 42 40 48 Q34 48 32 40Z M68 40 Q66 30 56 32 Q54 42 60 48 Q66 48 68 40Z" fill="#fff" />
-    <path d="M35 38 h5 M36 42 h5 M65 38 h-5 M64 42 h-5" stroke={c.lines} strokeWidth="1" />
-    {[41, 59].map((x) => <g key={x}><circle cx={x} cy="38" r="4.4" fill="#fffbe0" stroke="#2a1a10" strokeWidth="1" /><circle cx={x} cy="38" r="2.6" fill="#1a1a1a" /><circle cx={x + 1} cy="37" r="1" fill="#fff" /></g>)}
-    {/* the big curved beak */}
-    <path d="M44 46 Q50 42 56 46 Q58 58 50 64 Q48 58 50 54 Q46 52 44 46Z" fill="#f4ead8" stroke="#8a7a60" strokeWidth="1" />
-    <path d="M46 52 Q50 56 54 52 Q52 60 50 60 Q48 58 46 52Z" fill="#2a2a2a" />
-    {/* little feet on the branch */}
-    <path d="M44 86 q-2 4 -5 4 M44 86 q0 4 2 5 M56 86 q2 4 5 4 M56 86 q0 4 -2 5" stroke="#5a5a5a" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-    <Cheeks y={50} dx={14} color="#ff9ab0" />
+    {/* soft jungle leaves and a branch */}
+    <path d="M0 34 Q16 26 24 42 Q12 42 0 48Z M100 26 Q82 22 76 38 Q88 36 100 42Z" fill="#1e8a4a" opacity=".55" />
+    <path d="M2 94 Q50 86 98 96" stroke="#8a5a2a" strokeWidth="7" fill="none" strokeLinecap="round" />
+    {/* a short fan of tail feathers */}
+    <path d="M44 86 Q38 98 40 104 M50 88 V106 M56 86 Q62 98 60 104" stroke={c.tail} strokeWidth="6" strokeLinecap="round" fill="none" />
+    <path d="M50 88 V104" stroke={c.tailMid} strokeWidth="3.4" strokeLinecap="round" />
+    {/* a round little body with tucked wings */}
+    <ellipse cx="50" cy="76" rx="19" ry="16" fill={`url(#${id}r)`} />
+    <path d="M32 66 Q22 76 30 90 Q38 88 40 78Z" fill={`url(#${id}w)`} />
+    <path d="M68 66 Q78 76 70 90 Q62 88 60 78Z" fill={`url(#${id}w)`} />
+    <ellipse cx="50" cy="80" rx="10" ry="8" fill="#ffffff" opacity=".18" />
+    {/* tiny feet */}
+    <path d="M44 90 q-1 4 -4 4 M44 90 q1 4 3 4 M56 90 q-1 4 -3 4 M56 90 q1 4 4 4" stroke="#6a6a6a" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    {/* a big round head with a fluffy crest */}
+    <path d="M44 20 Q42 8 50 6 Q48 12 52 14 Q54 6 62 8 Q56 12 56 20Z" fill={c.crest} />
+    <circle cx="50" cy="42" r="25" fill={`url(#${id}r)`} />
+    {/* white cheeks with dotted feather lines */}
+    <ellipse cx="34" cy="48" rx="10" ry="11" fill="#fff" /><ellipse cx="66" cy="48" rx="10" ry="11" fill="#fff" />
+    <path d="M29 46 h4 M30 51 h4 M71 46 h-4 M70 51 h-4" stroke={c.lines} strokeWidth="1" strokeLinecap="round" opacity=".7" />
+    {/* huge shiny eyes */}
+    {[37, 63].map((x) => <g key={x}><ellipse cx={x} cy="42" rx="7" ry="8" fill="#2a1a12" /><ellipse cx={x} cy="43.5" rx="5" ry="5.6" fill="#5a3a24" />
+      <circle cx={x + 2.4} cy="39" r="2.8" fill="#fff" /><circle cx={x - 2.2} cy="46" r="1.3" fill="#fff" /></g>)}
+    {/* a small round beak */}
+    <path d="M44 50 Q50 46 56 50 Q56 58 50 60 Q47 57 48 54 Q45 53 44 50Z" fill="#f6eedc" stroke="#9a8a6a" strokeWidth=".9" />
+    <path d="M47 54 Q50 57 53 54 Q52 58 50 58 Q48 57 47 54Z" fill="#2a2a2a" />
+    {/* blush */}
+    <ellipse cx="30" cy="56" rx="5" ry="3" fill="#ff8aa6" opacity=".55" /><ellipse cx="70" cy="56" rx="5" ry="3" fill="#ff8aa6" opacity=".55" />
   </>;
 
 const PICS: Record<string, Pic> = {
@@ -743,24 +746,41 @@ const PICS: Record<string, Pic> = {
     <path d="M46 66 q4 3 8 0" stroke="#a0602a" strokeWidth="1.6" fill="none" />
     <path d="M50 30 l2 4 4.4.6 -3.2 3 .8 4.4 -4 -2.2 -4 2.2 .8 -4.4 -3.2 -3 4.4 -.6z" fill="#fff" />
   </> },
-  pegasus: { bg: ["#eaf2ff", "#a8b8f0"], draw: (id) => <>
-    <defs><linearGradient id={`${id}w`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor="#d8e0ff" /></linearGradient>
-      <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff2a8" /><stop offset=".5" stopColor="#f0b820" /><stop offset="1" stopColor="#c88a00" /></linearGradient></defs>
-    {[[16, 78], [80, 84], [30, 92]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx="16" ry="6" fill="#fff" opacity=".9" />)}
+  pegasus: { bg: ["#f2f0ff", "#c8b8f8"], draw: (id) => <>
+    <defs>
+      <linearGradient id={`${id}w`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor="#e6e4ff" /></linearGradient>
+      <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff2a8" /><stop offset=".5" stopColor="#f6c23a" /><stop offset="1" stopColor="#d8961a" /></linearGradient>
+    </defs>
+    {/* fluffy clouds and twinkles */}
+    {[[14, 86, 18], [86, 84, 16], [50, 96, 22]].map(([x, y, r], i) => <g key={i} fill="#fff"><circle cx={x} cy={y} r={r * .55} /><circle cx={x - r * .5} cy={y + 3} r={r * .4} /><circle cx={x + r * .5} cy={y + 3} r={r * .4} /></g>)}
+    {[[12, 18], [88, 14], [84, 40]].map(([x, y], i) => <path key={i} className="fx-twinkle" style={{ animationDelay: `${i * .4}s` }} d={`M${x} ${y - 4} l1.2 3 3 1.2 -3 1.2 -1.2 3 -1.2 -3 -3 -1.2 3 -1.2z`} fill="#f6c23a" />)}
+    {/* little feathered wings */}
     <g className="pa-drift">
-      <path d="M30 60 Q4 46 8 18 Q22 34 34 36 Q22 22 28 8 Q40 26 44 44Z" fill={`url(#${id}w)`} stroke={`url(#${id}g)`} strokeWidth="1.4" />
-      <path d="M70 60 Q96 46 92 18 Q78 34 66 36 Q78 22 72 8 Q60 26 56 44Z" fill={`url(#${id}w)`} stroke={`url(#${id}g)`} strokeWidth="1.4" />
+      <path d="M26 64 Q4 56 8 34 Q18 44 26 44 Q16 34 22 22 Q30 36 34 52Z" fill={`url(#${id}w)`} stroke={`url(#${id}g)`} strokeWidth="1.6" />
+      <path d="M74 64 Q96 56 92 34 Q82 44 74 44 Q84 34 78 22 Q70 36 66 52Z" fill={`url(#${id}w)`} stroke={`url(#${id}g)`} strokeWidth="1.6" />
     </g>
-    <path d="M30 100 Q30 74 50 70 Q70 74 70 100Z" fill={`url(#${id}w)`} stroke="#c8d0f0" strokeWidth="1" />
-    <path d="M36 66 Q34 36 50 30 Q66 36 64 66 Q60 80 50 82 Q40 80 36 66Z" fill={`url(#${id}w)`} stroke="#c8d0f0" strokeWidth="1.2" />
-    <path d="M42 30 Q40 18 46 14 L48 28Z M58 30 Q60 18 54 14 L52 28Z" fill="#fff" stroke="#c8d0f0" strokeWidth="1" />
-    <path d="M50 30 Q40 34 38 50 Q34 40 36 30 Q42 22 50 22 Q60 22 64 30 Q60 26 50 30Z" fill={`url(#${id}g)`} />
-    <path d="M50 22 L52 8 L48 8Z" fill={`url(#${id}g)`} />
-    <ellipse cx="43" cy="52" rx="3.4" ry="4" fill="#3a3a6a" /><ellipse cx="57" cy="52" rx="3.4" ry="4" fill="#3a3a6a" />
-    <circle cx="44.2" cy="50.6" r="1.2" fill="#fff" /><circle cx="58.2" cy="50.6" r="1.2" fill="#fff" />
-    <ellipse cx="50" cy="72" rx="9" ry="6" fill="#f0e8ff" />
-    <circle cx="47" cy="72" r="1.2" fill="#8a8ab0" /><circle cx="53" cy="72" r="1.2" fill="#8a8ab0" />
-    <Cheeks y={62} dx={12} color="#ff9ac0" />
+    {/* a small body */}
+    <ellipse cx="50" cy="86" rx="20" ry="14" fill={`url(#${id}w)`} stroke="#d0cff0" strokeWidth="1" />
+    {/* a big round head */}
+    <path d="M32 26 Q30 14 38 12 Q40 20 40 26Z M68 26 Q70 14 62 12 Q60 20 60 26Z" fill="#fff" stroke="#d0cff0" strokeWidth="1" />
+    <path d="M34 24 Q33 17 37 16 Q38 20 38 24Z M66 24 Q67 17 63 16 Q62 20 62 24Z" fill="#ffc8dc" />
+    <ellipse cx="50" cy="50" rx="26" ry="27" fill={`url(#${id}w)`} stroke="#d0cff0" strokeWidth="1.2" />
+    {/* golden mane curls */}
+    <path d="M36 26 Q42 16 50 18 Q60 14 66 24 Q60 22 56 28 Q52 22 46 28 Q42 24 36 30Z" fill={`url(#${id}g)`} />
+    <path d="M70 30 Q80 34 78 46 Q76 54 80 62 Q72 58 72 48 Q72 40 68 36Z" fill={`url(#${id}g)`} />
+    {/* sparkly eyes with lashes */}
+    {[40, 60].map((x) => <g key={x}>
+      <ellipse cx={x} cy="50" rx="6.4" ry="7.4" fill="#3a2a6a" /><ellipse cx={x} cy="51.6" rx="4.4" ry="5" fill="#6a4ac0" />
+      <circle cx={x + 2.2} cy="47" r="2.4" fill="#fff" /><circle cx={x - 2} cy="54" r="1.1" fill="#fff" />
+      <path d={`M${x - 6} 45 l-3 -3 M${x - 4} 43.4 l-1.6 -3.4`} stroke="#3a2a6a" strokeWidth="1.4" strokeLinecap="round" />
+    </g>)}
+    {/* a soft muzzle, tiny nostrils, a smile */}
+    <ellipse cx="50" cy="66" rx="11" ry="7.4" fill="#fbe6f2" />
+    <circle cx="46" cy="65" r="1.1" fill="#b07a9a" /><circle cx="54" cy="65" r="1.1" fill="#b07a9a" />
+    <path d="M47 69 q3 2.4 6 0" stroke="#b07a9a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <ellipse cx="32" cy="60" rx="5" ry="3" fill="#ff9ac0" opacity=".55" /><ellipse cx="68" cy="60" rx="5" ry="3" fill="#ff9ac0" opacity=".55" />
+    {/* a little golden star on the forehead */}
+    <path d="M50 30 l1.6 3.4 3.6.4 -2.7 2.4 .8 3.6 -3.3 -1.9 -3.3 1.9 .8 -3.6 -2.7 -2.4 3.6 -.4z" fill={`url(#${id}g)`} />
   </> },
   frostlegend: { bg: ["#0e2a50", "#020818"], draw: (id) => <>
     <defs>
