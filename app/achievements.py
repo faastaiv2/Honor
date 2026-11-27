@@ -84,12 +84,16 @@ ACHIEVEMENTS: list[Achievement] = [
     # Fitness
     Achievement("fit10", "Warming Up", "Do every fitness task on 10 days", "Fitness", "dumbbell", "bronze", 10, lambda f: f.p.fitness_days),
     Achievement("fit50", "Iron Body", "Do every fitness task on 50 days", "Fitness", "dumbbell", "gold", 50, lambda f: f.p.fitness_days),
-    # Ranks
-    Achievement("silver", "Shining Silver", "Reach the Silver rank", "Ranks", "crest:silver", "bronze", 1, _rank("silver")),
-    Achievement("gold", "Gold Standard", "Reach the Gold rank", "Ranks", "crest:gold", "bronze", 1, _rank("gold")),
-    Achievement("emerald", "Evergreen", "Reach the Emerald rank", "Ranks", "crest:emerald", "silver", 1, _rank("emerald")),
-    Achievement("diamond", "Unbreakable", "Reach the Diamond rank", "Ranks", "crest:diamond", "gold", 1, _rank("diamond")),
-    Achievement("obsidian", "Into the Dark", "Reach the Obsidian rank", "Ranks", "crest:obsidian", "gold", 1, _rank("obsidian")),
+    # Ranks: one for every rank, rising in rarity and gems
+    Achievement("bronze", "Bronze Beginner", "Reach the Bronze rank", "Ranks", "crest:bronze", "bronze", 1, _rank("bronze"), reward=10),
+    Achievement("silver", "Shining Silver", "Reach the Silver rank", "Ranks", "crest:silver", "bronze", 1, _rank("silver"), reward=20),
+    Achievement("gold", "Gold Standard", "Reach the Gold rank", "Ranks", "crest:gold", "silver", 1, _rank("gold")),
+    Achievement("platinum", "Platinum Polish", "Reach the Platinum rank", "Ranks", "crest:platinum", "silver", 1, _rank("platinum"), reward=50),
+    Achievement("emerald", "Evergreen", "Reach the Emerald rank", "Ranks", "crest:emerald", "silver", 1, _rank("emerald"), reward=75),
+    Achievement("sapphire", "Deep Blue", "Reach the Sapphire rank", "Ranks", "crest:sapphire", "gold", 1, _rank("sapphire"), reward=100),
+    Achievement("ruby", "Ruby Heart", "Reach the Ruby rank", "Ranks", "crest:ruby", "gold", 1, _rank("ruby"), reward=125),
+    Achievement("diamond", "Unbreakable", "Reach the Diamond rank", "Ranks", "crest:diamond", "gold", 1, _rank("diamond"), reward=150),
+    Achievement("obsidian", "Into the Dark", "Reach the Obsidian rank", "Ranks", "crest:obsidian", "gold", 1, _rank("obsidian"), reward=250),
     Achievement("quest", "To Be a Legend", "Give up Obsidian and start the Legendary quest", "Ranks", "crest:legendary", "legend", 1,
                 lambda f: f.quests, reward=500),
     Achievement("legendary", "Legend", "Earn Legendary Honor", "Ranks", "crest:legendary", "legend", 1, _rank("legendary"), reward=1000),
