@@ -1,3 +1,4 @@
+import HelpMessages from "./HelpMessages";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import RankIcon from "../lib/RankIcon";
@@ -323,6 +324,7 @@ export default function Admin({ info }: { info?: TodayInfo | null }) {
         </section>
 
         <aside className="ad-side">
+          <Guard name="Help messages"><HelpMessages /></Guard>
           <Guard name="Start date">{settings && info && <StartDate settings={settings} today={info.today} onSave={async (d) => {
             try { setSettings(await api.saveSettings({ ...settings, score_from: d })); done(d === info.today ? "Honor starts from today" : "Start date saved"); }
             catch (err) { setError(msg(err)); }
