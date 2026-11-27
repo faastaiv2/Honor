@@ -14,7 +14,7 @@ import GoblinRaid from "../lib/GoblinRaid";
 import GodfatherReveal from "../lib/GodfatherReveal";
 import AchievementPop, { type NewAchievement } from "../lib/AchievementPop";
 import WeeklyMap, { MapButton } from "../lib/WeeklyMap";
-import ShaytanScene, { ShaytanCut } from "../lib/Shaytan";
+import ShaytanScene, { ShaytanCheer, ShaytanCut } from "../lib/Shaytan";
 import GobiSplat from "../lib/GobiSplat";
 import SoundGate from "../lib/SoundGate";
 
@@ -87,6 +87,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
   const winShown = useRef<string | null>(null);
   const raidShown = useRef(false);
   const [raid, setRaid] = useState<number | null>(null);
+  const [cheering, setCheering] = useState(false); // Shaytan cheers the fall before the goblins come
   const [godfather, setGodfather] = useState(false);
   const [newAch, setNewAch] = useState<NewAchievement[]>([]);
   const [mapOpen, setMapOpen] = useState(false);
@@ -138,7 +139,7 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
       prev.current = np;
       setP(np);
       // Fell onto the Pillar of Shame: the goblins come.
-      if (np.raid && !raidShown.current) { raidShown.current = true; setRaid(np.raid.stolen); }
+      if (np.raid && !raidShown.current) { raidShown.current = true; setRaid(np.raid.stolen); setCheering(true); }
       // Hit by a gobi: the cauliflower splats on the screen (10 seconds), once.
       if (np.gobi_splat?.length && !splatShown.current) {
         splatShown.current = true;
@@ -274,8 +275,10 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
           api.godfatherSeen().catch(() => undefined);
           if (wear) api.saveProfile({ frame: "godfather" }).then((np) => { setP(np); notifyChanged(); }).catch(() => undefined);
         }} /></SoundGate>}
-      {raid !== null && p && <SoundGate icon="👺"><GoblinRaid stolen={raid} from={p.gems.balance + raid}
-        onDone={() => { setRaid(null); api.raidSeen().then(setP).catch(() => undefined); }} /></SoundGate>}
+      {raid !== null && p && <SoundGate icon="😈">{cheering
+        ? <ShaytanCheer name={p.member.name} onDone={() => setCheering(false)} />
+        : <GoblinRaid stolen={raid} from={p.gems.balance + raid}
+          onDone={() => { setRaid(null); api.raidSeen().then(setP).catch(() => undefined); }} />}</SoundGate>}
       {rankUp && <SoundGate icon="🏆"><RankUp tier={rankUp.tier} name={p.member.name} profile={p} reward={rankUp.reward} onClose={() => { setRankUp(null); api.celebrated().then(setP).catch(() => undefined); }} /></SoundGate>}
       {levelUp && (
         <div className="levelup" role="dialog" aria-modal="true" aria-label="Level up" onClick={() => setLevelUp(null)}>

@@ -201,3 +201,45 @@ export function ShaytanCut({ levels, onDone }: { levels: number; onDone: () => v
     document.body,
   );
 }
+
+/**
+ * A member fell into Low Honor: Shaytan rises out of his storm, claps and says "Good job!", then bursts into
+ * flames laughing before he vanishes. (The goblin raid comes after.)
+ */
+export function ShaytanCheer({ name, onDone, preview = false }: { name: string; onDone: () => void; preview?: boolean }) {
+  type Cheer = "clouds" | "rise" | "offer" | "grow" | "leave";
+  const [stage, setStage] = useState<Cheer>("clouds");
+  useEffect(() => {
+    void playSound("shaytan-arrive");
+    const t = [
+      window.setTimeout(() => setStage("rise"), 1500),
+      window.setTimeout(() => setStage("offer"), 2900),
+      window.setTimeout(() => setStage("grow"), 6400),
+      window.setTimeout(() => setStage("leave"), 10200),
+      window.setTimeout(onDone, 11400),
+    ];
+    return () => t.forEach(clearTimeout);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (stage === "offer") void playSound("shaytan-goodjob");
+    if (stage === "grow") void playSound("shaytan-laugh");
+  }, [stage]);
+  return createPortal(
+    <div className={`sh sh-${stage} sh-cheer`} role="dialog" aria-modal="true" aria-label="Shaytan is happy you fell into Low Honor">
+      <div className="sh-flash" aria-hidden="true" />
+      <div className="sh-flash late" aria-hidden="true" />
+      <Clouds closing={stage === "leave"} />
+      <div className="sh-stage">
+        {(stage === "grow" || stage === "leave") && <div className="sh-fire" aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
+        <div className="sh-body"><Devil /></div>
+        {stage === "offer" && <div className="sh-claps" aria-hidden="true">{["👏", "👏", "👏"].map((c, i) => <i key={i} style={{ ["--i" as string]: i }}>{c}</i>)}</div>}
+      </div>
+      <div className="sh-talk">
+        {stage === "offer" && <p className="sh-bubble r1">Good job, <b className="who">{name}</b>! 👏 You fell into <b>Low Honor</b>… just where I want you!</p>}
+        {(stage === "grow" || stage === "leave") && <p className="sh-bubble evil">MWAHAHAHA! HA HA HA HA!</p>}
+      </div>
+      {preview && <button className="sh-skip" onClick={onDone}>Close</button>}
+    </div>,
+    document.body,
+  );
+}

@@ -2844,3 +2844,17 @@ nav.tabs a .red-dot { position: static; display: inline-block; width: 9px; heigh
 .ax-filters button { flex: none; }
 .ax-glow { opacity: .55; width: 110px; height: 110px; right: -50px; top: -50px; }
 @media (max-width: 560px) { .ax-hero { gap: 14px; padding: 18px; } .ax-ring-wrap { width: 88px; height: 88px; } .ax-ring-num b { font-size: 22px; } .ax-all { flex-basis: 100%; width: 100%; } }
+/* Shaytan cheers a fall into Low Honor */
+.sh-cheer .sh-sack { display: none; }
+.sh-cheer.sh-offer .sh-body { animation: sh-hover 1.3s ease-in-out infinite; }
+.sh-cheer.sh-grow .sh-body { animation: sh-cackle .35s ease-in-out infinite; }
+@keyframes sh-cackle { 0%, 100% { transform: scale(1.65) rotate(-2deg); } 50% { transform: scale(1.7) rotate(2deg) translateY(-6px); } }
+.sh-claps { position: absolute; inset: 0; pointer-events: none; }
+.sh-claps i { position: absolute; top: 46%; left: calc(50% + (var(--i) - 1) * 70px); font-size: 40px; font-style: normal; animation: sh-clap .5s ease-in-out infinite alternate; animation-delay: calc(var(--i) * .15s); }
+@keyframes sh-clap { from { transform: translate(-50%, 0) scale(.85) rotate(-12deg); } to { transform: translate(-50%, -14px) scale(1.15) rotate(12deg); } }
+.sh-skip { position: absolute; top: 14px; right: 14px; z-index: 5; background: #0008; color: #fff; border-color: #fff4; }
+@media (prefers-reduced-motion: reduce) { .sh-claps i, .sh-cheer .sh-body { animation: none; } }
+.sh-claps { z-index: 3; }
+.sh-claps i { top: 58%; font-size: 54px; filter: drop-shadow(0 4px 8px #0009); left: calc(50% + (var(--i) - 1) * 110px); }
+.sh-claps i:nth-child(2) { top: 72%; }
+.sh-cheer .sh-talk { align-content: start; }

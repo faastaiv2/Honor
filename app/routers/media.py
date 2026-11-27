@@ -34,6 +34,7 @@ KEYS = {
     "shaytan-offer3",  # his final offer
     "shaytan-grumble", # "Grrr…" as he sinks back after a no
     "shaytan-laugh",   # the member said yes: he laughs in the fire
+    "shaytan-goodjob", # a member fell into Low Honor: "Good job!" before he laughs
     "shaytan-flee",    # the third no: he is blown away
     "shaytan-cut",     # the Honor-cut screen after a deal
     "gobi-splat",      # a cauliflower splats on the screen of the person it hit
