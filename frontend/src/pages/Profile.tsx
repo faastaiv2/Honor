@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import RankIcon from "../lib/RankIcon";
 import Gem from "../lib/Gem";
 import { api, ApiError, type Profile, type ShopItem, type TodayInfo } from "../api";
@@ -10,191 +10,193 @@ import RarityBadge from "../lib/RarityBadge";
 import ThemePreview from "../lib/ThemePreview";
 import { confetti } from "../lib/confetti";
 import { notifyChanged, useToast } from "../lib/events";
-import { RankBadge } from "./Welcome";
+import { markSeen, newItems, type ShopKind } from "../lib/shopNew";
 
-type Kind = "frame" | "theme" | "avatar";
-const TABS: { kind: Kind; label: string }[] = [{ kind: "frame", label: "Frames" }, { kind: "theme", label: "Themes" }, { kind: "avatar", label: "Pictures" }];
+/**
+ * Avatar: the dressing room and shop. Your character stands on a glowing stage; tap anything to try it on
+ * (themes colour the whole app for a moment). The bar at the bottom says what to do: wear it, buy it, earn it,
+ * or which rank unlocks it. Red dots mark what's new: just added, just unlocked, or just affordable.
+ */
+type Kind = ShopKind;
+const TABS: { kind: Kind; label: string; icon: string }[] = [
+  { kind: "avatar", label: "Pictures", icon: "🖼️" }, { kind: "frame", label: "Frames", icon: "💍" }, { kind: "theme", label: "Themes", icon: "🎨" },
+];
 const RARITY = [
   { key: "common", name: "Common", icon: "⚪" },
   { key: "rare", name: "Rare", icon: "🔷" },
   { key: "epic", name: "Epic", icon: "🟣" },
   { key: "legendary", name: "Legendary", icon: "🌟" },
 ];
-const FREE = { key: "free", name: "Free", icon: "🎁" };
-
 
 export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const [p, setP] = useState<Profile | null>(null);
-  const [tab, setTab] = useState<Kind>("frame");
+  const [tab, setTab] = useState<Kind>("avatar");
   const [error, setError] = useState("");
   const [toast, setToast] = useToast();
+  const [sel, setSel] = useState<{ kind: Kind; item: ShopItem } | null>(null);
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
 
-  const [trying, setTrying] = useState<ShopItem | null>(null);
-  const [peek, setPeek] = useState<{ kind: Kind; item: ShopItem } | null>(null);
-  // "Try it": show a theme on the whole app for a moment; leaving the page or stopping puts yours back.
+  useEffect(() => { api.profile().then(setP).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load your avatar")); }, []);
+  // Which items are new; the open tab's dots clear after a moment (you've seen them).
+  useEffect(() => { if (p) setFresh(newItems(p)); }, [p]);
   useEffect(() => {
-    if (!trying) return;
+    if (!p) return;
+    const t = window.setTimeout(() => markSeen(p, tab), 2500);
+    return () => clearTimeout(t);
+  }, [p, tab]);
+
+  // Trying on a theme colours the whole app until you stop or leave.
+  const tryTheme = sel?.kind === "theme" ? sel.item.key : null;
+  useEffect(() => {
+    if (!tryTheme) return;
     const before = document.documentElement.dataset.skin;
-    document.documentElement.dataset.skin = trying.key;
+    document.documentElement.dataset.skin = tryTheme;
     return () => { document.documentElement.dataset.skin = before; };
-  }, [trying]);
-  useEffect(() => { api.profile().then(setP).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load your profile")); }, []);
+  }, [tryTheme]);
 
   async function use(kind: Kind, key: string, name: string) {
-    try { setTrying(null); setPeek(null); setP(await api.saveProfile({ [kind]: key })); setError(""); setToast(`${name} is on`); notifyChanged(); }
+    try { setSel(null); setP(await api.saveProfile({ [kind]: key })); setError(""); setToast(`${name} is on ✨`); notifyChanged(); }
     catch (e) { setError(e instanceof ApiError ? e.message : "Could not save"); }
   }
   async function buy(kind: Kind, item: ShopItem) {
-    try { setTrying(null); setPeek(null); setP(await api.buy(kind, item.key)); setError(""); setToast(`Bought ${item.name}! −${item.price} gems`); confetti(); notifyChanged(); }
+    try { setSel(null); setP(await api.buy(kind, item.key)); setError(""); setToast(`Bought ${item.name}! −${item.price} gems`); confetti(); notifyChanged(); }
     catch (e) { setError(e instanceof ApiError ? e.message : "Could not buy"); }
   }
+
+  const sorted = useMemo(() => {
+    if (!p) return { avatar: [], frame: [], theme: [] } as Record<Kind, ShopItem[]>;
+    const rank = (it: ShopItem) => (it.rarity ? RARITY.findIndex((r) => r.key === it.rarity) : 0);
+    const group = (it: ShopItem) => (it.unlock ? 2 : it.price > 0 ? 1 : 0);
+    const looks = (list: ShopItem[]) => [...list.filter((x) => x.price === 0), ...list.filter((x) => x.price > 0).sort((a, b) => a.price - b.price)];
+    return {
+      avatar: [...p.avatars].sort((a, b) => rank(a) - rank(b) || group(a) - group(b) || a.price - b.price),
+      frame: looks(p.frames), theme: looks(p.themes),
+    };
+  }, [p]);
 
   if (!p) return <section className="card"><p className={error ? "err" : "note"}>{error || "Loading…"}</p></section>;
 
   const t = p.tier;
+  const shamed = !!p.member.shamed;
+  const mine = { avatar: (p.member.own_avatar ?? p.member.avatar) || "", frame: (p.member.own_frame ?? p.member.frame) || "plain", theme: p.member.theme || "white" };
+  const look = {
+    avatar: sel?.kind === "avatar" ? sel.item.key : p.member.avatar,
+    frame: sel?.kind === "frame" ? sel.item.key : p.member.frame,
+  };
+  const newIn = (kind: Kind) => [...fresh].filter((k) => k.startsWith(`${kind}:`)).length;
+  const items = sorted[tab];
   const nextMin = info?.tiers.find((x) => x.name === p.next?.name)?.min ?? null;
   const pct = p.legendary || !p.next || nextMin === null || t.min === null ? 100 : Math.max(6, Math.min(100, ((p.level - t.min) / (nextMin - t.min)) * 100));
-  // Pictures: free ones first, then the shop by rarity (common, rare, epic, legendary), cheapest first in each.
-  const rank = (it: ShopItem) => (it.rarity ? RARITY.findIndex((r) => r.key === it.rarity) + 1 : 0);
-  // Within each group: free first, then cheapest to dearest, and pictures won by achievements last.
-  const group = (it: ShopItem) => (it.unlock ? 2 : it.price > 0 ? 1 : 0);
-  const byPrice = (a: ShopItem, b: ShopItem) => group(a) - group(b) || a.price - b.price;
-  // Frames and themes: special and rank ones first (in rank order, as listed), then the shop ones by price.
-  const looks = (list: ShopItem[]) => [...list.filter((x) => x.price === 0), ...list.filter((x) => x.price > 0).sort((a, b) => a.price - b.price)];
-  const items = tab === "frame" ? looks(p.frames) : tab === "theme" ? looks(p.themes)
-    : [...p.avatars].sort((a, b) => rank(a) - rank(b) || byPrice(a, b));
-  const shamed = !!p.member.shamed; // on the Pillar of Shame: picture and frame are locked
-  const current = tab === "frame" ? (p.member.own_frame ?? p.member.frame) || "plain" : tab === "theme" ? p.member.theme || "white" : (p.member.own_avatar ?? p.member.avatar);
-  const lockedLook = shamed && tab !== "theme";
+  const owned = (kind: Kind) => sorted[kind].filter((x) => x.available).length;
+
+  /** What the selected item lets you do. */
+  const action = (kind: Kind, it: ShopItem) => {
+    const lockedLook = shamed && kind !== "theme";
+    if (mine[kind] === it.key) return <span className="av-act on">✓ Wearing</span>;
+    if (it.available) return lockedLook ? <span className="av-act off">🔒 Locked on the Pillar</span>
+      : <button className="av-act wear" onClick={() => use(kind, it.key, it.name)}>Wear it</button>;
+    if (it.unlock) return <Link className={`shop-ach t-${it.unlock.tier ?? "bronze"}`} to={`/achievements?a=${encodeURIComponent(it.unlock.key)}`}>
+      <Medal icon={it.unlock.icon ?? "star"} tier={it.unlock.tier ?? "bronze"} size={22} /><span><small>Earn</small><b>{it.unlock.name}</b></span><i aria-hidden="true">›</i></Link>;
+    if (it.price > 0) return p.gems.balance >= it.price
+      ? <button className="av-act buy" onClick={() => buy(kind, it)}>Buy · <Gem /> {it.price}</button>
+      : <span className="av-act off"><Gem /> {it.price} · {it.price - p.gems.balance} more to go</span>;
+    return <span className="av-act off">🔒 Unlocks at <RankIcon rank={it.tier?.key} /> {it.tier?.name}</span>;
+  };
 
   return (
-    <div className="profile">
-      <section className="card profile-hero" style={{ ["--tc" as string]: t.color }}>
-        <div className="wc-avatar">
-          <Avatar avatar={p.member.avatar} color={t.color} frame={p.member.frame} size={116} />
-          <span className="wc-badge"><RankBadge color={t.color} label={p.label} size={56} /></span>
-        </div>
-        <h2 className="profile-name">{p.member.name}</h2>
-        <p className="profile-title"><RankIcon rank={t.key} /> {t.key === "member" ? "Member" : t.key === "low" ? "On the Pillar of Shame" : `${t.name} member`}</p>
-        <div className="fat-bar" style={{ width: "min(100%, 340px)" }}><i style={{ width: `${pct}%` }} /></div>
-        <p className="note" style={{ margin: 0 }}>{p.next ? <>{p.next.needed} more to <RankIcon rank={p.next.name} /> {p.next.name}</> : p.legendary ? <><RankIcon rank="legendary" /> You hold Legendary</> : "XLIX is the top without the Legendary quest"}</p>
-        <div className="wc-stats" style={{ width: "100%" }}>
-          <div className="stat"><span className="stat-ico"><Gem /></span><b>{p.gems.balance}</b><small>gems</small></div>
-          <div className="stat"><span className="stat-ico"><Brazier lit={p.streak > 0} /></span><b>{p.streak}</b><small>day streak</small></div>
-          <div className="stat"><span className="stat-ico">🏅</span><b>{p.gems.earned}</b><small>gems earned</small></div>
-        </div>
-        <div className="perks-mini">
-          <p><span aria-hidden="true">🎮</span> {t.games}</p>
-          <p><span aria-hidden="true">🎁</span> {t.benefits}</p>
-        </div>
-      </section>
-
-      <section className="card shop">
-        <div className="shop-head">
-          <h2>Shop &amp; style</h2>
-          <span className="gem-wallet"><Gem /> {p.gems.balance}</span>
-        </div>
-        {shamed && (
-          <div className="shame-lock" role="status">
-            <span aria-hidden="true">👹</span>
-            <div><b>Locked on the Pillar of Shame</b><p>Your picture and frame are locked until you finish all your tasks and climb back to Member. You can still change your theme and buy things.</p></div>
+    <div className="av">
+      {/* the dressing room */}
+      <section className="av-stage" style={{ ["--tc" as string]: t.color }}>
+        <div className="av-stage-light" aria-hidden="true" />
+        <div className="av-hero">
+          <div className="av-figure">
+            <div className="av-glow" aria-hidden="true" />
+            <Avatar avatar={look.avatar} color={t.color} frame={look.frame} size={150} />
+            <div className="av-pedestal" aria-hidden="true" />
           </div>
-        )}
-        <p className="note">Your rank unlocks its own frame and theme for free. Buy extra ones with gems: +20 <Gem /> for finishing every task in a day, plus your streak chest and achievements.</p>
-        <div className="seg" role="tablist">
-          {TABS.map((x) => <button key={x.kind} role="tab" aria-selected={tab === x.kind} className={tab === x.kind ? "on" : ""} onClick={() => setTab(x.kind)}>{x.label}</button>)}
-        </div>
-        <div className={`shop-grid ${tab}`}>
-          {items.map((it, idx) => {
-            const head = tab === "avatar" && (idx === 0 || rank(items[idx - 1]) !== rank(it)) ? (RARITY[rank(it) - 1] ?? FREE) : null;
-            const inGroup = head ? items.filter((x) => rank(x) === rank(it)) : [];
-            const firstOther = tab === "avatar" && !!head && head.key === "common";  // Plain (free) leads the Common pictures
-            const inUse = current === it.key;
-            const locked = !it.available;
-            const forSale = locked && it.price > 0 && !it.unlock;
-            const byAchievement = locked && !!it.unlock;
-            return (<Fragment key={it.key}>
-              {head && (
-                <div className={`shop-rarity r-${head.key}`}>
-                  <span className="shop-rarity-gem" aria-hidden="true">{head.icon}</span>
-                  <b>{head.name}</b>
-                  <small>{head.key === "free" ? "Yours to use" : `${inGroup.filter((x) => x.available).length}/${inGroup.length} owned`}</small>
-                </div>
-              )}
-              {firstOther && (
-                <button className={`shop-item${!(p.member.own_avatar ?? p.member.avatar) ? " on" : ""}`} disabled={shamed} onClick={() => use("avatar", "", "Plain picture")}>
-                  <span className="shop-face">👤</span><span className="shop-name">Plain</span><span className="shop-act">{!p.member.avatar ? "In use" : "Use"}</span>
-                </button>
-              )}
-              <div className={`shop-item${it.special ? " gf" : ""}${inUse ? " on" : ""}${locked && !forSale ? " locked" : ""}${forSale ? " for-sale" : ""}${it.rarity ? ` r-${it.rarity}` : ""}`}>
-                {it.special === "godfather" && <span className="shop-tag gf">Godfather only</span>}
-                {!it.rarity && it.unlock && <span className="shop-tag ach">achievement</span>}
-                {it.rarity && <span className={`shop-tag r-${it.rarity}${it.price === 0 && !it.unlock ? " free" : ""}${it.unlock ? " ach" : ""}`}>{it.unlock ? "achievement" : it.price === 0 ? "free" : it.rarity}</span>}
-                <button type="button" className="shop-face" aria-label={forSale ? `Preview ${it.name}` : it.name} disabled={!forSale}
-                  onClick={() => forSale && (tab === "theme" ? setTrying(trying?.key === it.key ? null : it) : setPeek({ kind: tab, item: it }))}>
-                  {tab === "frame" ? <Avatar avatar={p.member.avatar} color={t.color} frame={it.key} size={54} />
-                    : tab === "theme" ? <ThemePreview k={it.key} />
-                    : <RarityBadge pic={it.key} rarity={it.rarity} locked={locked} size={84} />}
-                  {forSale && <span className="shop-peek" aria-hidden="true">👁</span>}
-                </button>
-                <span className="shop-name">{it.name}</span>
-                {tab === "theme" && forSale && (
-                  <button className={`shop-try${trying?.key === it.key ? " on" : ""}`} onClick={() => setTrying(trying?.key === it.key ? null : it)}>
-                    {trying?.key === it.key ? "Stop preview" : "👁 Try it"}
-                  </button>
-                )}
-                {inUse ? <span className="shop-act on">{lockedLook ? "Yours ✓" : "In use ✓"}</span>
-                  : it.available ? (lockedLook ? <span className="shop-act locked-use">🔒 Locked</span> : <button className="shop-act" onClick={() => use(tab, it.key, it.name)}>Use</button>)
-                  : forSale ? (p.gems.balance >= it.price
-                    ? <button className="shop-act buy" onClick={() => buy(tab, it)}><Gem /> {it.price}</button>
-                    : <span className="shop-price"><span><Gem /> {it.price}</span><small>{it.price - p.gems.balance} more to go</small></span>)
-                  : byAchievement ? <Link className={`shop-ach t-${it.unlock!.tier ?? "bronze"}`} to={`/achievements?a=${encodeURIComponent(it.unlock!.key)}`} title={it.unlock!.text}>
-                      <Medal icon={it.unlock!.icon ?? "star"} tier={it.unlock!.tier ?? "bronze"} size={22} /><span><small>Earn</small><b>{it.unlock!.name}</b></span><i aria-hidden="true">›</i></Link>
-                  : <span className="shop-lock">🔒 <RankIcon rank={it.tier?.key} /> {it.tier?.name}</span>}
-              </div>
-            </Fragment>);
-          })}
-        </div>
-      </section>
-      {peek && (() => {
-        const it = peek.item;
-        const avatar = peek.kind === "avatar" ? it.key : p.member.avatar;
-        const frame = peek.kind === "frame" ? it.key : p.member.frame;
-        const inUse = (peek.kind === "frame" ? p.member.frame || "plain" : p.member.avatar) === it.key;
-        return (
-          <div className="peek" role="dialog" aria-modal="true" aria-label={`Preview ${it.name}`} onClick={() => setPeek(null)}>
-            <div className="peek-card" style={{ ["--tc" as string]: t.color }} onClick={(e) => e.stopPropagation()}>
-              <p className="peek-kicker">{peek.kind === "frame" ? "Frame preview" : "Picture preview"}</p>
-              <div className="peek-big"><Avatar avatar={avatar} color={t.color} frame={frame} size={150} /></div>
-              <h3>{it.name}</h3>
-              <p className="note" style={{ margin: 0 }}>How it looks on the leaderboard:</p>
-              <div className="peek-row">
-                <span className="peek-rank">#1</span>
-                <Avatar avatar={avatar} color={t.color} frame={frame} size={46} />
-                <b>{p.member.name}</b>
-                <span className="peek-level">{p.label}</span>
-              </div>
-              <div className="peek-actions">
-                {inUse ? <span className="shop-act on">In use ✓</span>
-                  : it.available ? <button className="primary" onClick={() => use(peek.kind, it.key, it.name)}>Use it</button>
-                  : it.price > 0 && p.gems.balance >= it.price ? <button className="ru-collect peek-buy" onClick={() => buy(peek.kind, it)}>
-                      <span className="ru-collect-gem"><Gem size={28} /></span><span className="ru-collect-text"><b>Buy for {it.price}</b><small>You have {p.gems.balance} gems</small></span></button>
-                  : it.price > 0 ? <span className="shop-price"><span><Gem /> {it.price}</span><small>{it.price - p.gems.balance} more gems to go</small></span>
-                  : <span className="shop-lock">🔒 Unlocks at <RankIcon rank={it.tier?.key} /> {it.tier?.name}</span>}
-                <button onClick={() => setPeek(null)}>Close</button>
-              </div>
+          <div className="av-who">
+            <h1>{p.member.name}</h1>
+            <p className="av-rank"><RankIcon rank={t.key} /> {t.key === "member" ? "Member" : t.key === "low" ? "On the Pillar of Shame" : `${t.name} · ${p.label}`}</p>
+            <div className="av-bar"><i style={{ width: `${pct}%` }} /></div>
+            <p className="av-next">{p.next ? <>{p.next.needed} more to <RankIcon rank={p.next.name} /> {p.next.name}</> : p.legendary ? "You hold Legendary 👑" : "Top of the climb"}</p>
+            <div className="av-chips">
+              <span className="av-wallet"><Gem size={20} /> <b>{p.gems.balance}</b></span>
+              <span><Brazier lit={p.streak > 0} size={18} /> {p.streak} day streak</span>
             </div>
           </div>
-        );
-      })()}
-      {trying && (
-        <div className="try-bar" role="status">
-          <span>👁 Previewing <b>{trying.name}</b></span>
-          {trying.available ? <button className="primary" onClick={() => use("theme", trying.key, trying.name)}>Use it</button>
-            : trying.price > 0 && p.gems.balance >= trying.price ? <button className="primary" onClick={() => buy("theme", trying)}>Buy · <Gem /> {trying.price}</button>
-            : trying.price > 0 ? <span className="try-need"><Gem /> {trying.price - p.gems.balance} more to buy</span>
-            : <span className="try-need">🔒 {trying.tier?.name} rank</span>}
-          <button onClick={() => setTrying(null)}>Stop</button>
+        </div>
+        {sel && <p className="av-trying">Trying on: <b>{sel.item.name}</b></p>}
+      </section>
+
+      {shamed && (
+        <div className="shame-lock" role="status">
+          <span aria-hidden="true">👹</span>
+          <div><b>Locked on the Pillar of Shame</b><p>Your picture and frame are locked until you finish all your tasks and climb back to Member. You can still change your theme and buy things.</p></div>
+        </div>
+      )}
+
+      {/* the shop */}
+      <div className="av-tabs" role="tablist" aria-label="Shop">
+        {TABS.map((x) => (
+          <button key={x.kind} role="tab" aria-selected={tab === x.kind} className={`av-tab${tab === x.kind ? " on" : ""}`} onClick={() => { setTab(x.kind); setSel(null); }}>
+            <span className="av-tab-ico" aria-hidden="true">{x.icon}</span>
+            <b>{x.label}</b>
+            <small>{owned(x.kind)}/{sorted[x.kind].length}</small>
+            {newIn(x.kind) > 0 && <i className="red-dot" aria-label={`${newIn(x.kind)} new`} />}
+          </button>
+        ))}
+      </div>
+
+      <section className={`av-shelf ${tab}`}>
+        {tab === "avatar" && (
+          <button className={`av-item plain${!mine.avatar ? " on" : ""}`} disabled={shamed} onClick={() => use("avatar", "", "Plain picture")}>
+            <span className="av-face">👤</span><span className="av-name">Plain</span>
+            <span className="av-state">{!mine.avatar ? "✓ Wearing" : "Free"}</span>
+          </button>
+        )}
+        {items.map((it, idx) => {
+          const kind = tab;
+          const head = kind === "avatar" && (idx === 0 || items[idx - 1].rarity !== it.rarity) ? RARITY.find((r) => r.key === it.rarity) : null;
+          const inGroup = head ? items.filter((x) => x.rarity === it.rarity) : [];
+          const isNew = fresh.has(`${kind}:${it.key}`);
+          const wearing = mine[kind] === it.key;
+          const chosen = sel?.kind === kind && sel.item.key === it.key;
+          const state = wearing ? "✓ Wearing" : it.available ? "Yours" : it.unlock ? "🏅 Achievement" : it.price > 0 ? null : `🔒 ${it.tier?.name ?? ""}`;
+          return (
+            <Fragment key={it.key}>
+              {head && (
+                <div className={`av-rarity r-${head.key}`}>
+                  <span aria-hidden="true">{head.icon}</span><b>{head.name}</b>
+                  <small>{inGroup.filter((x) => x.available).length}/{inGroup.length} yours</small>
+                </div>
+              )}
+              <button type="button" className={`av-item${wearing ? " on" : ""}${chosen ? " sel" : ""}${it.available ? " mine" : ""}${it.rarity ? ` r-${it.rarity}` : ""}${it.special ? " gf" : ""}`}
+                onClick={() => setSel(chosen ? null : { kind, item: it })} aria-pressed={chosen} aria-label={it.name}>
+                {isNew && <i className="red-dot" aria-label="New" />}
+                {it.special === "godfather" && <span className="shop-tag gf">Godfather only</span>}
+                <span className="av-face">
+                  {kind === "frame" ? <Avatar avatar={mine.avatar} color={t.color} frame={it.key} size={60} />
+                    : kind === "theme" ? <ThemePreview k={it.key} />
+                    : <RarityBadge pic={it.key} rarity={it.rarity} locked={!it.available} size={84} />}
+                </span>
+                <span className="av-name">{it.name}</span>
+                {state ? <span className={`av-state${wearing ? " on" : ""}`}>{state}</span>
+                  : <span className={`av-price${p.gems.balance >= it.price ? " can" : ""}`}><Gem /> {it.price}</span>}
+              </button>
+            </Fragment>
+          );
+        })}
+      </section>
+
+      {/* the try-on bar */}
+      {sel && (
+        <div className="av-try" role="dialog" aria-label={`Trying on ${sel.item.name}`}>
+          <span className="av-try-face">
+            {sel.kind === "theme" ? <ThemePreview k={sel.item.key} /> : <Avatar avatar={look.avatar} color={t.color} frame={look.frame} size={52} />}
+          </span>
+          <span className="av-try-name"><b>{sel.item.name}</b><small>{sel.kind === "avatar" ? (sel.item.rarity ?? "picture") : sel.kind}</small></span>
+          {action(sel.kind, sel.item)}
+          <button className="av-try-x" aria-label="Stop trying on" onClick={() => setSel(null)}>×</button>
         </div>
       )}
       {error && <p className="err" role="alert">{error}</p>}

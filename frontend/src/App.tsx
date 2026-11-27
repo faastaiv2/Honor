@@ -1,7 +1,8 @@
 import FirstRun from "./pages/FirstRun";
 import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { api, type TodayInfo } from "./api";
+import { api, type Profile, type TodayInfo } from "./api";
+import { newItems, SHOP_NEW_EVENT } from "./lib/shopNew";
 import { useAuth } from "./auth";
 import { fmt } from "./lib/dates";
 import { useChangeCounter } from "./lib/events";
@@ -43,6 +44,16 @@ export default function App() {
   const { pathname } = useLocation();
 
   const [unread, setUnread] = useState(0);
+  // A red dot on Avatar when the shop has something new (just added, unlocked or affordable).
+  const [shopNew, setShopNew] = useState(0);
+  useEffect(() => {
+    if (!viewer || viewer.is_admin) { setShopNew(0); return; }
+    let prof: Profile | null = null;
+    const count = () => { if (prof) setShopNew(newItems(prof).size); };
+    api.profile().then((x) => { prof = x; count(); }).catch(() => undefined);
+    window.addEventListener(SHOP_NEW_EVENT, count);
+    return () => window.removeEventListener(SHOP_NEW_EVENT, count);
+  }, [viewer, changes]);
   useEffect(() => {
     if (!viewer || viewer.is_admin) { setUnread(0); return; }
     if (pathname === "/news") { setUnread(0); return; }
@@ -91,7 +102,7 @@ export default function App() {
             {!viewer.is_admin && <NavLink to="/achievements">Achievements</NavLink>}
             <NavLink to="/news">Community{unread > 0 && <span className="nbadge" aria-label={`${unread} new`}>{unread}</span>}</NavLink>
             <NavLink to="/events">Events</NavLink>
-            {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Profile</NavLink>}
+            {viewer.is_admin ? <NavLink to="/history">History</NavLink> : <NavLink to="/profile">Avatar{shopNew > 0 && <i className="red-dot" aria-label="Something new" />}</NavLink>}
             <NavLink to="/benefits">Benefits</NavLink>
             {viewer.is_admin && <NavLink to="/tasks">Tasks</NavLink>}
             {viewer.is_admin && <NavLink to="/animations">Animations</NavLink>}

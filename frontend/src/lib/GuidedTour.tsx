@@ -26,8 +26,8 @@ const STEPS: Step[] = [
     text: <>News from the family, new pictures and tournament winners. Tap ❤️ to like a post.</> },
   { path: "/events", target: ".ev", title: "Events 🎨",
     text: <>Art tournaments: make something, send a photo, and the best three win gems.</> },
-  { path: "/profile", target: ".seg", title: "Set your picture 🖼️",
-    text: <>This is your shop. Open <b>Pictures</b>, pick one marked <b>free</b> and press <b>Use</b>. <b>Frames</b> and <b>Themes</b> change your look too, and more unlock with gems.</> },
+  { path: "/profile", target: ".av-tabs", title: "Set your picture 🖼️",
+    text: <>This is your <b>Avatar</b> shop. In <b>Pictures</b>, tap one to try it on, then press <b>Wear it</b>. <b>Frames</b> and <b>Themes</b> change your look too. A red dot means something new!</> },
   { path: "/benefits", target: ".bx-hero", title: "Benefits ⭐",
     text: <>What every rank gives you: game time, make-ups, gems and new looks. Bismillah, let's go!</> },
 ];

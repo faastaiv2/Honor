@@ -16,6 +16,7 @@ import AchievementPop, { type NewAchievement } from "../lib/AchievementPop";
 import WeeklyMap, { MapButton } from "../lib/WeeklyMap";
 import ShaytanScene, { ShaytanCut } from "../lib/Shaytan";
 import GobiSplat from "../lib/GobiSplat";
+import SoundGate from "../lib/SoundGate";
 
 /** A gem-shaped badge in the rank's colour with the level inside. */
 export function RankBadge({ color, label, size = 56 }: { color: string; label: string; size?: number }) {
@@ -257,25 +258,25 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
 
       {reward && <GemReward amount={reward.amount} from={reward.from} title={reward.title} chest={reward.chest} jewel={reward.jewel} sound={reward.win ? "event-win" : undefined}
         onDone={() => { if (reward.win) api.winSeen(reward.win).catch(() => undefined); setReward(null); }} />}
-      {splat.length > 0 && <GobiSplat by={splat} onDone={() => setSplat([])} />}
+      {splat.length > 0 && <SoundGate icon="🥦"><GobiSplat by={splat} onDone={() => setSplat([])} /></SoundGate>}
       {p?.shaytan?.show === "offer" && !godfather && raid === null && !rankUp && !reward && (() => { const s = p.shaytan!; return (
-        <ShaytanScene name={p.member.name} offer={s.show === "offer" ? s.offer : 50} ladder={s.show === "offer" ? s.ladder : undefined}
+        <SoundGate icon="😈"><ShaytanScene name={p.member.name} offer={s.show === "offer" ? s.offer : 50} ladder={s.show === "offer" ? s.ladder : undefined}
           onAnswer={async (accept, refusals) => { await api.answerShaytan(s.id, accept, refusals).catch(() => undefined); }}
-          onDone={() => { api.profile().then(setP).catch(() => undefined); notifyChanged(); }} />); })()}
+          onDone={() => { api.profile().then(setP).catch(() => undefined); notifyChanged(); }} /></SoundGate>); })()}
       {p?.shaytan?.show === "cut" && !rankUp && !reward && (() => { const s = p.shaytan!; return (
-        <ShaytanCut levels={s.show === "cut" ? s.levels : 1}
-          onDone={() => { api.shaytanSeen(s.id, "cut").then(() => api.profile()).then(setP).catch(() => undefined); notifyChanged(); }} />); })()}
+        <SoundGate icon="😈"><ShaytanCut levels={s.show === "cut" ? s.levels : 1}
+          onDone={() => { api.shaytanSeen(s.id, "cut").then(() => api.profile()).then(setP).catch(() => undefined); notifyChanged(); }} /></SoundGate>); })()}
       {newAch.length > 0 && !godfather && raid === null && !rankUp && !reward && <AchievementPop items={newAch} onDone={() => setNewAch([])} />}
-      {godfather && p && <GodfatherReveal name={p.member.name} avatar={p.member.avatar}
+      {godfather && p && <SoundGate icon="🎩"><GodfatherReveal name={p.member.name} avatar={p.member.avatar}
         onCollect={async () => { await api.claimAchievement("godfather").catch(() => undefined); setP(await api.profile()); notifyChanged(); }}
         onDone={(wear) => {
           setGodfather(false);
           api.godfatherSeen().catch(() => undefined);
           if (wear) api.saveProfile({ frame: "godfather" }).then((np) => { setP(np); notifyChanged(); }).catch(() => undefined);
-        }} />}
-      {raid !== null && p && <GoblinRaid stolen={raid} from={p.gems.balance + raid}
-        onDone={() => { setRaid(null); api.raidSeen().then(setP).catch(() => undefined); }} />}
-      {rankUp && <RankUp tier={rankUp.tier} name={p.member.name} profile={p} reward={rankUp.reward} onClose={() => { setRankUp(null); api.celebrated().then(setP).catch(() => undefined); }} />}
+        }} /></SoundGate>}
+      {raid !== null && p && <SoundGate icon="👺"><GoblinRaid stolen={raid} from={p.gems.balance + raid}
+        onDone={() => { setRaid(null); api.raidSeen().then(setP).catch(() => undefined); }} /></SoundGate>}
+      {rankUp && <SoundGate icon="🏆"><RankUp tier={rankUp.tier} name={p.member.name} profile={p} reward={rankUp.reward} onClose={() => { setRankUp(null); api.celebrated().then(setP).catch(() => undefined); }} /></SoundGate>}
       {levelUp && (
         <div className="levelup" role="dialog" aria-modal="true" aria-label="Level up" onClick={() => setLevelUp(null)}>
           <div className="levelup-card" onClick={(e) => e.stopPropagation()}>
