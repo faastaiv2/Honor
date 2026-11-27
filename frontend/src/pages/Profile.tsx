@@ -35,6 +35,13 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const [toast, setToast] = useToast();
   const [sel, setSel] = useState<{ kind: Kind; item: ShopItem } | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
+  // Opened from the "set your avatar" reminder: point at the pictures until one is on.
+  const [guide, setGuide] = useState(() => new URLSearchParams(window.location.search).has("pick"));
+  useEffect(() => {
+    if (!guide || !p) return;
+    const t = window.setTimeout(() => document.querySelector(".av-tabs")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+    return () => clearTimeout(t);
+  }, [guide, !!p]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { api.profile().then(setP).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load your avatar")); }, []);
   // Which items are new; the open tab's dots clear after a moment (you've seen them).
@@ -55,7 +62,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   }, [tryTheme]);
 
   async function use(kind: Kind, key: string, name: string) {
-    try { setSel(null); setP(await api.saveProfile({ [kind]: key })); setError(""); setToast(`${name} is on ✨`); notifyChanged(); }
+    try { setSel(null); if (kind === "avatar" && key) setGuide(false); setP(await api.saveProfile({ [kind]: key })); setError(""); setToast(`${name} is on ✨`); notifyChanged(); }
     catch (e) { setError(e instanceof ApiError ? e.message : "Could not save"); }
   }
   async function buy(kind: Kind, item: ShopItem) {
@@ -147,7 +154,15 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
         ))}
       </div>
 
-      <section className={`av-shelf ${tab}`}>
+      {guide && tab === "avatar" && (
+        <div className="av-guide" role="status">
+          <span className="av-guide-hand" aria-hidden="true">👇</span>
+          <p>{sel?.kind === "avatar" && sel.item.available ? <>Nice pick! Now press <b>Wear it</b> ✨</>
+            : <>Tap a picture with <b>Yours</b> on it to try it on, then press <b>Wear it</b>. Others you can buy with gems.</>}</p>
+          <button aria-label="Close" onClick={() => setGuide(false)}>✕</button>
+        </div>
+      )}
+      <section className={`av-shelf ${tab}${guide && tab === "avatar" ? " guiding" : ""}`}>
         {tab === "avatar" && (
           <button className={`av-item plain${!mine.avatar ? " on" : ""}`} disabled={shamed} onClick={() => use("avatar", "", "Plain picture")}>
             <span className="av-face">👤</span><span className="av-name">Plain</span>

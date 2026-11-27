@@ -2858,3 +2858,35 @@ nav.tabs a .red-dot { position: static; display: inline-block; width: 9px; heigh
 .sh-claps i { top: 58%; font-size: 54px; filter: drop-shadow(0 4px 8px #0009); left: calc(50% + (var(--i) - 1) * 110px); }
 .sh-claps i:nth-child(2) { top: 72%; }
 .sh-cheer .sh-talk { align-content: start; }
+
+/* "Don't forget to set your avatar" reminder (avn-) */
+.avn { position: fixed; inset: 0; z-index: 58; display: grid; place-items: center; padding: 16px; background: #0007; backdrop-filter: blur(3px); animation: avn-fade .3s ease both; }
+@keyframes avn-fade { from { opacity: 0; } }
+.avn-card { width: min(400px, 100%); text-align: center; padding: 24px 22px 20px; border-radius: 26px; background: var(--paper); color: var(--ink); box-shadow: 0 20px 60px #0006; animation: avn-pop .45s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes avn-pop { from { transform: translateY(30px) scale(.9); opacity: 0; } }
+.avn-card h2 { margin: 10px 0 8px; font-size: 25px; }
+.avn-card p { margin: 0 0 18px; color: var(--mute); }
+.avn-faces { position: relative; height: 112px; display: flex; justify-content: center; align-items: center; }
+.avn-faces > span:not(.avn-me) { position: absolute; top: 50%; left: 50%; --a: calc(var(--i) * 72deg - 90deg);
+  transform: translate(-50%, -50%) rotate(var(--a)) translateX(78px) rotate(calc(-1 * var(--a))); animation: avn-orbit 1s cubic-bezier(.3,1.4,.5,1) both; animation-delay: calc(var(--i) * 80ms); }
+@keyframes avn-orbit { from { transform: translate(-50%, -50%) scale(.2); opacity: 0; } }
+.avn-faces > span:not(.avn-me) .avatar { border-radius: 14px; box-shadow: 0 4px 10px #0002; }
+.avn-me { position: relative; z-index: 1; animation: avn-wiggle 2.2s ease-in-out infinite; }
+.avn-me .avatar { border-radius: 18px; box-shadow: 0 0 0 3px var(--paper), 0 0 0 6px #f0c040; }
+.avn-me i { position: absolute; right: -8px; top: -8px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 900; color: #fff; background: #e0242f; box-shadow: 0 0 0 2px var(--paper); }
+@keyframes avn-wiggle { 0%, 70%, 100% { transform: rotate(0); } 78% { transform: rotate(-8deg); } 86% { transform: rotate(8deg); } 94% { transform: rotate(-4deg); } }
+.avn-btns { display: grid; gap: 8px; }
+.avn-btns .primary { min-height: 50px; font-size: 17px; font-weight: 800; }
+.avn-btns button:not(.primary) { background: transparent; border-color: transparent; color: var(--mute); }
+
+.av-guide { position: relative; display: flex; align-items: center; gap: 12px; margin: 12px 0 4px; padding: 12px 44px 12px 14px; border-radius: 16px; color: #3a2400;
+  background: linear-gradient(135deg, #fff3c4, #ffe08a); box-shadow: 0 6px 18px #f0b82044, inset 0 0 0 2px #f0c040; animation: avn-pop .4s ease both; }
+.av-guide p { margin: 0; font-weight: 600; }
+.av-guide-hand { font-size: 30px; animation: av-hand 1s ease-in-out infinite; }
+@keyframes av-hand { 50% { transform: translateY(6px); } }
+.av-guide button { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-height: 36px; width: 36px; padding: 0; border: 0; background: transparent; color: #3a2400; }
+.av-shelf.guiding .av-item.mine:not(.on) { animation: av-hint 1.6s ease-in-out infinite; }
+@keyframes av-hint { 50% { box-shadow: 0 0 0 4px #f0c040aa, 0 0 18px #f0c04088; } }
+@media (prefers-reduced-motion: reduce) { .avn-me, .av-guide-hand, .av-shelf.guiding .av-item.mine { animation: none; } }
+.avn-faces { height: 168px; }
+.avn-faces > span:not(.avn-me) { transform: translate(-50%, -50%) rotate(var(--a)) translateX(66px) rotate(calc(-1 * var(--a))); }

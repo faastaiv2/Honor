@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import Avatar from "../lib/Avatar";
 import { api, type Profile } from "../api";
 import RankIcon from "../lib/RankIcon";
 import { confetti } from "../lib/confetti";
@@ -72,5 +75,51 @@ export default function FirstRun() {
   if (!p) return null;
   if (!p.oath) return <Oath name={p.member.name} note={p.oath_note} onSworn={() => setP({ ...p, oath: true, oath_note: "" })} />;
   if (!p.toured && !p.oath_note) return <GuidedTour onDone={() => { setP({ ...p, toured: true }); api.toured().catch(() => undefined); }} />;
+  if (!p.member.shamed && !((p.member.own_avatar ?? p.member.avatar) || "")) return <AvatarNudge id={p.member.id} name={p.member.name} />;
   return null;
+}
+
+/** "Maybe later" hides the reminder until tomorrow. */
+const laterKey = (id: string) => `honor.avatarLater.${id}`;
+const today = () => new Date().toLocaleDateString("en-CA");
+
+/**
+ * Signed in but still the plain picture: a friendly reminder to choose one, with "Show me where" (opens the
+ * Avatar shop and points at the pictures) or "Maybe later" (asks again tomorrow). Waits for any other big
+ * animation or pop-up on the screen to finish first.
+ */
+function AvatarNudge({ id, name }: { id: string; name: string }) {
+  const nav = useNavigate();
+  const { pathname } = useLocation();
+  const [snoozed, setSnoozed] = useState(() => { try { return localStorage.getItem(laterKey(id)) === today(); } catch { return false; } });
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (snoozed || pathname.startsWith("/profile")) { setShow(false); return; }
+    let calm = 0;
+    const t = window.setInterval(() => {
+      // Something else is on screen (a raid, Shaytan, a reward, the volume check…): wait for it to finish.
+      calm = document.querySelector('[aria-modal="true"]') ? 0 : calm + 1;
+      if (calm >= 3) { setShow(true); clearInterval(t); }
+    }, 1000);
+    return () => clearInterval(t);
+  }, [snoozed, pathname]);
+  if (!show || snoozed || pathname.startsWith("/profile")) return null;
+  const later = () => { try { localStorage.setItem(laterKey(id), today()); } catch { /* private mode */ } setSnoozed(true); };
+  return createPortal(
+    <div className="avn" role="dialog" aria-modal="true" aria-labelledby="avn-h">
+      <div className="avn-card">
+        <div className="avn-faces" aria-hidden="true">
+          {["lion", "unicorn", "owl", "fox", "dolphin"].map((a, i) => <span key={a} style={{ ["--i" as string]: i }}><Avatar avatar={a} color="#ffffff" size={40} /></span>)}
+          <span className="avn-me"><Avatar avatar="" color="#ffffff" size={64} /><i>?</i></span>
+        </div>
+        <h2 id="avn-h">Don't forget to set your avatar!</h2>
+        <p>{name}, you're still the plain picture 👤. Pick one so everyone can see it's you on the Leaderboard and in Community.</p>
+        <div className="avn-btns">
+          <button className="primary" autoFocus onClick={() => { setShow(false); nav("/profile?pick=1"); }}>👉 Show me where</button>
+          <button onClick={later}>Maybe later</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
 }
