@@ -852,9 +852,19 @@ const PICS: Record<string, Pic> = {
     <path d="M24 38 l4 3 -1 -5 5 2 -1 -5 5 3 0 -5 5 3 1 -5 4 4" stroke="#fff" strokeWidth="1.4" fill="none" opacity=".9" />
     <rect x="28" y="33" width="44" height="30" rx="15" fill={`url(#${id}v)`} stroke="#0a2a6a" strokeWidth="1" />
     <path d="M34 41 Q40 36 48 37" stroke="#fff" strokeWidth="3" fill="none" opacity=".8" strokeLinecap="round" />
-    {/* a little face behind the visor */}
-    <circle cx="43" cy="50" r="2.6" fill="#eafcff" /><circle cx="57" cy="50" r="2.6" fill="#eafcff" />
-    <path d="M45 56 q5 4 10 0" stroke="#eafcff" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+    {/* frostbitten: the visor is iced over, cracked, with frost ferns creeping across it */}
+    <rect x="28" y="33" width="44" height="30" rx="15" fill="#dff6ff" opacity=".55" />
+    <path d="M30 60 Q36 52 34 44 M34 52 l-4 -2 M35 48 l4 -3 M66 36 Q60 42 62 50 M62 44 l5 -1 M61 48 l-4 2"
+      stroke="#fff" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+    <path d="M50 36 L46 44 L52 47 L47 56 M52 47 L58 50" stroke="#5aa8e0" strokeWidth="1.2" fill="none" strokeLinejoin="round" />
+    {[[40, 42, 3], [58, 54, 2.6], [36, 54, 2]].map(([x, y, r], i) => (
+      <g key={i} stroke="#fff" strokeWidth="1" strokeLinecap="round">{[0, 60, 120].map((a) => <path key={a} d={`M${x - r} ${y} H${x + r}`} transform={`rotate(${a} ${x} ${y})`} />)}</g>
+    ))}
+    {/* frost patches on the helmet and icicles hanging from it */}
+    <path d="M30 28 q4 -4 8 0 q3 -3 6 0 M60 26 q4 -3 7 1" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    <path d="M34 70 l2 9 2 -8 M42 73 l1.6 7 1.6 -7 M56 73 l1.6 8 1.6 -8 M64 70 l2 7 2 -8" fill="#eafcff" stroke="#9ad8f8" strokeWidth=".6" />
+    {/* a breath of frozen mist */}
+    <g fill="#fff" opacity=".7" className="pa-drift"><circle cx="28" cy="66" r="3" /><circle cx="22" cy="62" r="2.2" /><circle cx="18" cy="57" r="1.5" /></g>
     <circle cx="22" cy="46" r="5" fill="#9ad8f8" stroke="#3a7ac0" strokeWidth="1" /><circle cx="78" cy="46" r="5" fill="#9ad8f8" stroke="#3a7ac0" strokeWidth="1" />
     <path d="M78 41 V30" stroke="#9ad8f8" strokeWidth="2" /><circle cx="78" cy="29" r="2.2" fill="#7ff6ff" className="fx-twinkle" />
   </> },
