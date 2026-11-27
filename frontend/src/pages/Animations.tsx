@@ -239,7 +239,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         () => setPreview({ kind: "splat" }),
         slot("gobi-splat", "Splat", "Plays as the cauliflower hits the screen"))}
 
-      {card("🎩", "Godfather", "When you make a member a Godfather: their picture gets the Godfather frame in gold, with the 313-gem achievement.",
+      {card("🎩", "Godfather", "When you make a member a Godfather: their picture gets the Godfather frame in gold, with the 113-gem achievement.",
         () => setPreview({ kind: "godfather" }),
         slot("godfather", "Godfather", "Plays as the screen goes dark and the gold ring draws itself"))}
 

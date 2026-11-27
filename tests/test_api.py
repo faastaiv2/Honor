@@ -946,9 +946,9 @@ def test_godfather_achievement_is_only_for_godfathers(client, family):
     assert prof["godfather"] == {"is": True, "seen": False}
     before = prof["gems"]["balance"]
     gf = next(a for a in client.get("/api/board/achievements", headers=h).json()["items"] if a["key"] == "godfather")
-    assert gf["unlocked"] and gf["gems"] == 313
+    assert gf["unlocked"] and gf["gems"] == 113
     client.post("/api/board/achievements/godfather/claim", headers=h)
-    assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before + 313
+    assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == before + 113
     client.post("/api/board/profile/godfather-seen", headers=h)
     assert client.get("/api/board/profile", headers=h).json()["godfather"]["seen"] is True
 

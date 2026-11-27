@@ -64,7 +64,7 @@ ACHIEVEMENTS: list[Achievement] = [
     Achievement("mercy", "Mercy to All Creatures", "Give everything you have so a thirsty kitten can drink", "Honor", "heart", "gold", 1,
                 lambda f: f.mercy, secret=True),
     Achievement("godfather", "The Godfather", "Be named a Godfather of the family", "Honor", "godfather", "godfather", 1,
-                lambda f: f.godfather, reward=313, only_godfather=True),
+                lambda f: f.godfather, reward=113, only_godfather=True),
     # Streaks
     Achievement("spark", "First Spark", "Finish every task for one day", "Streaks", "flame", "bronze", 1, lambda f: f.p.perfect_days),
     Achievement("streak3", "On Fire", "Keep a 3-day streak", "Streaks", "flame", "bronze", 3, lambda f: f.p.best_streak),

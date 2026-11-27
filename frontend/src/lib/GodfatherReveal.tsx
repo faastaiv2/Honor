@@ -6,7 +6,7 @@ import { playSound } from "./sounds";
 
 /**
  * "You are a Godfather": the screen goes black, a gold Greek-key ring draws itself around the member's picture,
- * the gold "G" crest drops into place, gold dust falls, and the Godfather achievement (313 gems) is offered.
+ * the gold "G" crest drops into place, gold dust falls, and the Godfather achievement (113 gems) is offered.
  */
 export default function GodfatherReveal({ name, avatar, onCollect, onDone, preview = false }: {
   name: string; avatar?: string; onCollect?: () => Promise<void>; onDone: (wear: boolean) => void; preview?: boolean;
@@ -39,8 +39,8 @@ export default function GodfatherReveal({ name, avatar, onCollect, onDone, previ
           <span className="gfr-medal">G</span>
           <span><b>The Godfather</b><small>Achievement unlocked</small></span>
           {collected
-            ? <span className="gfr-got">+313 <Gem /></span>
-            : <button className="gfr-collect" onClick={collect} disabled={busy}>Collect 313 <Gem /></button>}
+            ? <span className="gfr-got">+113 <Gem /></span>
+            : <button className="gfr-collect" onClick={collect} disabled={busy}>Collect 113 <Gem /></button>}
         </div>
         <div className="gfr-btns">
           <button className="gfr-close wear" onClick={() => onDone(true)}>Wear it with honor</button>
