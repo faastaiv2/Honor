@@ -51,6 +51,10 @@ KEYS = {
     "kitten-meow",     # the thirsty kitten's weak meow
     "kitten-drink",    # lapping water, then a happy purr
     "kitten-pharaoh",  # the golden reveal: the Oasis Kitten
+    "buy-common",      # buying a Common item: the crate pops open
+    "buy-rare",        # Rare: the ice shatters
+    "buy-epic",        # Epic: the golden chest bursts open
+    "buy-legendary",   # Legendary: the beam of light and the crown
     "gobi-splat",      # a cauliflower splats on the screen of the person it hit
 } | {f"rankup-music-{r}" for r in ("bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond",
                                    "obsidian", "legendary")}  # music for one rank's show (else the general rank-up music)

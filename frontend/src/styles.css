@@ -3338,3 +3338,83 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .inbox-resolve label { display: grid; gap: 4px; font-weight: 700; font-size: 14px; }
 .inbox-resolve small { font-weight: 500; color: var(--mute); }
 .inbox-resolve input { font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); }
+
+/* ===== Buying in the shop (ps-), one show per rarity ===== */
+.ps { position: fixed; inset: 0; z-index: 72; overflow: hidden; display: grid; grid-template-rows: 1fr auto; justify-items: center; padding-bottom: 6vh; animation: avn-fade .3s ease both; }
+.ps-r-common { background: radial-gradient(circle at 50% 45%, #fff3dc, #e8c89a 70%); }
+.ps-r-rare { background: radial-gradient(circle at 50% 45%, #eafaff, #6ab8e8 75%); }
+.ps-r-epic { background: radial-gradient(circle at 50% 45%, #5a2a8a, #1e0a38 75%); }
+.ps-r-legendary { background: #05030c; transition: background 1s; }
+.ps-r-legendary.ps-st-reveal { background: radial-gradient(circle at 50% 45%, #3a2a6a, #08051a 70%); }
+.ps-stage { position: relative; align-self: center; width: min(260px, 64vw); aspect-ratio: 1; display: grid; place-items: center; }
+.ps-item { position: relative; z-index: 3; opacity: 0; transform: scale(.3); }
+.ps-st-reveal .ps-item { animation: ps-item .7s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes ps-item { from { opacity: 0; transform: scale(.3) translateY(40px); } to { opacity: 1; transform: none; } }
+.ps-item .avatar, .ps-item svg { filter: drop-shadow(0 10px 20px #0004); }
+.ps-item > * { transform: scale(1.6); }
+/* common: a wooden crate */
+.ps-crate { position: absolute; inset: 22% 18% 10%; }
+.ps-crate .box { position: absolute; left: 0; right: 0; bottom: 0; height: 62%; border-radius: 8px; background: repeating-linear-gradient(90deg, #b07a42 0 22%, #9a6634 22% 25%); box-shadow: inset 0 0 0 5px #7a4a22, 0 10px 18px #0003; }
+.ps-crate .lid { position: absolute; left: -4%; right: -4%; top: 30%; height: 14%; border-radius: 6px; background: #c08a52; box-shadow: inset 0 0 0 4px #7a4a22; transform-origin: 10% 100%; animation: ps-shake .25s ease-in-out 4; }
+@keyframes ps-shake { 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+.ps-r-common.ps-st-reveal .ps-crate .lid { animation: ps-lid-off .5s ease-out forwards; }
+@keyframes ps-lid-off { to { transform: translate(-40px, -90px) rotate(-60deg); opacity: 0; } }
+.ps-crate .puff { position: absolute; left: 50%; top: 30%; width: 10px; height: 10px; border-radius: 50%; }
+.ps-r-common.ps-st-reveal .ps-crate .puff { animation: ps-puff .6s ease-out forwards; }
+@keyframes ps-puff { from { box-shadow: 0 0 0 0 #fff; } to { box-shadow: -40px -30px 0 18px #fff0, 40px -30px 0 18px #fff0, 0 -50px 0 20px #fff0; } }
+.ps-r-common .ps-item { margin-bottom: 30%; }
+/* rare: a block of ice */
+.ps-ice { position: absolute; inset: 14%; border-radius: 14px; background: linear-gradient(135deg, #f4fdff 0%, #a8e4ff 45%, #6ac0f0 100%); box-shadow: inset 0 0 30px #fff, 0 0 30px #8ad8ff; opacity: .92; animation: ps-shake .2s ease-in-out 6; }
+.ps-ice .crack { position: absolute; inset: 0; background: linear-gradient(60deg, transparent 47%, #fff 48%, transparent 50%), linear-gradient(-50deg, transparent 47%, #fff 48%, transparent 50%), linear-gradient(10deg, transparent 48%, #fff 49%, transparent 51%); opacity: 0; animation: ps-crack .3s 1.2s forwards; }
+@keyframes ps-crack { to { opacity: 1; } }
+.ps-ice i { position: absolute; left: 50%; top: 50%; width: 30%; height: 30%; background: #c8f0ff; clip-path: polygon(50% 0, 100% 40%, 70% 100%, 0 70%); opacity: 0; }
+.ps-r-rare.ps-st-reveal .ps-ice { animation: none; background: none; box-shadow: none; }
+.ps-r-rare.ps-st-reveal .ps-ice .crack { display: none; }
+.ps-r-rare.ps-st-reveal .ps-ice i { animation: ps-shard .8s ease-out forwards; --a: calc(var(--i) * 45deg); }
+@keyframes ps-shard { from { opacity: 1; transform: translate(-50%, -50%) rotate(var(--a)) translateX(0) rotate(0); } to { opacity: 0; transform: translate(-50%, -50%) rotate(var(--a)) translateX(160px) rotate(220deg); } }
+/* epic: a golden chest */
+.ps-chest { position: absolute; inset: 26% 14% 12%; }
+.ps-chest .box { position: absolute; left: 0; right: 0; bottom: 0; height: 58%; border-radius: 8px; background: linear-gradient(180deg, #ffd24a, #c88a00); box-shadow: inset 0 0 0 5px #8a5a00, 0 0 40px #ffd24a66; }
+.ps-chest .lid { position: absolute; left: -3%; right: -3%; top: 14%; height: 30%; border-radius: 50% 50% 6px 6px / 80% 80% 6px 6px; background: linear-gradient(180deg, #ffe680, #e8a317); box-shadow: inset 0 0 0 5px #8a5a00; transform-origin: 50% 100%; animation: ps-shake .2s ease-in-out 8; }
+.ps-r-epic.ps-st-reveal .ps-chest .lid { animation: ps-chest-open .5s ease-out forwards; }
+@keyframes ps-chest-open { to { transform: translateY(-30px) rotateX(70deg); opacity: .4; } }
+.ps-chest .coin { position: absolute; left: 50%; top: 40%; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff6c0, #ffc23a 60%, #b87a00); opacity: 0; }
+.ps-r-epic.ps-st-reveal .ps-chest .coin { animation: ps-coin 1.1s calc(var(--i) * .04s) cubic-bezier(.2,.7,.4,1) forwards; --a: calc(-160deg + var(--i) * 12deg); }
+@keyframes ps-coin { 0% { opacity: 1; transform: rotate(var(--a)) translateX(0); } 100% { opacity: 0; transform: rotate(var(--a)) translateX(170px) translateY(60px); } }
+.ps-r-epic .ps-item { margin-bottom: 26%; }
+.ps-rays { position: absolute; left: 50%; top: 42%; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%; opacity: 0;
+  background: repeating-conic-gradient(#ffe68066 0 8deg, transparent 8deg 20deg); mask: radial-gradient(circle, #000 15%, transparent 60%); -webkit-mask: radial-gradient(circle, #000 15%, transparent 60%); }
+.ps-st-reveal .ps-rays { animation: ps-rays-in .6s ease both, kt-spin 18s linear infinite; }
+@keyframes ps-rays-in { from { opacity: 0; } to { opacity: 1; } }
+.ps-r-legendary .ps-rays { background: repeating-conic-gradient(#ff6a8a55 0 6deg, #ffd24a55 6deg 12deg, #6aff9a55 12deg 18deg, #6ac8ff55 18deg 24deg, transparent 24deg 30deg); }
+/* legendary: beam, rings, crown */
+.ps-beam { position: absolute; left: 50%; top: 0; width: 160px; height: 60%; margin-left: -80px; background: linear-gradient(180deg, #fff, #fff6c0aa 60%, transparent); filter: blur(6px); opacity: 0; animation: ps-beam 1.2s 1.2s ease-out forwards; }
+@keyframes ps-beam { 0% { opacity: 0; transform: scaleX(.1); } 40% { opacity: 1; transform: scaleX(1.4); } 100% { opacity: .5; transform: scaleX(1); } }
+.ps-rings i { position: absolute; left: 50%; top: 42%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; border: 5px solid; border-color: #ff6a8a #ffd24a #6aff9a #6ac8ff; opacity: 0; }
+.ps-st-reveal .ps-rings i { animation: ps-ring 1.6s calc(var(--i) * .25s) ease-out forwards; }
+@keyframes ps-ring { from { opacity: 1; transform: scale(.5); } to { opacity: 0; transform: scale(18); } }
+.ps-crown { position: absolute; top: -30%; font-size: 64px; z-index: 4; opacity: 0; filter: drop-shadow(0 0 16px #ffd24a); }
+.ps-st-reveal .ps-crown { animation: ps-crown .8s .4s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes ps-crown { from { opacity: 0; transform: translateY(-80px) rotate(-30deg); } to { opacity: 1; transform: none; } }
+.ps-r-legendary.ps-st-reveal .ps-item { animation: ps-descend 1.1s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes ps-descend { from { opacity: 0; transform: translateY(-60vh) scale(.6); filter: brightness(3); } 70% { filter: brightness(1.6); } to { opacity: 1; transform: none; filter: none; } }
+.ps-r-legendary .ps-item { filter: drop-shadow(0 0 24px #ffd24a); }
+.ps-sparks i { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px #fff; opacity: 0; }
+.ps-st-reveal .ps-sparks i { animation: ps-spark 1.4s calc(var(--i) * .05s) ease-out forwards; --a: calc(var(--i) * 25.7deg); }
+@keyframes ps-spark { from { opacity: 1; transform: rotate(var(--a)) translateX(10px); } to { opacity: 0; transform: rotate(var(--a)) translateX(150px); } }
+.ps-r-rare .ps-sparks i { background: #bff0ff; box-shadow: 0 0 8px #6ac8ff; }
+/* the card */
+.ps-card { position: relative; z-index: 5; width: min(380px, 92vw); min-height: 150px; text-align: center; display: grid; align-content: center; }
+.ps-st-reveal .ps-card { padding: 18px; border-radius: 22px; background: var(--paper); color: var(--ink); box-shadow: 0 16px 40px #0005; animation: avn-pop .45s .3s cubic-bezier(.3,1.5,.5,1) both; }
+.ps-wait { margin: 0; font-weight: 800; font-size: 18px; color: #fff; text-shadow: 0 2px 8px #0008; }
+.ps-r-common .ps-wait, .ps-r-rare .ps-wait { color: #3a2a1a; text-shadow: none; }
+.ps-tag { justify-self: center; margin: 0; padding: 2px 12px; border-radius: 99px; font-size: 12px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.ps-tag.t-common { background: #f2e0c8; color: #8a5a2a; } .ps-tag.t-rare { background: #d8f0ff; color: #1a6ab0; }
+.ps-tag.t-epic { background: #fff0b8; color: #8a5a00; } .ps-tag.t-legendary { background: linear-gradient(90deg, #ffd0dc, #fff0b8, #d0ffe0, #d0ecff); color: #6a2a8a; }
+.ps-card h2 { margin: 6px 0 2px; font-size: 28px; }
+.ps-legend { background: linear-gradient(90deg, #ff4a7a, #ffb000, #3ac870, #3a9aff, #b04aff, #ff4a7a); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: ps-shimmer 2s linear infinite; font-weight: 900; letter-spacing: .04em; }
+@keyframes ps-shimmer { to { background-position: -200% 0; } }
+.ps-name { margin: 0 0 12px; font-weight: 800; color: var(--mute); }
+.ps-btns { display: grid; gap: 8px; }
+.ps-btns .primary { min-height: 48px; font-size: 17px; }
+@media (prefers-reduced-motion: reduce) { .ps *, .ps { animation-duration: .01s !important; animation-iteration-count: 1 !important; } }

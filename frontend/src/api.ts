@@ -111,7 +111,7 @@ export class ApiError extends Error {
 
 export type RankSoundKey = `rankup-music-${"bronze" | "silver" | "gold" | "platinum" | "emerald" | "sapphire" | "ruby" | "diamond" | "obsidian" | "legendary"}`;
 export type SoundKey = RankSoundKey | "quest-music" | "quest-thunder" | "quest-crack" | "rankup-music" | "chest" | "gems" | "gems-crack" | "collect" | "achievement" | "event-win" | "goblins" | "godfather"
-  | "shaytan-arrive" | "shaytan-offer1" | "shaytan-offer2" | "shaytan-offer3" | "shaytan-grumble" | "shaytan-laugh" | "shaytan-goodjob" | "shaytan-flee" | "shaytan-cut" | "gobi-splat" | "charity-ask" | "charity-thanks" | "charity-reveal" | "pigeon-coo" | "pigeon-scroll" | "bully-taunt" | "bully-sorry" | "bully-cry" | "owl-hoot" | "quiz-right" | "quiz-wrong" | "kitten-meow" | "kitten-drink" | "kitten-pharaoh" | "tell-thunder" | "tell-zap";
+  | "shaytan-arrive" | "shaytan-offer1" | "shaytan-offer2" | "shaytan-offer3" | "shaytan-grumble" | "shaytan-laugh" | "shaytan-goodjob" | "shaytan-flee" | "shaytan-cut" | "gobi-splat" | "charity-ask" | "charity-thanks" | "charity-reveal" | "pigeon-coo" | "pigeon-scroll" | "bully-taunt" | "bully-sorry" | "bully-cry" | "owl-hoot" | "quiz-right" | "quiz-wrong" | "kitten-meow" | "kitten-drink" | "kitten-pharaoh" | "tell-thunder" | "tell-zap" | "buy-common" | "buy-rare" | "buy-epic" | "buy-legendary";
 export interface MusicInfo { has: boolean; start: number; end: number; offset_ms: number; volume: number; size: number; updated: string | null }
 
 export const token = {

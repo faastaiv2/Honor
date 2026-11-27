@@ -8,7 +8,7 @@ import Medal from "../lib/Medal";
 import Brazier from "../lib/Brazier";
 import RarityBadge from "../lib/RarityBadge";
 import ThemePreview from "../lib/ThemePreview";
-import { confetti } from "../lib/confetti";
+import PurchaseShow, { rarityOf } from "../lib/PurchaseShow";
 import { notifyChanged, useToast } from "../lib/events";
 import { markSeen, newItems, type ShopKind } from "../lib/shopNew";
 
@@ -35,6 +35,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
   const [toast, setToast] = useToast();
   const [sel, setSel] = useState<{ kind: Kind; item: ShopItem } | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
+  const [bought, setBought] = useState<{ kind: Kind; item: ShopItem } | null>(null);
   // Opened from the "set your avatar" reminder: point at the pictures until one is on.
   const [guide, setGuide] = useState(() => new URLSearchParams(window.location.search).has("pick"));
   useEffect(() => {
@@ -66,7 +67,7 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
     catch (e) { setError(e instanceof ApiError ? e.message : "Could not save"); }
   }
   async function buy(kind: Kind, item: ShopItem) {
-    try { setSel(null); setP(await api.buy(kind, item.key)); setError(""); setToast(`Bought ${item.name}! −${item.price} gems`); confetti(); notifyChanged(); }
+    try { setSel(null); setP(await api.buy(kind, item.key)); setError(""); setBought({ kind, item }); notifyChanged(); }
     catch (e) { setError(e instanceof ApiError ? e.message : "Could not buy"); }
   }
 
@@ -215,6 +216,15 @@ export default function ProfilePage({ info }: { info: TodayInfo | null }) {
         </div>
       )}
       {error && <p className="err" role="alert">{error}</p>}
+      {bought && (() => {
+        const { kind, item } = bought;
+        const art = kind === "theme" ? <ThemePreview k={item.key} /> : kind === "frame" ? <Avatar avatar={mine.avatar} color={t.color} frame={item.key} size={84} />
+          : <RarityBadge pic={item.key} rarity={item.rarity} size={96} />;
+        const lockedLook = shamed && kind !== "theme";
+        return <PurchaseShow rarity={rarityOf(item.rarity, item.price)} name={item.name} art={art}
+          onWear={lockedLook ? undefined : () => { setBought(null); void use(kind, item.key, item.name); }}
+          onClose={() => { setBought(null); setToast(`${item.name} is yours! −${item.price} gems`); }} />;
+      })()}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );

@@ -6,6 +6,8 @@ import GodfatherReveal from "../lib/GodfatherReveal";
 import ShaytanScene, { ShaytanCheer } from "../lib/Shaytan";
 import CharityScene from "../lib/Charity";
 import PigeonScene from "../lib/Pigeon";
+import PurchaseShow, { type Rarity } from "../lib/PurchaseShow";
+import RarityBadge from "../lib/RarityBadge";
 import BullyScene from "../lib/Bully";
 import QuizScene from "../lib/Quiz";
 import KittenScene from "../lib/Kitten";
@@ -40,7 +42,7 @@ const MOMENT: Partial<Record<SoundKey, string>> = {
   achievement: "the reward appears", "event-win": "the prize chest appears",
 };
 
-type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" } | { kind: "godfather" } | { kind: "shaytan" } | { kind: "splat" } | { kind: "cheer" } | { kind: "charity" } | { kind: "pigeon" } | { kind: "bully" } | { kind: "quiz" } | { kind: "kitten" };
+type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" } | { kind: "godfather" } | { kind: "shaytan" } | { kind: "splat" } | { kind: "cheer" } | { kind: "charity" } | { kind: "pigeon" } | { kind: "bully" } | { kind: "quiz" } | { kind: "kitten" } | { kind: "buy"; rarity: Rarity };
 
 /** One sound slot: upload, test, start point, volume, remove. */
 function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
@@ -204,6 +206,16 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         <>{slot("shaytan-goodjob", "Good job (voice)", "“Good job! You fell into Low Honor… just where I want you!”")}
           <p className="note">His laugh uses the “Evil laugh” sound from Deploy Shaytan.</p></>)}
 
+      {card("🛍️", "Buying in the shop", "Every purchase in the Avatar shop gets a show for its rarity: Common pops out of a wooden crate, Rare breaks out of ice, Epic bursts from a golden chest, Legendary descends in a beam of light with a crown.",
+        () => setPreview({ kind: "buy", rarity: "legendary" }),
+        <><div className="an-ranks" role="group" aria-label="Preview a rarity">
+            {(["common", "rare", "epic", "legendary"] as Rarity[]).map((r) => <button key={r} type="button" onClick={() => setPreview({ kind: "buy", rarity: r })}>{r[0].toUpperCase() + r.slice(1)}</button>)}
+          </div>
+          {slot("buy-common", "Common", "The crate pops open")}
+          {slot("buy-rare", "Rare", "Ice cracking and shattering")}
+          {slot("buy-epic", "Epic", "A chest bursting open, coins")}
+          {slot("buy-legendary", "Legendary", "A choir, a beam of light")}</>)}
+
       {card("🐱", "The thirsty kitten", "Sent from the Tests tab: a thin kitten meows in the desert by the pyramids. Water costs every gem; give it and the kitten becomes the Oasis Kitten, all the gems come back, and a secret achievement unlocks.",
         () => setPreview({ kind: "kitten" }),
         <>{slot("kitten-meow", "Weak meow", "As the kitten appears")}
@@ -256,6 +268,9 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
       {card("🎨", "Art tournament win", "A 1st, 2nd or 3rd place: a golden chest with the prize.", () => setPreview({ kind: "win" }),
         slot("event-win", "Win", "Plays when the prize chest appears"))}
 
+      {preview?.kind === "buy" && <PurchaseShow rarity={preview.rarity} name={{ common: "Otter", rare: "Red Panda", epic: "Moon Rabbit", legendary: "Celestial Lion" }[preview.rarity]}
+        art={<RarityBadge pic={{ common: "otter", rare: "redpanda", epic: "moonrabbit", legendary: "celestiallion" }[preview.rarity]} rarity={preview.rarity} size={96} />}
+        onClose={() => setPreview(null)} />}
       {preview?.kind === "kitten" && <KittenScene name="Preview" balance={120} preview onDone={() => setPreview(null)} />}
       {preview?.kind === "bully" && <BullyScene name="Preview" balance={100} preview onDone={() => setPreview(null)} />}
       {preview?.kind === "quiz" && <QuizScene name="Preview" preview onDone={() => setPreview(null)} quiz={{ id: "p", gems_each: 10, answers: [-1, -1, -1], questions: [
