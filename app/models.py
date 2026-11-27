@@ -202,6 +202,8 @@ class TaskDef(Base):
     not_before: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "12:00": can't be ticked earlier
     links: Mapped[list] = mapped_column(JSON, default=list)  # 7 video links, Monday … Sunday ("" = none)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    rank_step: Mapped[int] = mapped_column(Integer, default=0)  # added to the number for every rank above Bronze
+    min_rank: Mapped[str] = mapped_column(String(12), default="")  # "" = every rank; else appears from this rank on
 
 
 class Media(Base):

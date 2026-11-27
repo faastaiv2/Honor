@@ -13,7 +13,7 @@ const STEPS: Step[] = [
   { path: "/", target: ".welcome-card .wc-avatar", title: "This is you 👋",
     text: <>Your picture, your rank crest and your level. Climb from Member to Bronze and all the way to Legendary.</> },
   { path: "/", target: ".goal", title: "Your daily goal",
-    text: <>Tick the Honor pledge and finish <b>every task</b>: your Honor goes up at midnight. After all tasks, the bonus dhikr gives one more.</> },
+    text: <>Tick the Honor pledge and finish <b>every task</b>: your Honor goes up at midnight. As you climb, tasks get a little harder and new ones appear.</> },
   { path: "/", target: "label.task:not(.pledge)", title: "Tick it after you do it",
     text: <>Do the task first, then tick it. That's your word. Sick or travelling? Tap <b>⋯</b> and give an honest reason.</> },
   { path: "/", target: ".wm-btn", title: "Daily treasure map 🗺️",

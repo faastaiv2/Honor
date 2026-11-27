@@ -55,6 +55,9 @@ class Progress:
     fitness_days: int = 0  # every fitness task done (not excused)
     ticks: dict = field(default_factory=dict)  # task -> days it was ticked
     ranks_reached: set = field(default_factory=set)
+    day_rank: dict = field(default_factory=dict)  # date -> the rank (index) the day's tasks were set for
+    quest_days_on: set = field(default_factory=set)  # days spent on the Legendary quest (the bonus counts only then)
+    rank_now: int = 1  # the rank tasks are set for from now on (the highest rank reached)
 
 
 def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[date, int], quest_starts: list[date],
@@ -78,9 +81,14 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
         ticks, excuse = entry[0], entry[1]
         skip = entry[2] if len(entry) > 2 else None  # single tasks excused that day
         prev = logs.get(d - timedelta(days=1), ([], ""))[0]
-        plan = scoring.day_plan(tasks, periods, d) if tasks is not None else None
+        # Tasks are set by the highest rank reached so far (they don't get easier after a fall).
+        r_i = scoring.RANK_ORDER.index("legendary") if p.legendary else max(1, scoring.rank_index(tier_for(min(best, CAP_WITHOUT_LEGENDARY), False).key))
+        p.day_rank[d] = r_i
+        if quest_active:
+            p.quest_days_on.add(d)
+        plan = scoring.day_plan(tasks, periods, d, r_i) if tasks is not None else None
         counted = scoring.credited(ticks, prev, plan, first_day=d == score_from)
-        s = scoring.score_day(d, counted, excuse, today, cut_misses, plan, skip)
+        s = scoring.score_day(d, counted, excuse, today, cut_misses, plan, skip, bonus_on=quest_active)
         day_keys = ({t.key for t in plan} | {"bonus"}) if plan is not None else gem_keys
         n_ticked = len(set(ticks or []) & day_keys)
         if d < GEMS_NEW_RATES_FROM:
@@ -148,6 +156,8 @@ def simulate(base: int, logs: dict[date, tuple[list, str]], adjustments: dict[da
         if week_from and d >= week_from:
             p.week_delta += p.level - before
     p.best_level = max(best, p.level)
+    p.rank_now = p.day_rank.get(today) or (scoring.RANK_ORDER.index("legendary") if p.legendary
+                                           else max(1, scoring.rank_index(tier_for(min(max(best, 0), CAP_WITHOUT_LEGENDARY), False).key)))
     p.ranks_reached = set(reached) | ({"legendary"} if p.legendary or p.legendary_since else set())
     late_adj = sum(v for d, v in adjustments.items() if d > today)  # clock differences: never lose a change
     if late_adj:

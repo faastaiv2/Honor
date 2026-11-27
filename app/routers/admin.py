@@ -293,13 +293,18 @@ def preview_sheet(body: PreviewIn, _: Viewer = Depends(require_admin)) -> dict:
 
 
 # ------------------------------------------------------------------ daily tasks
+RANK_PATTERN = r"^(|bronze|silver|gold|platinum|emerald|sapphire|ruby|diamond|obsidian|legendary)$"
+
+
 class TaskIn(BaseModel):
     label: str = Field(min_length=1, max_length=120)
     group: str = Field(default="Tasks", min_length=1, max_length=40)
     fitness: bool = False
-    number_today: int | None = Field(default=None, ge=0, le=1_000_000)
-    step: int = Field(default=0, ge=-1000, le=1000)
+    number_today: int | None = Field(default=None, ge=0, le=1_000_000)  # the number at Bronze
+    step: int = Field(default=0, ge=-1000, le=1000)  # (old: daily growth; no longer used)
     every: int = Field(default=1, ge=1, le=365)
+    rank_step: int = Field(default=0, ge=-1000, le=10_000)  # added for every rank above Bronze
+    min_rank: str = Field(default="", pattern=RANK_PATTERN)  # "" = every rank
     next_day: bool = False
     not_before: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     links: list[str] | None = Field(default=None, max_length=7)  # Monday … Sunday video links ("" = none)
@@ -323,6 +328,8 @@ class TaskPatch(BaseModel):
     clear_number: bool = False
     step: int | None = Field(default=None, ge=-1000, le=1000)
     every: int | None = Field(default=None, ge=1, le=365)
+    rank_step: int | None = Field(default=None, ge=-1000, le=10_000)
+    min_rank: str | None = Field(default=None, pattern=RANK_PATTERN)
     move: int | None = Field(default=None, ge=-1, le=1)  # -1 up, +1 down
     next_day: bool | None = None
     not_before: str | None = Field(default=None, pattern=r"^(([01]\d|2[0-3]):[0-5]\d)?$")  # "" clears it
@@ -339,12 +346,22 @@ class TaskPatch(BaseModel):
         return v
 
 
+def _spec(t: TaskDef) -> TaskSpec:
+    return TaskSpec(t.key, t.label, t.group, t.fitness, t.number, t.step, t.every, t.start_day, rank_step=t.rank_step or 0,
+                    min_rank=t.min_rank or "")
+
+
 def _task_out(t: TaskDef, today: date) -> dict:
-    spec = TaskSpec(t.key, t.label, t.group, t.fitness, t.number, t.step, t.every, t.start_day)
+    from dataclasses import replace as _with
+    from app.scoring import RANK_ORDER
+    spec = _spec(t)
+    start = RANK_ORDER.index(t.min_rank) if t.min_rank in RANK_ORDER else 1
+    by_rank = [{"rank": r, "label": _with(spec, at_rank=i).label_on(today)} for i, r in enumerate(RANK_ORDER) if i >= max(1, start)]
     return {"key": t.key, "label": t.label, "group": t.group, "fitness": t.fitness, "next_day": bool(t.next_day),
             "not_before": t.not_before or None, "links": list(t.links) if t.links and len(t.links) == 7 else [""] * 7,
             "number_today": spec.number_on(today),
-            "step": t.step, "every": t.every, "shown_today": spec.label_on(today),
+            "step": t.step, "every": t.every, "rank_step": t.rank_step or 0, "min_rank": t.min_rank or "",
+            "by_rank": by_rank, "shown_today": spec.label_on(today),
             "shown_tomorrow": spec.label_on(today + timedelta(days=1))}
 
 
@@ -353,7 +370,8 @@ def _ensure_tasks(db: Session) -> list[TaskDef]:
     if not rows:  # a board made before tasks were editable: store the sheet's tasks first
         for i, t in enumerate(DEFAULT_SPECS):
             db.add(TaskDef(key=t.key, label=t.label, group=t.group, fitness=t.fitness, number=t.number, step=t.step,
-                           every=t.every, start_day=t.start_day, next_day=t.next_day, not_before=t.not_before, links=list(t.links), sort_order=i))
+                           every=t.every, start_day=t.start_day, next_day=t.next_day, not_before=t.not_before, links=list(t.links),
+                           rank_step=t.rank_step, min_rank=t.min_rank, sort_order=i))
         db.commit()
         rows = list(db.scalars(select(TaskDef).order_by(TaskDef.sort_order, TaskDef.key)))
     return rows
@@ -382,7 +400,8 @@ def add_task(body: TaskIn, _: Viewer = Depends(require_admin), db: Session = Dep
     while key in taken:
         key, i = f"{base[:14]}{i}", i + 1
     t = TaskDef(key=key, label=_label_with_number(body.label, body.number_today is not None), group=body.group.strip(),
-                fitness=body.fitness, number=body.number_today, step=body.step, every=body.every, start_day=today,
+                fitness=body.fitness, number=body.number_today, step=0, every=1, start_day=today,
+                rank_step=body.rank_step if body.number_today is not None else 0, min_rank=body.min_rank,
                 next_day=body.next_day, not_before=body.not_before, links=body.links or [],
                 sort_order=max((r.sort_order for r in rows), default=0) + 1)
     db.add(t)
@@ -408,15 +427,11 @@ def edit_task(key: str, body: TaskPatch, _: Viewer = Depends(require_admin), db:
         t.number, t.step = None, 0
         t.label = t.label.replace("{n}", "").strip()
     if body.number_today is not None or body.step is not None or body.every is not None:
-        # Keep today's number unless a new one is given, and count the increase from today.
+        # The Bronze number. Numbers no longer grow by the day (they grow by rank), so any old daily step is dropped.
         spec = TaskSpec(t.key, t.label, t.group, t.fitness, t.number, t.step, t.every, t.start_day)
         current = spec.number_on(today)
         t.number = body.number_today if body.number_today is not None else (current if current is not None else 0)
-        t.start_day = today
-        if body.step is not None:
-            t.step = body.step
-        if body.every is not None:
-            t.every = body.every
+        t.start_day, t.step, t.every = today, 0, 1
     if body.label is not None:
         t.label = body.label.strip()
     if t.number is not None:
@@ -431,6 +446,10 @@ def edit_task(key: str, body: TaskPatch, _: Viewer = Depends(require_admin), db:
         t.not_before = body.not_before or None
     if body.links is not None:
         t.links = body.links if any(body.links) else []
+    if body.rank_step is not None:
+        t.rank_step = body.rank_step
+    if body.min_rank is not None:
+        t.min_rank = body.min_rank
     db.commit()
     return _task_out(t, today)
 
@@ -448,14 +467,15 @@ def delete_task(key: str, _: Viewer = Depends(require_admin), db: Session = Depe
 
 @router.post("/tasks/reset")
 def reset_tasks(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
-    """Put the tasks back exactly as in the original sheet (names, groups, order, growing numbers).
+    """Put the tasks back as in the original sheet (names, groups, order, numbers that grow with rank).
     Tasks added later are removed; members' past ticks are kept."""
     for r in db.scalars(select(TaskDef)):
         db.delete(r)
     db.flush()
     for i, t in enumerate(DEFAULT_SPECS):
         db.add(TaskDef(key=t.key, label=t.label, group=t.group, fitness=t.fitness, number=t.number, step=t.step,
-                       every=t.every, start_day=t.start_day, next_day=t.next_day, not_before=t.not_before, links=list(t.links), sort_order=i))
+                       every=t.every, start_day=t.start_day, next_day=t.next_day, not_before=t.not_before, links=list(t.links),
+                       rank_step=t.rank_step, min_rank=t.min_rank, sort_order=i))
     db.commit()
     today = today_for(get_settings_row(db))
     return [_task_out(r, today) for r in db.scalars(select(TaskDef).order_by(TaskDef.sort_order))]

@@ -81,6 +81,13 @@ def _status(p: Progress) -> dict:
     }
 
 
+def _rank_and_bonus(p: Progress, d: date, today: date) -> tuple[int, bool]:
+    """The rank a day's tasks are set for, and whether the bonus counts that day (only on the Legendary quest)."""
+    rank = p.day_rank.get(d, p.rank_now)
+    bonus = d in p.quest_days_on or (d >= today and p.quest_start is not None)
+    return rank, bonus
+
+
 def _member_or_404(db: Session, member_id: str) -> Member:
     m = db.get(Member, member_id)
     if not m or not m.active:
@@ -94,10 +101,15 @@ def today_info(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db
     t = today_for(cfg)
     i = scoring.day_index(t, cfg.score_from)
     count, dhikr = scoring.bonus_parts(i)
+    bonus_on = True  # parents always see the day's bonus
+    if v.kind == "member":
+        me = db.get(Member, v.id)
+        if me:
+            bonus_on = _rank_and_bonus(progress_for(db, cfg, [me], t)[me.id], t, t)[1]
     return {
         "today": t.isoformat(), "day_number": max(1, (t - cfg.score_from).days + 1), "weekend": scoring.is_weekend(t),
         "week": week_info(t, cfg.score_from),
-        "bonus": {"count": count, "dhikr": dhikr},
+        "bonus": {"count": count, "dhikr": dhikr, "on": bonus_on},
         "rules": {"cut_misses": cfg.cut_misses, "score_from": cfg.score_from.isoformat(), "timezone": cfg.timezone},
         "tiers": [tier_dict(x) for x in TIERS],
         "task_count": len(load_tasks(db)),
@@ -137,7 +149,8 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
     excuse = log.excuse if log else ""
     i = scoring.day_index(d, cfg.score_from)
     groups: dict[str, list] = {}
-    specs = scoring.day_plan(load_tasks(db), periods, d)
+    rank_i, bonus_on = _rank_and_bonus(p, d, today)
+    specs = scoring.day_plan(load_tasks(db), periods, d, rank_i)
     first = member_start(cfg, member)
     counted = scoring.credited(done, _prev_ticks(db, member.id, d), specs, first_day=d == first)
     for t in specs:
@@ -152,7 +165,7 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
             item |= {"next_day": True, "counted_today": t.key in counted}
         groups.setdefault(t.group, []).append(item)
     count, dhikr = scoring.bonus_parts(i)
-    s = scoring.score_day(d, counted, excuse, today, cfg.cut_misses, specs, skip)
+    s = scoring.score_day(d, counted, excuse, today, cfg.cut_misses, specs, skip, bonus_on=bonus_on)
     own = v.is_admin or v.id == member.id
     left = remaining(tier, d, today, _week_lates(db, member.id, d)) if d < today else 0
     if v.is_admin:
@@ -171,7 +184,8 @@ def _day_view(db: Session, member: Member, d: date, v: Viewer) -> dict:
         "pledge": None if scoring.is_weekend(d) else
         {"key": "gate", "label": scoring.task_label("gate", i), "done": "gate" in done, "late": False},
         "groups": [{"name": g, "tasks": ts} for g, ts in groups.items()],
-        "bonus": {"key": "bonus", "count": count, "dhikr": dhikr, "done": "bonus" in done},
+        "bonus": {"key": "bonus", "count": count, "dhikr": dhikr, "done": "bonus" in done} if bonus_on else None,
+        "rank_tasks": scoring.RANK_ORDER[rank_i],
         "excuse": excuse,
         "task_excuses": skip,
         "gems_today": p.today_tasks_gems if d == today else None,
@@ -206,8 +220,10 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
         raise HTTPException(403, "That day has not started yet")
     if not v.is_admin and body.date < cfg.score_from:
         raise HTTPException(403, f"The program starts on {cfg.score_from:%A %-d %B}. Until then the tasks are a preview")
-    specs = scoring.day_plan(load_tasks(db), scoring.for_member(load_periods(db), m.id), body.date)
-    tasks = {k for k in body.tasks if k in {"gate", "bonus"} | {t.key for t in specs}}
+    prog = progress_for(db, cfg, [m], today)[m.id]
+    rank_i, bonus_on = _rank_and_bonus(prog, body.date, today)
+    specs = scoring.day_plan(load_tasks(db), scoring.for_member(load_periods(db), m.id), body.date, rank_i)
+    tasks = {k for k in body.tasks if k in ({"gate", "bonus"} if bonus_on else {"gate"}) | {t.key for t in specs}}
     log = db.scalar(select(DayLog).where(DayLog.member_id == m.id, DayLog.day == body.date))
     before = set(log.tasks if log else [])
     old_skip = dict(log.task_excuses or {}) if log else {}
@@ -256,7 +272,7 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
             late[k] = today.isoformat()
         week = _week_lates(db, m.id, body.date)
         week[body.date] = late
-        tier = tier_of_progress(progress_for(db, cfg, [m], today)[m.id])
+        tier = tier_of_progress(prog)
         problem = check_week(tier, week)
         if problem and added - {"gate"}:
             raise HTTPException(403, problem)
@@ -264,7 +280,7 @@ def save_day(body: DayUpdate, v: Viewer = Depends(current_viewer), db: Session =
         late = {k: d for k, d in late.items() if k in tasks}
 
     counted = scoring.credited(tasks, _prev_ticks(db, m.id, body.date), specs, first_day=body.date == member_start(cfg, m))
-    if "bonus" in tasks and not scoring.score_day(body.date, counted, body.excuse, today, cfg.cut_misses, specs, skip).gain:
+    if "bonus" in tasks and not scoring.score_day(body.date, counted, body.excuse, today, cfg.cut_misses, specs, skip, bonus_on=bonus_on).gain:
         tasks.discard("bonus")  # the bonus opens only once every task is done (and unticks if one is unticked)
     if log is None:
         log = DayLog(member_id=m.id, day=body.date)
@@ -300,13 +316,14 @@ def leaderboard(v: Viewer = Depends(current_viewer), db: Session = Depends(get_d
         if v.kind == "member" else None
     rows = []
     for m in members:
-        specs = scoring.day_plan(all_tasks, scoring.for_member(all_periods, m.id), today)
         p = prog[m.id]
+        rank_i, bonus_on = _rank_and_bonus(p, today, today)
+        specs = scoring.day_plan(all_tasks, scoring.for_member(all_periods, m.id), today, rank_i)
         log, prev = logs.get((m.id, today)), logs.get((m.id, yesterday))
         counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, specs,
                                    first_day=today == member_start(cfg, m))
         skip = (log.task_excuses or {}) if log else {}
-        s = scoring.score_day(today, counted, log.excuse if log else None, today, cfg.cut_misses, specs, skip)
+        s = scoring.score_day(today, counted, log.excuse if log else None, today, cfg.cut_misses, specs, skip, bonus_on=bonus_on)
         look = shown_look(m.avatar, m.frame, tier_of_progress(p).key)
         shamed = tier_of_progress(p).key == "low"
         row = {"can_gobi": v.kind == "member" and shamed and m.id != v.id and gobi_at is None,
@@ -357,10 +374,11 @@ def history(days: int = Query(default=14, ge=1, le=62), v: Viewer = Depends(curr
                 cells.append({"state": "pre"})
                 continue
             log, prev = logs.get((m.id, d)), logs.get((m.id, d - timedelta(days=1)))
-            plan = scoring.day_plan(specs, scoring.for_member(periods, m.id), d)
+            rank_i, bonus_on = _rank_and_bonus(prog[m.id], d, today)
+            plan = scoring.day_plan(specs, scoring.for_member(periods, m.id), d, rank_i)
             counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, plan, first_day=d == first)
             s = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, plan,
-                                  (log.task_excuses or {}) if log else None)
+                                  (log.task_excuses or {}) if log else None, bonus_on=bonus_on)
             delta = prog[m.id].history.get(d, s.delta)
             state = "open" if d == today else "pos" if delta > 0 else "neg" if delta < 0 else \
                 "rest" if s.weekend else "excused" if s.excused else "zero"
@@ -447,7 +465,7 @@ def _celebration(db: Session, m: Member, tier, p) -> dict | None:
     return {"tier": tier.key, "reward": max(0, p.gems_levels - m.seen_level_gems)}
 
 
-def _week_days(db: Session, cfg, m: Member, today: date) -> list[dict]:
+def _week_days(db: Session, cfg, m: Member, today: date, p: Progress | None = None) -> list[dict]:
     """This week, Sunday to Saturday: which days were completed."""
     start = week_start(today)
     first = member_start(cfg, m)
@@ -461,10 +479,11 @@ def _week_days(db: Session, cfg, m: Member, today: date) -> list[dict]:
         if d > today or d < first:
             state = "future" if d > today else "pre"
         else:
-            plan = scoring.day_plan(specs, scoring.for_member(periods, m.id), d)
+            rank_i, bonus_on = _rank_and_bonus(p, d, today) if p else (None, False)
+            plan = scoring.day_plan(specs, scoring.for_member(periods, m.id), d, rank_i)
             counted = scoring.credited(log.tasks if log else None, prev.tasks if prev else None, plan, first_day=d == first)
             sc = scoring.score_day(d, counted, log.excuse if log else None, today, cfg.cut_misses, plan,
-                                   (log.task_excuses or {}) if log else None)
+                                   (log.task_excuses or {}) if log else None, bonus_on=bonus_on)
             state = "done" if sc.gain else "open" if d == today else "rest" if sc.weekend else "excused" if sc.excused else "missed"
         out.append({"date": d.isoformat(), "state": state, "today": d == today})
     return out
@@ -542,7 +561,7 @@ def _profile(db: Session, m: Member) -> dict:
             "frames": catalogue("frame", tier, owned, godfather=bool(m.godfather)), "themes": catalogue("theme", tier, owned, earned),
             "avatars": catalogue("avatar", tier, owned, earned), "celebrate": celebrate,
             "daily": daily,
-            "week_days": _week_days(db, cfg, m, today),
+            "week_days": _week_days(db, cfg, m, today, p),
             "event_win": unseen_win(db, m.id),
             "godfather": {"is": bool(m.godfather), "seen": bool(m.godfather_seen)},
             "shaytan": _shaytan_for(db, m.id), "charity": _charity_for(db, m.id), "pigeon": _pigeon_for(db, m.id), "bully": _test_for("bully_for", db, m.id), "quiz": _test_for("quiz_for", db, m.id), "kitten": _test_for("kitten_for", db, m.id),

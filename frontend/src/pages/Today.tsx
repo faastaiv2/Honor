@@ -14,7 +14,7 @@ import { notifyChanged, useToast } from "../lib/events";
 function doneKeys(v: DayView): string[] {
   const keys = v.groups.flatMap((g) => g.tasks.filter((t) => t.done).map((t) => t.key));
   if (v.pledge?.done) keys.push("gate");
-  if (v.bonus.done) keys.push("bonus");
+  if (v.bonus?.done) keys.push("bonus");
   return keys;
 }
 
@@ -24,7 +24,7 @@ function withToggled(v: DayView, key: string, on: boolean): DayView {
     ...v,
     pledge: v.pledge ? flip(v.pledge) : null,
     groups: v.groups.map((g) => ({ ...g, tasks: g.tasks.map(flip) })),
-    bonus: key === "bonus" ? { ...v.bonus, done: on } : v.bonus,
+    bonus: key === "bonus" && v.bonus ? { ...v.bonus, done: on } : v.bonus,
   };
 }
 
@@ -290,9 +290,11 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
         </div>
       ))}
       </div>
-      <div className="grp">Bonus{!s.gain && !view.bonus.done ? " · 🔒 finish every task first" : ""}</div>
-      {row({ key: "bonus", label: "", done: view.bonus.done }, "bonus",
-        <>{view.bonus.count} <span className="ar">{view.bonus.dhikr}</span></>, <em>+1 Honor</em>, true)}
+      {view.bonus && <>
+        <div className="grp">👑 Quest bonus{!s.gain && !view.bonus.done ? " · 🔒 finish every task first" : ""}</div>
+        {row({ key: "bonus", label: "", done: view.bonus.done }, "bonus",
+          <>{view.bonus.count} <span className="ar">{view.bonus.dhikr}</span></>, <em>+1 Honor</em>, true)}
+      </>}
       <form className="row" style={{ marginTop: 14 }} onSubmit={(e) => { e.preventDefault(); save(view, excuse.trim()).then((ok) => ok && setToast(excuse.trim() ? "Excuse saved" : "Excuse cleared")); }}>
         <input className="grow" placeholder="Sick today? Reason excuses all fitness tasks" maxLength={120} value={excuse}
           disabled={!view.excuse_editable} onChange={(e) => setExcuse(e.target.value)} aria-label="Reason for being excused" />

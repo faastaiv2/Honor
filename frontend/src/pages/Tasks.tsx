@@ -5,22 +5,25 @@ import { fmt } from "../lib/dates";
 import { notifyChanged, useToast } from "../lib/events";
 
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : "Something went wrong");
-const days = (n: number) => (n === 1 ? "day" : `${n} days`);
+const RANKS: [string, string, string][] = [["bronze", "Bronze", "🥉"], ["silver", "Silver", "🥈"], ["gold", "Gold", "🥇"], ["platinum", "Platinum", "💠"],
+  ["emerald", "Emerald", "🍀"], ["sapphire", "Sapphire", "🔷"], ["ruby", "Ruby", "♦️"], ["diamond", "Diamond", "💎"], ["obsidian", "Obsidian", "🔮"], ["legendary", "Legendary", "👑"]];
+const rankName = (k: string) => RANKS.find((r) => r[0] === k)?.[1] ?? k;
 
-interface Draft { links: string[]; notBefore: string; numLast?: boolean; label: string; group: string; hasNum: boolean; num: string; step: string; every: string; fitness: boolean; nextDay: boolean }
+/** step = added for every rank above Bronze; minRank = "" (every rank) or the rank the task starts at. */
+interface Draft { links: string[]; notBefore: string; numLast?: boolean; label: string; group: string; hasNum: boolean; num: string; step: string; minRank: string; fitness: boolean; nextDay: boolean }
 
 const fromTask = (t: TaskDef): Draft => ({
   // The name box holds only the words; the number is set separately and goes before them
   // (or after, if the task was written that way, like "Read pages {n}").
   label: t.label.replace("{n}", "").replace(/\s+/g, " ").trim(), numLast: t.label.trim().endsWith("{n}") && !t.label.trim().startsWith("{n}"),
   group: t.group, hasNum: t.number_today !== null, notBefore: t.not_before ?? "", links: t.links?.length === 7 ? [...t.links] : Array(7).fill(""),
-  num: String(t.number_today ?? 10), step: String(t.step || 1), every: String(t.every), fitness: t.fitness, nextDay: t.next_day,
+  num: String(t.number_today ?? 10), step: String(t.rank_step ?? 0), minRank: t.min_rank ?? "", fitness: t.fitness, nextDay: t.next_day,
 });
 /** "#" in the name marks where the number goes ("# push-ups"); without one the number goes first. */
 const words = (d: Draft) => d.label.replace(/\{n\}|#/g, "").replace(/\s+/g, " ").trim();
 const labelOut = (d: Draft) => (d.hasNum ? (d.numLast ? `${words(d)} {n}` : `{n} ${words(d)}`) : words(d));
 const shownAs = (d: Draft) => (d.hasNum ? (d.numLast ? `${words(d)} ${Number(d.num) || 0}` : `${Number(d.num) || 0} ${words(d)}`) : words(d));
-const EMPTY: Draft = { links: Array(7).fill(""), notBefore: "", label: "", group: "Ibadah", hasNum: false, num: "10", step: "1", every: "1", fitness: false, nextDay: false };
+const EMPTY: Draft = { links: Array(7).fill(""), notBefore: "", label: "", group: "Ibadah", hasNum: false, num: "10", step: "2", minRank: "", fitness: false, nextDay: false };
 
 /** A yes/no choice shown as a tappable card. */
 function Toggle({ on, set, icon, title, text }: { on: boolean; set: (v: boolean) => void; icon: string; title: string; text: string }) {
@@ -35,7 +38,8 @@ function Toggle({ on, set, icon, title, text }: { on: boolean; set: (v: boolean)
 
 /** The editor used both for a new task and for changing one. */
 function Editor({ d, set, groups, onSubmit, submit, children }: { d: Draft; set: (d: Draft) => void; groups: string[]; onSubmit: (e: FormEvent) => void; submit: string; children?: React.ReactNode }) {
-  const n = Number(d.num) || 0, step = Number(d.step) || 0, every = Math.max(1, Number(d.every) || 1);
+  const n = Number(d.num) || 0, step = Number(d.step) || 0;
+  const from = Math.max(0, RANKS.findIndex((r) => r[0] === d.minRank));
   return (
     <form className="tk-editor" onSubmit={onSubmit}>
       <div className="tk-two">
@@ -50,19 +54,24 @@ function Editor({ d, set, groups, onSubmit, submit, children }: { d: Draft; set:
       </div>
 
       <p className="tk-shown">Members will see: <b>{shownAs(d) || "…"}</b></p>
-      <Toggle on={d.hasNum} set={(v) => set({ ...d, hasNum: v })} icon="🔢" title="It has a number that grows" text="Like 10 push-ups, then 11, then 12…" />
+      <label className="field tk-from"><span className="field-label">🔓 Shows from</span>
+        <select value={d.minRank} onChange={(e) => set({ ...d, minRank: e.target.value })} aria-label="Shows from rank">
+          <option value="">Every rank (everyone does it)</option>
+          {RANKS.slice(1).map(([k, name, ico]) => <option key={k} value={k}>{ico} {name} and up</option>)}
+        </select>
+        <span className="field-hint">Higher ranks get extra tasks: members below this rank won't see it.</span>
+      </label>
+      <Toggle on={d.hasNum} set={(v) => set({ ...d, hasNum: v })} icon="🔢" title="It has a number that grows with rank" text="Like 10 push-ups at Bronze, 12 at Silver, 14 at Gold…" />
       {d.hasNum && (
         <div className="tk-sentence">
-          <span>Today it's</span>
-          <input type="number" min={0} aria-label="Number today" value={d.num} onChange={(e) => set({ ...d, num: e.target.value })} />
+          <span>At Bronze it's</span>
+          <input type="number" min={0} aria-label="Number at Bronze" value={d.num} onChange={(e) => set({ ...d, num: e.target.value })} />
           <span>, then add</span>
-          <input type="number" aria-label="Increase by" value={d.step} onChange={(e) => set({ ...d, step: e.target.value })} />
-          <span>every</span>
-          <input type="number" min={1} aria-label="Every how many days" value={d.every} onChange={(e) => set({ ...d, every: e.target.value })} />
-          <span>{every === 1 ? "day" : "days"}.</span>
-          <p className="tk-preview">
-            {[0, every, every * 2, every * 3].map((k, i) => (
-              <span key={k}><small>{i === 0 ? "Today" : k === 1 ? "Tomorrow" : `In ${k} days`}</small><b>{n + step * i}</b></span>
+          <input type="number" aria-label="Added for each rank" value={d.step} onChange={(e) => set({ ...d, step: e.target.value })} />
+          <span>for each rank up.</span>
+          <p className="tk-preview tk-ranks">
+            {RANKS.map(([k, name, ico], i) => i < from ? null : (
+              <span key={k}><small>{ico} {name}</small><b>{Math.max(0, n + step * i)}</b></span>
             ))}
           </p>
         </div>
@@ -107,8 +116,8 @@ function TaskRow({ t, first, last, groups, onSaved, onError }: { t: TaskDef; fir
     e.preventDefault();
     try {
       await api.editTask(t.key, d.hasNum
-        ? { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, not_before: d.notBefore, links: d.links, number_today: Number(d.num), step: Number(d.step), every: Number(d.every) }
-        : { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, not_before: d.notBefore, links: d.links, clear_number: t.number_today !== null });
+        ? { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, not_before: d.notBefore, links: d.links, number_today: Number(d.num), rank_step: Number(d.step) || 0, min_rank: d.minRank }
+        : { label: labelOut(d), group: d.group, fitness: d.fitness, next_day: d.nextDay, not_before: d.notBefore, links: d.links, clear_number: t.number_today !== null, min_rank: d.minRank });
       setOpen(false);
       onSaved("Task saved");
     } catch (err) { onError(msg(err)); }
@@ -125,8 +134,9 @@ function TaskRow({ t, first, last, groups, onSaved, onError }: { t: TaskDef; fir
         <button className="tk-main" onClick={() => { setOpen((x) => !x); setSure(false); setD(fromTask(t)); }} aria-expanded={open}>
           <b>{t.shown_today}</b>
           <span className="tk-tags">
-            {t.number_today !== null && t.step !== 0 && <span className="tk-tag grow">↗ {t.step > 0 ? "+" : ""}{t.step} every {days(t.every)} · tomorrow {t.shown_tomorrow.match(/\d+/)?.[0] ?? ""}</span>}
-            {t.number_today !== null && t.step === 0 && <span className="tk-tag">Fixed number</span>}
+            {t.min_rank && <span className="tk-tag rank">🔓 {rankName(t.min_rank)} and up</span>}
+            {t.number_today !== null && t.rank_step !== 0 && <span className="tk-tag grow">↗ {t.rank_step > 0 ? "+" : ""}{t.rank_step} per rank · {t.by_rank.map((r) => r.label.match(/\d+/)?.[0]).filter(Boolean).slice(0, 4).join(" → ")}…</span>}
+            {t.number_today !== null && t.rank_step === 0 && <span className="tk-tag">Same number at every rank</span>}
             {t.fitness && <span className="tk-tag sick">🤒 Sick-day excused</span>}
             {t.next_day && <span className="tk-tag night">🌙 Counts next day</span>}
             {t.not_before && <span className="tk-tag">🕛 Not before {t.not_before}</span>}
@@ -292,21 +302,22 @@ export default function Tasks() {
     e.preventDefault();
     try {
       await api.addTask({ label: labelOut(nt), group: nt.group, fitness: nt.fitness, next_day: nt.nextDay, not_before: nt.notBefore || null, links: nt.links,
-        number_today: nt.hasNum ? Number(nt.num) : null, step: nt.hasNum ? Number(nt.step) : 0, every: Number(nt.every) || 1 });
+        number_today: nt.hasNum ? Number(nt.num) : null, rank_step: nt.hasNum ? Number(nt.step) || 0 : 0, min_rank: nt.minRank });
       setNt({ ...EMPTY, group: nt.group });
       setAdding(false);
       saved("Task added");
     } catch (err) { setError(msg(err)); }
   }
 
-  const growing = (tasks ?? []).filter((t) => t.number_today !== null && t.step !== 0).length;
+  const growing = (tasks ?? []).filter((t) => t.number_today !== null && t.rank_step !== 0).length;
+  const extra = (tasks ?? []).filter((t) => t.min_rank).length;
 
   return (
     <div className="tk">
       <header className="tk-head">
         <div>
           <h2>Daily tasks</h2>
-          <p className="note">{tasks ? `${tasks.length} tasks · ${growing} grow by themselves · changes count from today` : "Loading…"}</p>
+          <p className="note">{tasks ? `${tasks.length} tasks · ${growing} get harder with each rank · ${extra} only for higher ranks` : "Loading…"}</p>
         </div>
         {!adding && <button className="primary" onClick={() => { setAdding(true); setNt({ ...EMPTY, group: groups[0] ?? "Ibadah" }); }}>＋ Add task</button>}
       </header>
@@ -332,7 +343,7 @@ export default function Tasks() {
               <ul>
                 {inGroup.map((t) => {
                   const i = tasks.indexOf(t);
-                  return <TaskRow key={`${t.key}${t.label}${t.number_today}${t.step}${t.every}${t.group}${t.fitness}${t.next_day}${t.not_before}`} t={t}
+                  return <TaskRow key={`${t.key}${t.label}${t.number_today}${t.rank_step}${t.min_rank}${t.group}${t.fitness}${t.next_day}${t.not_before}`} t={t}
                     first={i === 0} last={i === tasks.length - 1} groups={groups} onSaved={saved} onError={setError} />;
                 })}
               </ul>
@@ -345,7 +356,7 @@ export default function Tasks() {
           <button onClick={() => setResetting(true)}>↺ Reset tasks to the original list</button>
         ) : (
           <div className="tk-reset-ask" role="alertdialog" aria-label="Reset tasks">
-            <p><b>Put every task back as it was in the original sheet?</b> Names, groups, order and growing numbers go back to the start
+            <p><b>Put every task back as it was in the original sheet?</b> Names, groups, order and numbers go back to the start
               (numbers continue where they'd be today). Tasks you added are removed. Members' past ticks are kept.</p>
             <div className="tk-actions">
               <button className="danger" onClick={async () => {

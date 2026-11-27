@@ -98,10 +98,10 @@ export default function App() {
                 {info ? `${fmt(info.today, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · Day ${info.day_number}${info.weekend ? " · Weekend" : ""}` : " "}
               </p>
             </div>
-            {info && (
+            {info && info.bonus.on !== false && (
               <div className="asma">
                 <span className="ar">{info.bonus.dhikr}</span>
-                <small>Today's bonus · {info.bonus.count} · +1 Honor</small>
+                <small>{viewer.is_admin ? "Quest bonus" : "Today's quest bonus"} · {info.bonus.count} · +1 Honor</small>
               </div>
             )}
           </div>

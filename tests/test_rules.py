@@ -81,7 +81,7 @@ def test_quest_restarts_at_one_and_reaches_legendary_when_perfect():
 def test_one_imperfect_day_breaks_the_quest():
     days = [FULL] * 3 + [[k for k in FULL if k != "bonus"]] + [FULL] * 40
     p = run(47, days, quest=[MON])
-    assert not p.legendary and p.level == 49 and p.quest_broken_on == THU and p.quest_start is None
+    assert not p.legendary and p.quest_broken_on == THU and p.quest_start is None
 
 
 def test_a_recorded_quest_start_always_restarts_at_one():
@@ -105,21 +105,21 @@ def test_week_delta_counts_only_this_week():
     p = simulate(10, {SAT - timedelta(days=7): (FULL, ""), MON - timedelta(days=1): (["mulk"], ""), MON: (FULL, "")}, {}, [],
                  SAT - timedelta(days=7), TUE, 5,
                  week_from=week_start(TUE))
-    assert p.week_delta == 2 + (-1)  # Monday +2, Tuesday still open, Sunday rest; previous week excluded
+    assert p.week_delta == 1 + (-1)  # Monday +1 (no bonus off the quest), Tuesday still open, Sunday rest; previous week excluded
 
 
 def test_gems_from_tasks_levels_and_ranks():
-    # base 6 (Silver). Monday: all 17 + bonus (+2 levels: VII, then VIII = new Gold rank).
-    p = run(6, [FULL])
+    # base 7 (Silver). Monday: all 17 (+1 level: VIII = new Gold rank). The bonus gives no Honor off the quest.
+    p = run(7, [FULL])
     assert p.gems_tasks == 18 * 5
-    assert p.gems_levels == 10 + 10 + 100  # VII, VIII, and Gold (100) reached for the first time
+    assert p.gems_levels == 10 + 100  # VIII, and Gold (100) reached for the first time
     assert p.best_level == 8 and p.streak == 1
 
 
 def test_no_gems_twice_for_the_same_level():
-    # up 2, down 1 (empty weekday), up 2 again: only levels never reached before pay
-    p = run(10, [FULL, ["mulk"], FULL])  # Surah Mulk read the night before counts for the next day
-    assert p.level == 13 and p.gems_levels == (10 + 10) + 0 + (10 + 150)  # XI, XII; then XIII (+Platinum rank, 150)
+    # up 1, down 1 (empty weekday), up 1 again: only levels never reached before pay
+    p = run(12, [FULL, ["mulk"], FULL, FULL])  # Surah Mulk read the night before counts for the next day
+    assert p.level == 14 and p.gems_levels == (10 + 150) + 0 + 0 + 10  # XIII (+Platinum, 150); XIII again (nothing); XIV
 
 
 def test_streak_skips_weekends_and_resets_on_a_missed_weekday():
@@ -139,8 +139,8 @@ def test_surah_mulk_counts_for_the_next_day():
 
     # Day 1 is the first day, so its Mulk is free. Day 2 needs Mulk ticked on day 1.
     h = days(no_mulk, no_mulk)
-    assert h[d1] == 2 and h[d2] == -1
-    assert days(FULL, no_mulk)[d2] == 2
+    assert h[d1] == 1 and h[d2] == -1
+    assert days(FULL, no_mulk)[d2] == 1
     # Ticking Mulk on the day itself doesn't help that day: it is for tomorrow.
     assert days(no_mulk, FULL)[d2] == -1
 

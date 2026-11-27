@@ -49,13 +49,13 @@ def test_member_marks_own_day_and_scores(client, family, db):
                                                            "tasks": ALL + ["hack"]})
         assert r.status_code == 200, r.text
         body = r.json()
-        assert body["score"]["delta"] == 2 and body["editable"]
+        assert body["score"]["delta"] == 1 and body["editable"]  # the bonus only counts on the Legendary quest
         assert "hack" not in sum(([t["key"] for t in g["tasks"]] for g in body["groups"]), [])
         board = client.get("/api/board/leaderboard", headers=h).json()
     rows = board["rows"]
     alpha = next(r for r in rows if r["member"]["name"] == "Alpha")
-    # base 10; 22 and 23 Nov were empty weekdays: -1 each; today's +2 arrives at midnight
-    assert alpha["level"] == 10 - 2 and alpha["pending"] == 2 and alpha["is_me"]
+    # base 10; 22 and 23 Nov were empty weekdays: -1 each; today's +1 arrives at midnight
+    assert alpha["level"] == 10 - 2 and alpha["pending"] == 1 and alpha["is_me"]
     assert alpha["tier"]["name"] == "Gold" and alpha["week_delta"] == -2
     assert rows[0]["member"]["name"] == "Sierra" and rows[0]["rank"] == 1
     assert board["week"] == {"number": 1, "start": "2026-11-22", "days_left": 4}  # scoring began 22 Nov
@@ -81,7 +81,7 @@ def test_admin_marks_any_member_any_past_day(client, family):
     with a, b:
         r = client.put("/api/board/day", headers=h, json={"member_id": family["B"].id, "date": "2026-11-22",
                                                            "tasks": ALL})
-        assert r.status_code == 200 and r.json()["score"]["delta"] == 2
+        assert r.status_code == 200 and r.json()["score"]["delta"] == 1  # no bonus off the Legendary quest
 
 
 def test_admin_only_endpoints(client, family):
@@ -176,7 +176,8 @@ def test_makeup_depends_on_rank(client, family, db):
         assert put_day(client, hs, family["S"], mon, ["gate", "fajr", "yaseen", "dalail"]).status_code == 200
         # cannot untick what was ticked on the day, cannot make up the bonus, cannot add an excuse later
         assert put_day(client, hb, family["B"], mon, ["gate", "yaseen"]).status_code == 403
-        assert put_day(client, hs, family["S"], mon, ["gate", "fajr", "yaseen", "dalail", "bonus"]).status_code == 403
+        r = put_day(client, hs, family["S"], mon, ["gate", "fajr", "yaseen", "dalail", "bonus"])  # no bonus off the quest
+        assert r.status_code == 200 and r.json()["bonus"] is None
         assert put_day(client, hb, family["B"], mon, ["gate", "fajr", "yaseen"], "sick").status_code == 403
         # a made-up task can be unticked again
         assert put_day(client, hb, family["B"], mon, ["gate", "fajr"]).status_code == 200
@@ -374,7 +375,7 @@ def test_shop_spends_gems(client, family, db):
         db.commit()
         prof = client.get("/api/board/profile", headers=h).json()
         earned = prof["gems"]["earned"]
-        assert prof["gems"]["today"] == 90 and prof["gems"]["balance"] == earned
+        assert prof["gems"]["today"] == 85 and prof["gems"]["balance"] == earned  # 17 tasks (no bonus off the quest)
         too_dear = client.post("/api/board/shop/buy", headers=h, json={"kind": "frame", "key": "galaxy"})
         assert too_dear.status_code == 400 and "more gems" in too_dear.json()["detail"]
         assert client.post("/api/board/shop/buy", headers=h, json={"kind": "frame", "key": "gold"}).status_code == 400  # earned, not sold
@@ -392,13 +393,15 @@ def test_admin_edits_tasks(client, family):
     a, b = at_today()
     with a, b, patch("app.routers.admin.today_for", return_value=TODAY):
         tasks = client.get("/api/admin/tasks", headers=ha).json()
-        assert len(tasks) == 17 and tasks[3]["shown_today"] == "263 × Darood Sharif"
-        # Darood: 300 today, +2 every day
-        r = client.patch("/api/admin/tasks/darood", headers=ha, json={"number_today": 300, "step": 2}).json()
-        assert r["shown_today"] == "300 × Darood Sharif" and r["shown_tomorrow"] == "302 × Darood Sharif"
-        # push-ups: keep today's number, now +3 every day
-        r = client.patch("/api/admin/tasks/push", headers=ha, json={"step": 3, "every": 1}).json()
-        assert r["number_today"] == 17 and r["shown_tomorrow"] == "20 push-ups"
+        assert len(tasks) == 17 and tasks[3]["shown_today"] == "251 × Darood Sharif"  # the Bronze number
+        assert tasks[3]["by_rank"][:3] == [{"rank": "bronze", "label": "251 × Darood Sharif"}, {"rank": "silver", "label": "276 × Darood Sharif"},
+                                           {"rank": "gold", "label": "301 × Darood Sharif"}]
+        # Darood: 300 at Bronze, +20 for each rank above; no more daily growth
+        r = client.patch("/api/admin/tasks/darood", headers=ha, json={"number_today": 300, "rank_step": 20, "step": 2}).json()
+        assert r["shown_today"] == "300 × Darood Sharif" and r["shown_tomorrow"] == "300 × Darood Sharif" and r["step"] == 0
+        # push-ups: keep the number, change the per-rank step
+        r = client.patch("/api/admin/tasks/push", headers=ha, json={"rank_step": 3}).json()
+        assert r["number_today"] == 10 and r["by_rank"][1]["label"] == "13 push-ups"
         # new task with a number
         new = client.post("/api/admin/tasks", headers=ha, json={"label": "Squats", "group": "Fitness", "fitness": True,
                                                                 "number_today": 10, "step": 1}).json()
@@ -409,8 +412,9 @@ def test_admin_edits_tasks(client, family):
         client.patch("/api/admin/tasks/lang", headers=ha, json={"label": "Arabic class"})
         view = client.get(f"/api/board/day?member_id={family['A'].id}", headers=hm).json()
     labels = [t["label"] for g in view["groups"] for t in g["tasks"]]
-    assert "300 × Darood Sharif" in labels and "10 Squats" in labels and "Milk" not in labels and "Arabic class" in labels
-    assert labels.index("10 Squats") < labels.index("17 s mountain climbers".replace("17", "38"))
+    # Alpha is Gold (two ranks above Bronze): Darood 300 + 2 × 20
+    assert "340 × Darood Sharif" in labels and "10 Squats" in labels and "Milk" not in labels and "Arabic class" in labels
+    assert labels.index("10 Squats") < labels.index("20 s mountain climbers")
     assert view["score"]["of"] == 17  # 17 - Milk + Squats
 
 
@@ -459,21 +463,15 @@ def test_new_member_climbing_before_first_login_gets_the_show(client, family):
     assert prof["tier"]["key"] == "silver" and prof["celebrate"]["tier"] == "silver"
 
 
-def test_bonus_needs_every_task_first(client, family, db):
+def test_bonus_only_on_the_legendary_quest(client, family, db):
     mulk_last_night(db, family["A"])
     h = auth(client, family["A"])
     a, b = at_today()
     with a, b:
         r = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id, "date": TODAY.isoformat(),
-                                                           "tasks": ["gate", "fajr", "bonus"]})
-        assert r.status_code == 200 and not r.json()["bonus"]["done"] and r.json()["score"]["bonus"] == 0
-        r = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id, "date": TODAY.isoformat(),
                                                            "tasks": ALL + ["bonus"]})
-        assert r.json()["bonus"]["done"] and r.json()["score"]["delta"] == 2
-        # Unticking a task unticks the bonus too.
-        r = client.put("/api/board/day", headers=h, json={"member_id": family["A"].id, "date": TODAY.isoformat(),
-                                                           "tasks": [k for k in ALL if k != "fajr"] + ["bonus"]})
-        assert not r.json()["bonus"]["done"]
+        assert r.status_code == 200 and r.json()["bonus"] is None and r.json()["score"]["delta"] == 1
+        assert client.get("/api/board/today", headers=h).json()["bonus"]["on"] is False
 
 
 def test_daily_streak_chest_once_a_day_and_bigger_by_rank(client, family, db):
@@ -963,7 +961,7 @@ def test_before_the_program_starts_tasks_are_a_preview(client, family, db):
     with a, b:
         view = client.get(f"/api/board/day?member_id={family['A'].id}", headers=h).json()
         assert view["mode"] == "preview" and not view["editable"]
-        assert view["bonus"]["dhikr"] == "يا الله"  # counts from the start: Ya Allah first
+        assert client.get("/api/board/today", headers=h).json()["bonus"]["dhikr"] == "يا الله"  # counts from the start: Ya Allah first
         r = put_day(client, h, family["A"], TODAY, ["gate", "fajr"])
         assert r.status_code == 403 and "preview" in r.json()["detail"]
         assert put_day(client, ha, family["A"], TODAY, ["gate", "fajr"]).status_code == 200  # a parent still can
@@ -1348,3 +1346,18 @@ def test_rude_kid_tell_a_grown_up_needs_100_and_gives_it_back(client, family):
     client.post(f"/api/admin/members/{family['A'].id}/gems", headers=ha, json={"balance": 120})
     assert client.post(f"/api/tests/bully/{t['id']}/answer", headers=h, json={"choice": "tell"}).json() == {"answer": "tell", "paid": 0}
     assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == 120
+
+
+def test_tasks_appear_from_a_rank_and_grow_by_rank(client, family):
+    ha, h_alpha, h_bravo = auth(client, admin=True), auth(client, family["A"]), auth(client, family["B"])
+    a, b = at_today()
+    with a, b, patch("app.routers.admin.today_for", return_value=TODAY):
+        client.get("/api/admin/tasks", headers=ha)
+        new = client.post("/api/admin/tasks", headers=ha, json={"label": "Tahajjud", "group": "Ibadah", "min_rank": "gold"}).json()
+        assert new["min_rank"] == "gold"
+        keys = lambda h, m: [t["key"] for g in client.get(f"/api/board/day?member_id={m.id}", headers=h).json()["groups"] for t in g["tasks"]]
+        assert new["key"] in keys(h_alpha, family["A"])  # Gold: has it
+        lvl_b = client.get("/api/board/leaderboard", headers=h_bravo).json()
+        bravo = next(r for r in lvl_b["rows"] if r["member"]["name"] == "Bravo")
+        if bravo["tier"]["key"] in ("bronze", "silver", "member", "low"):
+            assert new["key"] not in keys(h_bravo, family["B"])

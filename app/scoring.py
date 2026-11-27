@@ -93,9 +93,19 @@ DALAIL_LINKS = (  # Monday … Sunday: a video to read along with
 )
 
 
+# Ranks in order, for tasks that get harder (or appear) as a member climbs. Low Honor counts as Member.
+RANK_ORDER = ["member", "bronze", "silver", "gold", "platinum", "emerald", "sapphire", "ruby", "diamond", "obsidian", "legendary"]
+
+
+def rank_index(key: str) -> int:
+    return RANK_ORDER.index(key) if key in RANK_ORDER else 0
+
+
 @dataclass(frozen=True)
 class TaskSpec:
-    """A task as the admin set it up. The number (if any) grows by `step` every `every` days from `start_day`."""
+    """A task as the admin set it up. The number (if any) is the Bronze number; every rank above Bronze adds
+    `rank_step`. A task with `min_rank` only appears from that rank on. (Older tasks grew by `step` every `every`
+    days from `start_day`; that daily growth is no longer used.)"""
     key: str
     label: str  # "{n}" marks where the number goes, e.g. "{n} jumping jacks"
     group: str
@@ -107,6 +117,9 @@ class TaskSpec:
     next_day: bool = False  # done at night and counted for the next day (Surah Mulk)
     not_before: str | None = None  # "12:00": members can't tick it earlier in the day
     links: tuple = ()  # up to 7 video links, Monday … Sunday ("" = none that day)
+    rank_step: int = 0  # added to the number for every rank above Bronze
+    min_rank: str = ""  # "" = every rank; else the task appears from this rank on
+    at_rank: int = 1  # the member's rank (index in RANK_ORDER) this task is shown for; set by day_plan
 
     def link_on(self, d: date) -> str | None:
         return (self.links[d.weekday()] or None) if len(self.links) == 7 else None
@@ -114,7 +127,8 @@ class TaskSpec:
     def number_on(self, d: date) -> int | None:
         if self.number is None:
             return None
-        return max(0, self.number + self.step * ((d - self.start_day).days // max(1, self.every)))
+        daily = self.step * ((d - self.start_day).days // max(1, self.every)) if self.step else 0
+        return max(0, self.number + daily + self.rank_step * max(0, self.at_rank - 1))
 
     def label_on(self, d: date) -> str:
         n = self.number_on(d)
@@ -126,20 +140,20 @@ DEFAULT_SPECS: list[TaskSpec] = [
     TaskSpec("fajr", "Fajr", "Ibadah"),
     TaskSpec("yaseen", "Yaseen Sharif", "Ibadah"),
     TaskSpec("dalail", "Dalilul Khairat", "Ibadah", links=DALAIL_LINKS),
-    TaskSpec("darood", "{n} × Darood Sharif", "Ibadah", number=251, step=1, every=1, start_day=date(2026, 11, 12)),
+    TaskSpec("darood", "{n} × Darood Sharif", "Ibadah", number=251, rank_step=25),
     TaskSpec("zikr", "5 minutes Zikr together", "Ibadah"),
     TaskSpec("asr", "Asr ki 4 Sunnat", "Ibadah", not_before="12:00"),
     TaskSpec("mulk", "Surah Mulk", "Ibadah", next_day=True),
-    TaskSpec("pages", "{n} pages", "Learning & home", number=2, step=1, every=32, start_day=date(2026, 11, 12)),
+    TaskSpec("pages", "{n} pages", "Learning & home", number=2, rank_step=1),
     TaskSpec("lang", "Language", "Learning & home"),
     TaskSpec("milk", "Milk", "Learning & home"),
     TaskSpec("assist", "Assistance", "Learning & home"),
-    TaskSpec("lap", "{n} laps", "Fitness", True, number=2, step=1, every=55, start_day=date(2026, 11, 16)),
-    TaskSpec("jj", "{n} jumping jacks", "Fitness", True, number=100, step=1, every=1, start_day=date(2026, 10, 27)),
-    TaskSpec("push", "{n} push-ups", "Fitness", True, number=10, step=1, every=4, start_day=date(2026, 10, 25)),
-    TaskSpec("sit", "{n} sit-ups", "Fitness", True, number=1, step=1, every=4, start_day=date(2026, 10, 25)),
-    TaskSpec("plank", "{n} s plank", "Fitness", True, number=10, step=1, every=1, start_day=date(2026, 10, 27)),
-    TaskSpec("mc", "{n} s mountain climbers", "Fitness", True, number=10, step=1, every=1, start_day=date(2026, 10, 27)),
+    TaskSpec("lap", "{n} laps", "Fitness", True, number=2, rank_step=0),
+    TaskSpec("jj", "{n} jumping jacks", "Fitness", True, number=100, rank_step=10),
+    TaskSpec("push", "{n} push-ups", "Fitness", True, number=10, rank_step=2),
+    TaskSpec("sit", "{n} sit-ups", "Fitness", True, number=1, rank_step=2),
+    TaskSpec("plank", "{n} s plank", "Fitness", True, number=10, rank_step=5),
+    TaskSpec("mc", "{n} s mountain climbers", "Fitness", True, number=10, rank_step=5),
 ]
 
 # Column order of the sheet after the date: pledge, the 17 tasks, bonus.
@@ -208,8 +222,12 @@ def for_member(periods: list | None, member_id: str) -> list:
     return [p for p in (periods or []) if not (getattr(p, "members", None) or []) or member_id in p.members]
 
 
-def day_plan(specs: list, periods: list | None, d: date) -> list:
-    """The tasks that apply on day `d`: special periods (like Ramadan) can pause tasks or fix a smaller number."""
+def day_plan(specs: list, periods: list | None, d: date, rank: int | None = None) -> list:
+    """The tasks that apply on day `d` for a member of rank `rank` (index in RANK_ORDER): tasks get harder with rank,
+    some only appear from a rank on, and special periods (like Ramadan) can pause tasks or fix a smaller number."""
+    if rank is not None:
+        specs = [replace(t, at_rank=rank) for t in specs
+                 if not getattr(t, "min_rank", "") or rank >= rank_index(t.min_rank)]
     if not periods:
         return specs
     off: set[str] = set()
@@ -225,7 +243,7 @@ def day_plan(specs: list, periods: list | None, d: date) -> list:
         if t.key in off:
             continue
         if t.key in numbers and getattr(t, "number", None) is not None:
-            t = replace(t, number=numbers[t.key], step=0, start_day=d)
+            t = replace(t, number=numbers[t.key], step=0, rank_step=0, start_day=d)
         out.append(t)
     return out
 
@@ -241,7 +259,7 @@ def credited(done, prev_done, tasks: list | None = None, first_day: bool = False
 
 
 def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, today: date, cut_misses: int,
-              tasks: list | None = None, skip: set[str] | dict | None = None) -> DayScore:
+              tasks: list | None = None, skip: set[str] | dict | None = None, bonus_on: bool = True) -> DayScore:
     """+1 for the pledge and all 17 tasks, +1 for the bonus (only after all tasks), -1 when a finished weekday misses any task
     (`cut_misses` is 1; a larger number would allow some misses).
 
@@ -256,7 +274,7 @@ def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, to
     missed = sum(1 for k in req if k not in done)
     pledge = weekend or "gate" in done
     gain = 1 if pledge and missed == 0 else 0
-    bonus = 1 if gain and "bonus" in done else 0  # the bonus only counts once every task is done
+    bonus = 1 if bonus_on and gain and "bonus" in done else 0  # only on the Legendary quest, once every task is done
     cut = -1 if (not weekend and not excused and d < today and missed >= cut_misses) else 0
     return DayScore(gain, bonus, cut, len(req) - missed, len(req), weekend, excused)
 

@@ -99,7 +99,6 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
   const level = p?.level ?? 0;
   const next = curIdx >= 0 ? tiers[curIdx + 1] : undefined;
   const gems = info?.gems;
-  const taskCount = info?.task_count ?? 17;
   const avatar = p?.member.avatar || "lion";
   const strip = useRef<HTMLDivElement>(null);
 
@@ -202,8 +201,9 @@ export default function Benefits({ info }: { info: TodayInfo | null }) {
       <section className="card">
         <h2>How Honor works</h2>
         <div className="rules">
-          <div><b>+1 Honor</b><p>Tick the honor pledge and finish all {taskCount} daily tasks.</p></div>
-          <div><b>+1 Bonus</b><p>Complete the day's 300× dhikr after all your tasks. It cannot be made up later.</p></div>
+          <div><b>+1 Honor</b><p>Tick the honor pledge and finish all your daily tasks.</p></div>
+          <div><b>📈 Harder by rank</b><p>Each new rank makes some tasks a little bigger (more push-ups, more Darood), and higher ranks unlock extra tasks. Your tasks never get easier after a fall.</p></div>
+          <div><b>👑 Quest bonus</b><p>Only on the Legendary quest: the day's 300× dhikr after all your tasks, +1 Honor. It cannot be made up later.</p></div>
           <div><b>−1 Honor cut 👺</b><p>{(info?.rules.cut_misses ?? 1) <= 1 ? "A weekday ends with any task not completed (and no excuse)." : `A weekday ends with ${info?.rules.cut_misses} or more tasks missed.`} Tasks made up in time count as done.</p></div>
           <div><b>Excused days</b><p>Write a reason on the day (sick, injury): exercise tasks are excused and nothing is cut.</p></div>
           <div><b>Weekends (Fri &amp; Sat)</b><p>Games and YouTube allowed. Tasks are optional: earn, never lose.</p></div>

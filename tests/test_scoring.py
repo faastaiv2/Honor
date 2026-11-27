@@ -83,16 +83,19 @@ def test_parse_handles_emoji_separators():
     assert parse_sheet("10/27/2026\tNew\tA, H")[0].ticks == {"A": {"fajr"}, "H": {"fajr"}}
 
 
-def test_default_task_numbers_match_the_sheet_formulas():
+def test_task_numbers_grow_by_rank_not_by_day():
     by = {t.key: t for t in s.DEFAULT_SPECS}
-    for i in range(16, 200):  # Darood is linear from day 16
-        d = s.PROGRAM_START + timedelta(days=i)
-        assert by["darood"].label_on(d) == s.task_label("darood", i)
-    for i in range(0, 200):
-        d = s.PROGRAM_START + timedelta(days=i)
-        for k in ("jj", "push", "sit", "plank", "mc"):
-            assert by[k].label_on(d) == s.task_label(k, i), (k, i)
-    for i in (20, 74, 75, 120):
-        assert by["lap"].number_on(s.PROGRAM_START + timedelta(days=i)) == s.laps(i)
-    for i in (16, 47, 48, 79, 80):
-        assert by["pages"].number_on(s.PROGRAM_START + timedelta(days=i)) == s.pages(i)
+    later = s.PROGRAM_START + timedelta(days=120)
+    jj = by["jj"]
+    assert jj.label_on(s.PROGRAM_START) == jj.label_on(later) == "100 jumping jacks"  # no daily growth
+    plan = {t.key: t for t in s.day_plan(s.DEFAULT_SPECS, None, later, s.rank_index("gold"))}
+    assert plan["jj"].label_on(later) == "120 jumping jacks" and plan["darood"].label_on(later) == "301 × Darood Sharif"
+    extra = s.TaskSpec("tahajjud", "Tahajjud", "Ibadah", min_rank="diamond")
+    assert [t.key for t in s.day_plan([extra], None, later, s.rank_index("ruby"))] == []
+    assert [t.key for t in s.day_plan([extra], None, later, s.rank_index("diamond"))] == ["tahajjud"]
+
+
+def test_bonus_counts_only_when_switched_on():
+    done = set(s.REQUIRED) | {"gate", "bonus"}
+    assert s.score_day(date(2026, 11, 23), done, "", date(2026, 11, 23), 1, bonus_on=False).delta == 1
+    assert s.score_day(date(2026, 11, 23), done, "", date(2026, 11, 23), 1, bonus_on=True).delta == 2
