@@ -129,27 +129,6 @@ function Emblem({ tier }: { tier: Tier }) {
   );
 }
 
-/** Two great golden wings that unfurl behind the Legendary crest (act 3) and beat (act 5). */
-function GoldWings() {
-  const wing = (side: 1 | -1) => (
-    <g className={`ru-wing ${side === 1 ? "r" : "l"}`}>
-      {[0, 1, 2, 3].map((row) => Array.from({ length: 8 }, (_, k) => {
-        const len = 150 - row * 30 - k * 5, ang = -70 + k * 12 + row * 5;
-        const rot = side === 1 ? ang : 180 - ang;
-        return <path key={`${row}${k}`} transform={`translate(${side * (18 + row * 6)} ${10 - row * 8}) rotate(${rot})`}
-          d={`M0 0 C${len * .3} -14 ${len * .8} -10 ${len} 0 C${len * .8} 10 ${len * .3} 14 0 0 Z`}
-          fill="url(#ru-fea)" stroke="#8a5a00" strokeWidth="1.2" opacity={1 - row * 0.1} />;
-      }))}
-    </g>
-  );
-  return (
-    <svg className="ru-wings" viewBox="-200 -150 400 260" aria-hidden="true">
-      <defs><linearGradient id="ru-fea" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stopColor="#a86c00" /><stop offset=".5" stopColor="#ffd84a" /><stop offset="1" stopColor="#fffbe6" /></linearGradient></defs>
-      {wing(1)}{wing(-1)}
-    </svg>
-  );
-}
-
 /** Gold eight-pointed stars that draw themselves (Legendary, act 2). */
 function DrawnPattern() {
   const stars = [];
@@ -212,8 +191,8 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
       at(FILM, () => setReady(true));
     } else {
       // Legendary: a 19-second show in five acts. The heartbeat in the dark · golden stars draw themselves and
-      // pillars of light fall · the crown descends and golden wings unfurl · a flash: the world turns gold ·
-      // the celebration (fireworks, the wings beat, a halo). From act 4 on the background stays gold.
+      // pillars of light fall · the crown descends · a flash: the world turns gold ·
+      // the celebration (fireworks, a halo). From act 4 on the background stays gold.
       setAct(1);
       e.burst("star", 260, ["#ffffff", "#ffe9a8"]);
       at(1800, () => e.burst("star", 120, ["#ffe9a8", "#ffd24a"]));
@@ -276,7 +255,6 @@ export default function RankUp({ tier, name, profile, reward, onClose }: RankUpP
         <div className="ru-stage">
           {legendary && (
             <div className="ru-crown-wrap" aria-hidden="true">
-              <GoldWings />
               <span className="ru-halo" />
               <div className="ru-crown"><RankIcon rank="legendary" className="ru-crest" /></div>
             </div>

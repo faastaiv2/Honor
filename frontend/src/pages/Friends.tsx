@@ -309,7 +309,6 @@ export default function Friends() {
   return (
     <section className="fq">
       <div className="fq-hero">
-        <div className="fq-hero-art" aria-hidden="true"><span className="fq-h1">🧑</span><span className="fq-hh">🤝</span><span className="fq-h2">🧒</span><span className="fq-hb">📿</span></div>
         <h2>Friends Quest</h2>
         <p>Read together with your friend, seal your count in an envelope, and win gems together. Nobody sees the other envelopes until they're opened!</p>
       </div>
