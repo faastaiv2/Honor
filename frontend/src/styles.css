@@ -2586,3 +2586,25 @@ label.task.done .task-tags, label.task.done .task-tags span { text-decoration: n
 .sh-won .sh-bolt { display: none; }
 @keyframes sh-bolt-loop { 0%, 12%, 100% { opacity: 0; } 2% { opacity: 1; } 5% { opacity: .15; } 8% { opacity: .9; } }
 .sh-gone .sh-body { opacity: 0; transform: translateY(70%) scale(.7); transition: none; }
+
+/* Guided tour: a spotlight on the real page and a speech bubble */
+.gt { position: fixed; inset: 0; z-index: 70; pointer-events: auto; }
+.gt-shade { position: fixed; border-radius: 18px; box-shadow: 0 0 0 200vmax #0b0a14b8, 0 0 0 4px #ffd34a, 0 0 24px 6px #ffd34a88;
+  transition: top .35s ease, left .35s ease, width .35s ease, height .35s ease; pointer-events: none; }
+.gt-bubble { position: fixed; z-index: 1; padding: 14px 16px 12px; border-radius: 18px; background: #fffdf4; color: #2a1e0a;
+  box-shadow: 0 14px 40px #0007, inset 0 0 0 2px #f0c040; animation: ach-pop .35s cubic-bezier(.2,1.4,.4,1);
+  transition: top .35s ease, left .35s ease; }
+.gt-bubble.up::before, .gt-bubble.down::before { content: ""; position: absolute; left: calc(var(--ax) - 10px); width: 20px; height: 20px; background: #fffdf4; rotate: 45deg; }
+.gt-bubble.up::before { top: -10px; box-shadow: -2px -2px 0 #f0c040; }
+.gt-bubble.down::before { bottom: -10px; box-shadow: 2px 2px 0 #f0c040; }
+.gt-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.gt-head b { font: 20px Marcellus, Georgia, serif; }
+.gt-head small { font-weight: 800; color: #9a7a3a; }
+.gt-bubble p { margin: 6px 0 10px; line-height: 1.45; }
+.gt-bubble p b { color: #8a5a00; }
+.gt-nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.gt-nav span { display: flex; gap: 6px; }
+.gt-skip { background: transparent; border: 0; color: #8a7a5a; font-weight: 700; padding: 0 4px; min-height: 36px; }
+.gt-back { min-height: 38px; }
+.gt-next { min-height: 38px; padding: 0 18px; border: 0; border-radius: 12px; font-weight: 900; color: #3a2400; background: linear-gradient(180deg, #ffe58a, #f0b820); box-shadow: 0 3px 0 #b07a00; }
+@media (prefers-reduced-motion: reduce) { .gt-shade, .gt-bubble { transition: none; animation: none; } }
