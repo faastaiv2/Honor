@@ -214,7 +214,9 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         () => setPreview({ kind: "bully" }),
         <>{slot("bully-taunt", "His boasting (voice)", "“You are very bad and lazy! I am better than you! I am very powerful and strong… and you are WEAK!”")}
           {slot("bully-sorry", "Sorry (voice)", "“…I'm sorry. I was just being mean. You're actually really nice. Friends?”")}
-          {slot("bully-cry", "Crying", "After the Mega Gobi: “WAAAAH!”")}</>)}
+          {slot("bully-cry", "Crying", "After the Mega Gobi: “WAAAAH!”")}
+          {slot("tell-thunder", "Telling: storm", "The sky goes dark and thunder rumbles")}
+          {slot("tell-zap", "Telling: lightning strike", "The bolt that turns him into a skeleton")}</>)}
 
       {card("🦉", "The owl's quiz", "Sent from the Tests tab: an owl sage flies in with your questions. A right answer earns gems; all right and the owl bows.",
         () => setPreview({ kind: "quiz" }),

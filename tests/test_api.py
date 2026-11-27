@@ -1272,7 +1272,7 @@ def test_rude_kid_gobi_costs_gems_and_kindness_earns_gentle_heart(client, family
     client.post(f"/api/admin/members/{family['B'].id}/gems", headers=ha, json={"balance": 10})
     ta = client.post("/api/tests/bully", headers=ha, json={"member_id": family["A"].id}).json()
     tb = client.post("/api/tests/bully", headers=ha, json={"member_id": family["B"].id}).json()
-    assert client.get("/api/board/profile", headers=h).json()["bully"] == {"id": ta["id"], "price": 25}
+    assert client.get("/api/board/profile", headers=h).json()["bully"] == {"id": ta["id"], "price": 25, "tell_price": 100, "elder": ""}
     assert client.post(f"/api/tests/bully/{tb['id']}/answer", headers=hb, json={"choice": "gobi"}).status_code == 400  # only 10 gems
     assert client.post(f"/api/tests/bully/{ta['id']}/answer", headers=h, json={"choice": "gobi"}).json() == {"answer": "gobi", "paid": 25}
     assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == 5
@@ -1337,3 +1337,14 @@ def test_left_the_kitten_post_gets_reactions_not_likes(client, family):
     client.post(f"/api/news/{post['id']}/like", headers=ha, json={"reaction": "😠"})
     assert client.post(f"/api/news/{post['id']}/like", headers=hb, json={"reaction": "👎"}).json()["my_reaction"] == ""  # take back
     assert client.get("/api/board/profile", headers=h).json()["new_likes"] is None  # no "people liked your post" pop-up
+
+
+def test_rude_kid_tell_a_grown_up_needs_100_and_gives_it_back(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    client.post(f"/api/admin/members/{family['A'].id}/gems", headers=ha, json={"balance": 99})
+    t = client.post("/api/tests/bully", headers=ha, json={"member_id": family["A"].id, "elder": "Grandpa"}).json()
+    assert client.get("/api/board/profile", headers=h).json()["bully"]["elder"] == "Grandpa"
+    assert client.post(f"/api/tests/bully/{t['id']}/answer", headers=h, json={"choice": "tell"}).status_code == 400
+    client.post(f"/api/admin/members/{family['A'].id}/gems", headers=ha, json={"balance": 120})
+    assert client.post(f"/api/tests/bully/{t['id']}/answer", headers=h, json={"choice": "tell"}).json() == {"answer": "tell", "paid": 0}
+    assert client.get("/api/board/profile", headers=h).json()["gems"]["balance"] == 120

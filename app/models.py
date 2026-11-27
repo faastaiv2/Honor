@@ -340,8 +340,9 @@ class BullyTest(Base):
     __tablename__ = "bully_tests"
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
     member_id: Mapped[str] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"), index=True)
-    answer: Mapped[str] = mapped_column(String(8), default="")  # "", "gobi", "mean" or "kind"
-    paid: Mapped[int] = mapped_column(Integer, default=0)  # gems paid for the gobi
+    answer: Mapped[str] = mapped_column(String(8), default="")  # "", "gobi", "mean", "kind" or "tell"
+    paid: Mapped[int] = mapped_column(Integer, default=0)  # gems paid for the gobi (telling is refunded)
+    elder: Mapped[str] = mapped_column(String(80), default="")  # who they can tell (the admin types the name)
     answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by: Mapped[str] = mapped_column(String(120), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

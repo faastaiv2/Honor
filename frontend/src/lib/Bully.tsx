@@ -12,10 +12,11 @@ import { playSound } from "./sounds";
  *  - Reply kindly: he says sorry and becomes a friend (the Gentle Heart achievement).
  */
 
-type Mood = "smug" | "angry" | "sorry" | "crying";
+type Mood = "smug" | "angry" | "sorry" | "crying" | "scared" | "skeleton";
 
 /** The kid: an original cartoon, spiky hair, a cap, a T-shirt with a lightning bolt. View box 0 0 200 240. */
 export function Kid({ mood = "smug" }: { mood?: Mood }) {
+  if (mood === "skeleton") return <Skeleton />;
   const skin = mood === "angry" ? "#f0907a" : "#f6c9a0";
   return (
     <svg viewBox="0 0 200 240" className={`bl-kid m-${mood}`} aria-hidden="true">
@@ -53,6 +54,13 @@ export function Kid({ mood = "smug" }: { mood?: Mood }) {
         <ellipse cx="70" cy="118" rx="9" ry="5" fill="#ff8a9a" opacity=".6" /><ellipse cx="130" cy="118" rx="9" ry="5" fill="#ff8a9a" opacity=".6" />
         <path d="M88 124 Q100 132 112 124" stroke="#7a2a1a" strokeWidth="4" fill="none" strokeLinecap="round" />
       </>}
+      {mood === "scared" && <>
+        <path d="M70 84 L90 78 M110 78 L130 84" stroke="#3a2414" strokeWidth="5" strokeLinecap="round" />
+        <circle cx="82" cy="100" r="9" fill="#fff" stroke="#1a1a1a" strokeWidth="2" /><circle cx="118" cy="100" r="9" fill="#fff" stroke="#1a1a1a" strokeWidth="2" />
+        <circle cx="82" cy="100" r="3" fill="#1a1a1a" /><circle cx="118" cy="100" r="3" fill="#1a1a1a" />
+        <ellipse cx="100" cy="128" rx="10" ry="12" fill="#5a1010" />
+        <path d="M146 70 q4 8 0 12 q-4 -4 0 -12Z" fill="#6ac8ff" />
+      </>}
       {mood === "crying" && <>
         <path d="M70 90 L90 84 M110 84 L130 90" stroke="#3a2414" strokeWidth="5" strokeLinecap="round" />
         <path d="M74 102 Q82 108 90 102 M110 102 Q118 108 126 102" stroke="#1a1a1a" strokeWidth="4" fill="none" strokeLinecap="round" />
@@ -65,7 +73,30 @@ export function Kid({ mood = "smug" }: { mood?: Mood }) {
   );
 }
 
-type Stage = "enter" | "taunt" | "choose" | "gobi" | "fled" | "mean" | "mean2" | "kind" | "kind2" | "leave";
+/** The same kid as an X-ray cartoon skeleton (zapped by lightning). */
+function Skeleton() {
+  return (
+    <svg viewBox="0 0 200 240" className="bl-kid m-skeleton" aria-hidden="true">
+      <rect x="0" y="0" width="200" height="240" fill="none" />
+      {/* spine and ribs */}
+      <rect x="95" y="140" width="10" height="100" rx="4" fill="#f4f0e4" />
+      {[168, 184, 200, 216].map((y, i) => <path key={y} d={`M100 ${y} Q${70 + i * 2} ${y - 4} ${62 + i * 3} ${y + 10} M100 ${y} Q${130 - i * 2} ${y - 4} ${138 - i * 3} ${y + 10}`} stroke="#f4f0e4" strokeWidth="7" fill="none" strokeLinecap="round" />)}
+      <path d="M56 186 Q40 210 52 236 M144 186 Q160 210 148 236" stroke="#f4f0e4" strokeWidth="8" fill="none" strokeLinecap="round" />
+      {/* skull */}
+      <path d="M100 48 C66 48 50 72 52 100 C54 122 66 134 76 138 V152 H124 V138 C134 134 146 122 148 100 C150 72 134 48 100 48Z" fill="#f8f4e8" stroke="#c8c0a8" strokeWidth="2" />
+      <ellipse cx="80" cy="100" rx="14" ry="16" fill="#1a1a1a" /><ellipse cx="120" cy="100" rx="14" ry="16" fill="#1a1a1a" />
+      <circle cx="80" cy="102" r="3" fill="#ff5a3a" className="bl-skull-eye" /><circle cx="120" cy="102" r="3" fill="#ff5a3a" className="bl-skull-eye" />
+      <path d="M100 116 L94 128 H106Z" fill="#1a1a1a" />
+      <path d="M80 140 H120 M86 136 V146 M93 136 V147 M100 136 V147 M107 136 V147 M114 136 V146" stroke="#1a1a1a" strokeWidth="2.4" />
+      {/* the smoking cap */}
+      <path d="M58 70 Q100 40 142 70 Q138 56 100 50 Q62 56 58 70Z" fill="#2a2a2a" />
+      <g className="bl-smoke" fill="#8a8a8a"><circle cx="70" cy="44" r="8" /><circle cx="130" cy="40" r="10" /><circle cx="100" cy="30" r="7" /></g>
+    </svg>
+  );
+}
+
+type Stage = "enter" | "taunt" | "choose" | "gobi" | "fled" | "mean" | "mean2" | "kind" | "kind2"
+  | "summon" | "storm" | "zap" | "skel" | "poof" | "hadith" | "leave";
 
 const TAUNTS = [
   "You are very bad and lazy! 😏",
@@ -73,11 +104,13 @@ const TAUNTS = [
   "I am very powerful and strong 💪… and you are WEAK!",
 ];
 
-export default function BullyScene({ name, balance, price = 25, onAnswer, onDone, preview = false }: {
-  name: string; balance: number; price?: number;
-  onAnswer?: (choice: "gobi" | "mean" | "kind") => Promise<unknown> | void;
-  onDone: () => void; preview?: boolean;
+export default function BullyScene({ name, balance, price = 25, tellPrice = 100, elder = "", onAnswer, onDone, preview = false }: {
+  name: string; balance: number; price?: number; tellPrice?: number; elder?: string;
+  onAnswer?: (choice: "gobi" | "mean" | "kind" | "tell") => Promise<unknown> | void;
+  /** refund: gems given back after telling a grown-up (shown as a gem rain). */
+  onDone: (refund?: number) => void; preview?: boolean;
 }) {
+  const who = elder.trim() || "a grown-up";
   const [stage, setStage] = useState<Stage>("enter");
   const [line, setLine] = useState(0);
   const [error, setError] = useState("");
@@ -93,17 +126,26 @@ export default function BullyScene({ name, balance, price = 25, onAnswer, onDone
   }, []);
 
   const later = (ms: number, fn: () => void) => window.setTimeout(fn, ms);
-  async function choose(c: "gobi" | "mean" | "kind") {
+  async function choose(c: "gobi" | "mean" | "kind" | "tell") {
     setError("");
     if (!preview) {
       try { await onAnswer?.(c); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); return; }
     }
     if (c === "gobi") setStage("gobi");
-    if (c === "mean") { setStage("mean"); later(3000, () => setStage("mean2")); later(7600, () => setStage("leave")); later(8600, onDone); }
+    if (c === "mean") { setStage("mean"); later(3000, () => setStage("mean2")); later(7600, () => setStage("leave")); later(8600, () => onDone()); }
+    if (c === "tell") {
+      setStage("summon"); void playSound("tell-thunder");
+      later(2200, () => setStage("storm"));
+      later(4600, () => { setStage("zap"); void playSound("tell-zap"); });
+      later(6400, () => setStage("skel"));
+      later(8600, () => setStage("poof"));
+      later(9800, () => setStage("hadith"));
+      return;
+    }
     if (c === "kind") {
       setStage("kind");
       later(3200, () => { setStage("kind2"); void playSound("bully-sorry"); });
-      later(9000, () => setStage("leave")); later(10000, onDone);
+      later(9000, () => setStage("leave")); later(10000, () => onDone());
     }
   }
 
@@ -111,19 +153,35 @@ export default function BullyScene({ name, balance, price = 25, onAnswer, onDone
     return <GobiGame name="The rude kid" avatar="" frame="" color="#ffffff" mega lane target={<Kid mood="angry" />}
       winText={<>Bullseye! He's covered in cauliflower! 🥦</>}
       onHit={async () => 0}
-      onClose={() => { setStage("fled"); void playSound("bully-cry"); later(3400, () => setStage("leave")); later(4400, onDone); }} />;
+      onClose={() => { setStage("fled"); void playSound("bully-cry"); later(3400, () => setStage("leave")); later(4400, () => onDone()); }} />;
   }
 
-  const moodNow: Mood | null = stage === "mean" || stage === "mean2" ? "angry" : stage === "kind2" ? "sorry" : stage === "fled" ? "crying" : stage === "leave" ? null : "smug";
+  const moodNow: Mood | null = stage === "mean" || stage === "mean2" ? "angry" : stage === "kind2" ? "sorry" : stage === "fled" ? "crying"
+    : stage === "summon" || stage === "storm" ? "scared" : stage === "skel" || stage === "poof" ? "skeleton" : stage === "zap" ? "scared"
+    : stage === "leave" || stage === "hadith" ? null : "smug";
   if (moodNow) lastMood.current = moodNow;
   const mood = lastMood.current;
   const can = balance >= price;
+  const canTell = balance >= tellPrice;
+  const dark = ["summon", "storm", "zap", "skel", "poof", "hadith"].includes(stage);
   return createPortal(
-    <div className={`bl bl-${stage}`} role="dialog" aria-modal="true" aria-label="Someone is being rude to you">
+    <div className={`bl bl-s-${stage}${dark ? " bl-dark" : ""}`} role="dialog" aria-modal="true" aria-label="Someone is being rude to you">
       <div className="bl-ground" aria-hidden="true" />
-      {stage === "mean2" && <div className="bl-storm" aria-hidden="true"><span>⛈️</span></div>}
+      {stage === "mean2" && <div className="bl-raincloud" aria-hidden="true"><span>⛈️</span></div>}
       {stage === "kind2" && <div className="bl-hearts" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }}>{i % 3 ? "💛" : "💖"}</i>)}</div>}
-      <div className="bl-stage"><div className="bl-kidwrap"><Kid mood={mood} /></div></div>
+      {dark && <div className="bl-sky-dark" aria-hidden="true">
+        {Array.from({ length: 6 }, (_, i) => <span key={i} className="bl-cloud" style={{ ["--i" as string]: i }} />)}
+      </div>}
+      {(stage === "storm" || stage === "zap") && <>
+        <svg className="bl-bolt left" viewBox="0 0 60 200" aria-hidden="true"><path d="M34 0 L14 84 L32 84 L10 200 L52 70 L32 70 L48 0Z" fill="#fffbe0" stroke="#ffe060" strokeWidth="3" /></svg>
+        <svg className="bl-bolt right" viewBox="0 0 60 200" aria-hidden="true"><path d="M26 0 L46 84 L28 84 L50 200 L8 70 L28 70 L12 0Z" fill="#fffbe0" stroke="#ffe060" strokeWidth="3" /></svg>
+      </>}
+      {stage === "zap" && <svg className="bl-bolt hit" viewBox="0 0 80 400" preserveAspectRatio="none" aria-hidden="true"><path d="M44 0 L22 150 L44 150 L16 400 L66 120 L42 120 L60 0Z" fill="#fffbe0" stroke="#fff06a" strokeWidth="4" /></svg>}
+      {(stage === "storm" || stage === "zap") && <div className="bl-flash" aria-hidden="true" />}
+      {stage !== "hadith" && <div className="bl-stage"><div className="bl-kidwrap">
+        {stage === "zap" ? <div className="bl-xray"><span className="a"><Kid mood="scared" /></span><span className="b"><Kid mood="skeleton" /></span></div> : <Kid mood={mood} />}
+        {stage === "poof" && <div className="bl-puffs" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
+      </div></div>}
       <div className="bl-talk">
         {stage === "taunt" && <p className="bl-bubble them" key={line}>{TAUNTS[line]}</p>}
         {stage === "choose" && <>
@@ -133,6 +191,8 @@ export default function BullyScene({ name, balance, price = 25, onAnswer, onDone
             <button className="bl-c bl-gobi" disabled={!can} onClick={() => choose("gobi")}>🥦 Launch Gobi <span>{price} <Gem /></span>{!can && <small>you need {price} gems</small>}</button>
             <button className="bl-c bl-mean" onClick={() => choose("mean")}>😤 Say something mean back</button>
             <button className="bl-c bl-kind" onClick={() => choose("kind")}>🤝 Reply kindly</button>
+            <button className="bl-c bl-tell" disabled={!canTell} onClick={() => choose("tell")}>⚡ Tell {who} <span>{tellPrice} <Gem /></span>
+              <small>{canTell ? "you get it all back after" : `you need ${tellPrice} gems`}</small></button>
           </div>
           {error && <p className="err">{error}</p>}
         </>}
@@ -146,9 +206,19 @@ export default function BullyScene({ name, balance, price = 25, onAnswer, onDone
           <p className="bl-bubble them soft">…I'm sorry. I was just being mean. You're actually really nice. Friends? 🤝</p>
           <p className="bl-lesson good">Kindness turned a bully into a friend 💛</p>
         </>}
+        {stage === "summon" && <p className="bl-bubble you">That's it! I'm telling {who}! 📢</p>}
+        {stage === "storm" && <p className="bl-bubble them">W-wait… what's happening?! 😱</p>}
+        {stage === "skel" && <p className="bl-bubble them">AAAAAH! 💀</p>}
+        {stage === "hadith" && <div className="bl-hadith">
+          <p className="bl-hadith-k">The Prophet ﷺ said:</p>
+          <p className="bl-hadith-q">“The Muslim is the one from whose tongue and hand the Muslims are safe.”</p>
+          <p className="bl-hadith-s">Sahih al-Bukhari & Sahih Muslim</p>
+          <p className="bl-hadith-n">Hurting others with words is never okay. Telling a grown-up was the right call, {name} 💪</p>
+          <button className="bl-refund" autoFocus onClick={() => onDone(preview ? 0 : tellPrice)}>Get my {tellPrice} <Gem /> back</button>
+        </div>}
         {stage === "fled" && <p className="bl-bubble them">WAAAAH! 😭 Okay, okay, I'm going!</p>}
       </div>
-      {preview && <button className="sh-skip" onClick={onDone}>Close</button>}
+      {preview && <button className="sh-skip" onClick={() => onDone()}>Close</button>}
     </div>,
     document.body,
   );

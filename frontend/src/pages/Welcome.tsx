@@ -290,9 +290,15 @@ export default function Welcome({ info }: { info: TodayInfo | null }) {
             notifyChanged();
           }} /></SoundGate>); })()}
       {p?.bully && !p.pigeon && !p.charity && !p.shaytan && !godfather && raid === null && !rankUp && !reward && (() => { const b = p.bully!; return (
-        <SoundGate icon="😠"><BullyScene name={p.member.name} balance={p.gems.balance} price={b.price}
+        <SoundGate icon="😠"><BullyScene name={p.member.name} balance={p.gems.balance} price={b.price} tellPrice={b.tell_price} elder={b.elder}
           onAnswer={(c) => api.answerBully(b.id, c)}
-          onDone={() => { api.profile().then(setP).catch(() => undefined); notifyChanged(); }} /></SoundGate>); })()}
+          onDone={(refund) => {
+            api.profile().then((np) => {
+              setP(np);
+              if (refund) setReward({ amount: refund, from: Math.max(0, np.gems.balance - refund), title: "Refund · you did the right thing", chest: false });
+            }).catch(() => undefined);
+            notifyChanged();
+          }} /></SoundGate>); })()}
       {p?.pigeon && !p.charity && !p.shaytan && !godfather && raid === null && !rankUp && !reward && (() => { const n = p.pigeon!; return (
         <SoundGate icon="🕊️"><PigeonScene name={p.member.name} sender={n.sender} gems={n.gems} message={n.message}
           onOpen={() => api.openPigeon(n.id).catch(() => undefined)}

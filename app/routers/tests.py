@@ -325,6 +325,7 @@ def open_pigeon(note_id: str, v: Viewer = Depends(current_viewer), db: Session =
 from app.models import BullyTest, QuizTest  # noqa: E402
 
 BULLY_GOBI_PRICE = 25
+BULLY_TELL_PRICE = 100  # telling a grown-up: paid, then given back after the storm
 
 
 def _member_brief(db: Session, member_id: str) -> dict:
@@ -333,12 +334,17 @@ def _member_brief(db: Session, member_id: str) -> dict:
 
 
 def _bully_out(db: Session, t: BullyTest) -> dict:
-    return {"id": t.id, "member": _member_brief(db, t.member_id), "answer": t.answer, "paid": t.paid,
+    return {"id": t.id, "member": _member_brief(db, t.member_id), "answer": t.answer, "paid": t.paid, "elder": t.elder,
             "answered_at": t.answered_at.isoformat() if t.answered_at else None, "created_at": t.created_at.isoformat()}
 
 
 class MemberOnlyIn(BaseModel):
     member_id: str
+
+
+class BullyIn(BaseModel):
+    member_id: str
+    elder: str = Field(default="", max_length=80)
 
 
 @router.get("/bully")
@@ -347,13 +353,13 @@ def list_bully(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)
 
 
 @router.post("/bully", status_code=201)
-def send_bully(body: MemberOnlyIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+def send_bully(body: BullyIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
     m = db.get(Member, body.member_id)
     if not m:
         raise HTTPException(404, "Member not found")
     if db.scalar(select(BullyTest.id).where(BullyTest.member_id == m.id, BullyTest.answer == "")):
         raise HTTPException(400, f"The rude kid is already waiting for {m.name}")
-    t = BullyTest(member_id=m.id, created_by=v.name)
+    t = BullyTest(member_id=m.id, elder=body.elder.strip(), created_by=v.name)
     db.add(t)
     db.commit()
     return _bully_out(db, t)
@@ -370,11 +376,11 @@ def cancel_bully(test_id: str, _: Viewer = Depends(require_admin), db: Session =
 def bully_for(db: Session, member_id: str) -> dict | None:
     t = db.scalar(select(BullyTest).where(BullyTest.member_id == member_id, BullyTest.answer == "")
                   .order_by(BullyTest.created_at).limit(1))
-    return {"id": t.id, "price": BULLY_GOBI_PRICE} if t else None
+    return {"id": t.id, "price": BULLY_GOBI_PRICE, "tell_price": BULLY_TELL_PRICE, "elder": t.elder} if t else None
 
 
 class BullyAnswerIn(BaseModel):
-    choice: str = Field(pattern="^(gobi|mean|kind)$")
+    choice: str = Field(pattern="^(gobi|mean|kind|tell)$")
 
 
 @router.post("/bully/{test_id}/answer")
@@ -393,6 +399,14 @@ def answer_bully(test_id: str, body: BullyAnswerIn, v: Viewer = Depends(current_
             raise HTTPException(400, f"You need {BULLY_GOBI_PRICE} gems for the Mega Gobi")
         db.add(GemGrant(member_id=t.member_id, delta=-BULLY_GOBI_PRICE, note="Launched a Mega Gobi at the rude kid", created_by="Honor"))
         t.paid = BULLY_GOBI_PRICE
+    if body.choice == "tell":
+        m = db.get(Member, t.member_id)
+        if gem_balance(db, get_settings_row(db), m) < BULLY_TELL_PRICE:
+            raise HTTPException(400, f"You need {BULLY_TELL_PRICE} gems to call for help")
+        # Paid, and given back once the storm has done its work: it costs nothing in the end.
+        db.add(GemGrant(member_id=t.member_id, delta=-BULLY_TELL_PRICE, note="Told a grown-up about the rude kid", created_by="Honor"))
+        db.add(GemGrant(member_id=t.member_id, delta=BULLY_TELL_PRICE, note="Refund: telling a grown-up", created_by="Honor"))
+        t.paid = 0
     t.answer, t.answered_at = body.choice, datetime.now(timezone.utc)
     db.commit()
     return {"answer": t.answer, "paid": t.paid}
