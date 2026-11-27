@@ -52,10 +52,10 @@ const macaw = (c: MacawColors): Draw => (id) => <>
     {/* bright, friendly eyes */}
     {[39, 61].map((x) => <g key={x}><circle cx={x} cy="34" r="5" fill="#2a1a12" /><circle cx={x} cy="35" r="3.4" fill="#6a4a2a" />
       <circle cx={x + 1.8} cy="32.2" r="1.9" fill="#fff" /><circle cx={x - 1.4} cy="37" r=".9" fill="#fff" /></g>)}
-    {/* the big hooked beak: pale upper part curving over the dark lower part */}
-    <path d="M45 50 Q50 55 55 50 Q55 57 50 59 Q46 57 45 50Z" fill="#2a2a2a" />
-    <path d="M42 41 Q50 34 58 41 Q60 50 52 58 Q50 59 49 56 Q51 52 49 48 Q45 47 42 41Z" fill="#f2ead6" stroke="#8a7a5a" strokeWidth=".9" />
-    <path d="M45 42 Q50 39 55 42" stroke="#fff" strokeWidth="1.2" fill="none" opacity=".8" strokeLinecap="round" />
+    {/* a small, rounded parrot beak curving down to a point, the dark lower beak just showing */}
+    <path d="M45 47 Q50 55 55 47 Q54 53 50 55 Q46 53 45 47Z" fill="#333" />
+    <path d="M44.5 43.5 Q50 39 55.5 43.5 Q56.5 47 54 49.5 Q51.5 51.5 51 54 Q50 55.5 49 54 Q48.5 51.5 46 49.5 Q43.5 47 44.5 43.5Z" fill="#f4ecd8" stroke="#9a8a6a" strokeWidth=".7" />
+    <path d="M47 43.5 Q50 41.8 53 43.5" stroke="#fff" strokeWidth="1.2" fill="none" strokeLinecap="round" />
     {/* a little blush */}
     <ellipse cx="34" cy="49" rx="4" ry="2.4" fill="#ff8aa6" opacity=".5" /><ellipse cx="66" cy="49" rx="4" ry="2.4" fill="#ff8aa6" opacity=".5" />
   </>;
