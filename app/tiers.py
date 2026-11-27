@@ -233,7 +233,7 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("goldeneagle", "Golden Eagle", 1500, "legendary"),
     ("catlegend", "Legendary Cat", 1200, "legendary"), ("spartanlegend", "Legendary Spartan", 1500, "legendary"),
     ("knightlegend", "Legendary Knight", 1500, "legendary"), ("auroracat", "Northern Lights Cat", 1500, "legendary"), ("nightpanther", "Legendary Night Panther", 1500, "legendary"),
-    ("celestiallion", "Celestial Lion", 1500, "legendary"), ("pegasus", "Golden Pegasus", 1500, "legendary"),
+    ("celestiallion", "Celestial Lion", 1500, "legendary"), ("frostlegend", "Legendary Frost Knight", 1500, "legendary"), ("pegasus", "Golden Pegasus", 1500, "legendary"),
 ]
 FREE_AVATARS = [k for k, _ in FREE_PICTURES]
 SHOP_AVATARS: list[tuple[str, int]] = [(k, c) for k, _, c, _ in SHOP_PICTURES]
