@@ -75,36 +75,60 @@ export default function FirstRun() {
   if (!p) return null;
   if (!p.oath) return <Oath name={p.member.name} note={p.oath_note} onSworn={() => setP({ ...p, oath: true, oath_note: "" })} />;
   if (!p.toured && !p.oath_note) return <GuidedTour onDone={() => { setP({ ...p, toured: true }); api.toured().catch(() => undefined); }} />;
-  if (!p.member.shamed && !((p.member.own_avatar ?? p.member.avatar) || "")) return <AvatarNudge id={p.member.id} name={p.member.name} />;
+  if (p.new_likes) return <LikesPop likes={p.new_likes} onDone={() => { setP({ ...p, new_likes: null }); api.likesSeen().catch(() => undefined); }} />;
+  if (p.avatar_nudge && !p.member.shamed) return <AvatarNudge name={p.member.name} onDone={() => { setP({ ...p, avatar_nudge: false }); api.avatarNudgeSeen().catch(() => undefined); }} />;
   return null;
 }
 
-/** "Maybe later" hides the reminder until tomorrow. */
-const laterKey = (id: string) => `honor.avatarLater.${id}`;
-const today = () => new Date().toLocaleDateString("en-CA");
-
-/**
- * Signed in but still the plain picture: a friendly reminder to choose one, with "Show me where" (opens the
- * Avatar shop and points at the pictures) or "Maybe later" (asks again tomorrow). Waits for any other big
- * animation or pop-up on the screen to finish first.
- */
-function AvatarNudge({ id, name }: { id: string; name: string }) {
-  const nav = useNavigate();
-  const { pathname } = useLocation();
-  const [snoozed, setSnoozed] = useState(() => { try { return localStorage.getItem(laterKey(id)) === today(); } catch { return false; } });
-  const [show, setShow] = useState(false);
+/** Waits until nothing else is on screen (a raid, Shaytan, a reward, the volume check…) for a few seconds. */
+function useCalm(on: boolean) {
+  const [calm, setCalm] = useState(false);
   useEffect(() => {
-    if (snoozed || pathname.startsWith("/profile")) { setShow(false); return; }
-    let calm = 0;
+    if (!on) { setCalm(false); return; }
+    let n = 0;
     const t = window.setInterval(() => {
-      // Something else is on screen (a raid, Shaytan, a reward, the volume check…): wait for it to finish.
-      calm = document.querySelector('[aria-modal="true"]') ? 0 : calm + 1;
-      if (calm >= 3) { setShow(true); clearInterval(t); }
+      n = document.querySelector('[aria-modal="true"]') ? 0 : n + 1;
+      if (n >= 3) { setCalm(true); clearInterval(t); }
     }, 1000);
     return () => clearInterval(t);
-  }, [snoozed, pathname]);
-  if (!show || snoozed || pathname.startsWith("/profile")) return null;
-  const later = () => { try { localStorage.setItem(laterKey(id), today()); } catch { /* private mode */ } setSnoozed(true); };
+  }, [on]);
+  return calm;
+}
+
+/** Back in the app and people liked your new picture (or your win): who, how many, and a little confetti. */
+function LikesPop({ likes, onDone }: { likes: NonNullable<Profile["new_likes"]>; onDone: () => void }) {
+  const calm = useCalm(true);
+  useEffect(() => { if (calm) confetti(["#ff4d6d", "#ffd24a", "#ffffff", "#ff8fa3"]); }, [calm]);
+  if (!calm) return null;
+  const others = likes.count - likes.names.length;
+  const who = likes.names.length === 1 ? <b>{likes.names[0]}</b> : <><b>{likes.names[0]}</b>{others > 0 ? ", " : " and "}<b>{likes.names[1]}</b></>;
+  return createPortal(
+    <div className="avn" role="dialog" aria-modal="true" aria-labelledby="lk-h">
+      <div className="avn-card lk-card">
+        <div className="lk-hearts" aria-hidden="true">
+          <span className="lk-big">❤️</span>
+          {Array.from({ length: 8 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }}>{i % 3 ? "❤️" : "💖"}</i>)}
+          <b className="lk-num">{likes.count}</b>
+        </div>
+        <h2 id="lk-h">{who}{others > 0 && <> + {others} other{others === 1 ? "" : "s"}</>} liked {likes.what}!</h2>
+        <p>The family loves it 🥰</p>
+        <div className="avn-btns"><button className="primary" autoFocus onClick={onDone}>Let's go! 🎉</button></div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/**
+ * The admin sent "Don't forget to set your avatar!" from the Members page. "Show me where" opens the Avatar
+ * shop and points at the pictures; "Maybe later" closes it (the admin can send it again).
+ */
+function AvatarNudge({ name, onDone }: { name: string; onDone: () => void }) {
+  const nav = useNavigate();
+  const { pathname } = useLocation();
+  const calm = useCalm(!pathname.startsWith("/profile"));
+  if (!calm || pathname.startsWith("/profile")) return null;
+  const later = onDone;
   return createPortal(
     <div className="avn" role="dialog" aria-modal="true" aria-labelledby="avn-h">
       <div className="avn-card">
@@ -115,7 +139,7 @@ function AvatarNudge({ id, name }: { id: string; name: string }) {
         <h2 id="avn-h">Don't forget to set your avatar!</h2>
         <p>{name}, you're still the plain picture 👤. Pick one so everyone can see it's you on the Leaderboard and in Community.</p>
         <div className="avn-btns">
-          <button className="primary" autoFocus onClick={() => { setShow(false); nav("/profile?pick=1"); }}>👉 Show me where</button>
+          <button className="primary" autoFocus onClick={() => { onDone(); nav("/profile?pick=1"); }}>👉 Show me where</button>
           <button onClick={later}>Maybe later</button>
         </div>
       </div>

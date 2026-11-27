@@ -88,7 +88,9 @@ def _make_code(name: str, taken: set[str]) -> str:
 def _member_out(m: Member) -> dict:
     return {"id": m.id, "name": m.name, "code": m.code, "base_honor": m.base_honor, "has_pin": bool(m.pin_hash),
             "sort_order": m.sort_order, "active": m.active, "avatar": m.avatar, "early_ticks": m.early_ticks or 0,
-            "godfather": bool(m.godfather)}
+            "godfather": bool(m.godfather), "avatar_nudge": bool(m.avatar_nudge)}
+
+
 
 
 @router.get("/members")
@@ -127,6 +129,19 @@ def edit_member(member_id: str, body: MemberPatch, _: Viewer = Depends(require_a
         m.frame = ""  # no longer a Godfather: the frame comes off
     if "godfather" in data and data["godfather"]:
         m.godfather_seen = False  # show them the Godfather reveal next time they open the app
+    db.commit()
+    return _member_out(m)
+
+
+@router.post("/members/{member_id}/avatar-nudge")
+def avatar_nudge(member_id: str, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    """Send "Don't forget to set your avatar!": the member sees it the next time they open the app."""
+    m = db.get(Member, member_id)
+    if not m:
+        raise HTTPException(404, "Member not found")
+    if m.avatar:
+        raise HTTPException(400, f"{m.name} already has a picture")
+    m.avatar_nudge = True
     db.commit()
     return _member_out(m)
 

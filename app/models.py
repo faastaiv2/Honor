@@ -50,6 +50,8 @@ class Member(Base):
     godfather: Mapped[bool] = mapped_column(Boolean, default=False)
     godfather_seen: Mapped[bool] = mapped_column(Boolean, default=False)  # has seen the "You are a Godfather" show  # chosen by the admin; only they get the Godfather frame
     news_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # last read announcements
+    avatar_nudge: Mapped[bool] = mapped_column(Boolean, default=False)  # the admin sent "Don't forget to set your avatar"
+    likes_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # last saw who liked their posts
     raid_depth: Mapped[int] = mapped_column(Integer, default=0)  # the deepest level raided on this fall (0 = not on the Pillar)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

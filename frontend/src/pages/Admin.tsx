@@ -158,6 +158,11 @@ function MemberCard({ m, row, gems, onDone, onChanged, onError }: { m: AdminMemb
           {m.godfather && <span className="gf-badge" title="Godfather: can wear the Godfather frame">🎩 Godfather</span>}
           {m.early_ticks > 0 && <span className="warn" title="Tried to tick a task before its time and had to swear the oath again">⚠️ Ticked early {m.early_ticks}×</span>}
         </div>
+        {!m.avatar && m.has_pin && (
+          <button className={`ad-nudge${m.avatar_nudge ? " sent" : ""}`} disabled={m.avatar_nudge} onClick={async () => {
+            try { await api.avatarNudge(m.id); onDone(`Reminder sent to ${m.name} 📣`); } catch (err) { onError(msg(err)); }
+          }}>{m.avatar_nudge ? "✓ Avatar reminder sent · waiting for them to see it" : "📣 Remind to set their avatar"}</button>
+        )}
         {!!row?.excused_today?.length && (
           <ul className="ad-excused" aria-label="Excused today">
             {row.excused_today.map((x) => <li key={x.task}>🛡️ <b>{x.task}</b> excused: {x.reason}</li>)}

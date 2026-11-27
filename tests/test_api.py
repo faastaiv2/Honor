@@ -1166,3 +1166,30 @@ def test_deploy_shaytan_and_what_follows(client, family, db):
         assert [x["answer"] for x in listed] == ["no", "yes"]
         assert (listed[0]["refusals"], listed[0]["final_offer"]) == (3, 1000)  # started at 100: turned down 100, 200, 1000
         assert (listed[1]["refusals"], listed[1]["final_offer"]) == (1, 100)  # said no to 50, yes to 100
+
+
+def test_avatar_reminder_is_sent_by_the_admin(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    assert client.get("/api/board/profile", headers=h).json()["avatar_nudge"] is False  # never on its own
+    assert client.post(f"/api/admin/members/{family['A'].id}/avatar-nudge", headers=ha).json()["avatar_nudge"] is True
+    assert client.get("/api/board/profile", headers=h).json()["avatar_nudge"] is True
+    client.post("/api/board/profile/avatar-nudge-seen", headers=h)
+    assert client.get("/api/board/profile", headers=h).json()["avatar_nudge"] is False
+    assert client.post(f"/api/admin/members/{family['A'].id}/avatar-nudge", headers=h).status_code == 403
+
+
+def test_new_likes_on_my_picture_since_last_visit(client, family):
+    h, hb, hc, ha = auth(client, family["A"]), auth(client, family["B"]), auth(client, family["S"]), auth(client, admin=True)
+    assert client.get("/api/board/profile", headers=h).json()["new_likes"] is None  # starts counting now
+    a, b = at_today()
+    with a, b:
+        client.post("/api/board/oath", headers=h, json={"words": "I swear"})
+        client.put("/api/board/profile", headers=h, json={"avatar": "cat"})
+    pid = next(x for x in client.get("/api/news", headers=h).json()["items"] if x["kind"] == "picture")["id"]
+    client.post(f"/api/news/{pid}/like", headers=h)  # own like doesn't count
+    for x in (hb, hc, ha):
+        client.post(f"/api/news/{pid}/like", headers=x)
+    nl = client.get("/api/board/profile", headers=h).json()["new_likes"]
+    assert nl["count"] == 3 and nl["names"] == ["Parent", "Sierra"] and "picture" in nl["what"]
+    client.post("/api/board/profile/likes-seen", headers=h)
+    assert client.get("/api/board/profile", headers=h).json()["new_likes"] is None

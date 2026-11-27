@@ -37,7 +37,7 @@ export interface BoardRow extends Status {
 }
 export interface ShopItem { key: string; name: string; available: boolean; price: number; tier: Tier | null; rarity?: "common" | "rare" | "epic" | "legendary"; unlock?: { key: string; name: string; text: string; tier?: string; icon?: string }; special?: "godfather" }
 export interface Profile extends Status {
-  raid?: { stolen: number } | null; shaytan?: ShaytanShow | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[]; gobi_splat?: string[];
+  raid?: { stolen: number } | null; avatar_nudge?: boolean; new_likes?: { names: string[]; count: number; likes: number; what: string } | null; shaytan?: ShaytanShow | null; achievements_new?: { key: string; name: string; icon: string; tier: string; gems: number }[]; godfather?: { is: boolean; seen: boolean }; taken_today?: { name: string; gems: number }[]; gobi_today?: string[]; gobi_splat?: string[];
   member: { id: string; name: string; avatar: string; frame: string; theme: string; shamed?: boolean; own_avatar?: string; own_frame?: string };
   week_delta: number; streak: number;
   gems: { balance: number; earned: number; spent: number; claimed: number; today: number; from_tasks: number; from_levels: number };
@@ -53,7 +53,7 @@ export interface History {
   dates: { date: string; weekend: boolean }[];
   rows: { member: { id: string; name: string }; cells: { state: string; delta?: number; done?: number; of?: number }[] }[];
 }
-export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean; avatar: string; early_ticks: number; godfather: boolean }
+export interface AdminMember { id: string; name: string; code: string; base_honor: number; has_pin: boolean; sort_order: number; active: boolean; avatar: string; early_ticks: number; godfather: boolean; avatar_nudge?: boolean }
 export interface Adjustment { id: string; member_id: string; delta: number; note: string; created_at: string; created_by: string }
 export interface TaskDef { key: string; label: string; group: string; fitness: boolean; next_day: boolean; not_before: string | null; links?: string[]; number_today: number | null; step: number; every: number; shown_today: string; shown_tomorrow: string }
 export interface Achievement { key: string; name: string; text: string; group: string; icon: string; tier: string; gems: number; goal: number; progress: number; unlocked: boolean; claimed: boolean; picture?: { key: string; name: string }; theme?: { key: string; name: string } }
@@ -190,6 +190,8 @@ export const api = {
   gobiSeen: () => request<{ ok: boolean }>("/board/gobi-seen", send("POST", {})),
   launchGobi: (victimId: string) => request<{ gems: number; at: string; profile: Profile }>(`/board/gobi/${encodeURIComponent(victimId)}`, send("POST", {})),
   takeGems: (victimId: string) => request<{ taken: number; from: string; profile: Profile }>(`/board/take/${encodeURIComponent(victimId)}`, send("POST", {})),
+  avatarNudgeSeen: () => request<{ ok: boolean }>("/board/profile/avatar-nudge-seen", send("POST", {})),
+  likesSeen: () => request<{ ok: boolean }>("/board/profile/likes-seen", send("POST", {})),
   godfatherSeen: () => request<{ ok: boolean }>("/board/profile/godfather-seen", send("POST", {})),
   setAdminTheme: (theme: "white" | "dark") => request<{ theme: string }>("/admin/theme", send("PUT", { theme })),
   tests: () => request<ShaytanTest[]>("/tests"),
@@ -212,6 +214,7 @@ export const api = {
 
   members: () => request<AdminMember[]>("/admin/members"),
   addMember: (body: { name: string; base_honor: number; pin?: string }) => request<AdminMember>("/admin/members", send("POST", body)),
+  avatarNudge: (id: string) => request<AdminMember>(`/admin/members/${id}/avatar-nudge`, send("POST", {})),
   editMember: (id: string, body: Partial<Omit<AdminMember, "id" | "has_pin">> & { pin?: string | null }) => request<AdminMember>(`/admin/members/${id}`, send("PATCH", body)),
   deleteMember: (id: string) => request<void>(`/admin/members/${id}`, { method: "DELETE" }),
   adjustments: () => request<Adjustment[]>("/admin/adjustments"),

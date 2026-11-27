@@ -10,7 +10,7 @@ from app import scoring
 from app.db import get_db
 from app.deps import Viewer, current_viewer
 from app.makeup import check_week, remaining, week_start
-from app.models import Admin, GemTake, GobiLaunch, AchievementClaim, DailyClaim, DayLog, Member, Purchase
+from app.models import Admin, Announcement, GemTake, PostLike, GobiLaunch, AchievementClaim, DailyClaim, DayLog, Member, Purchase
 from app.achievements import BY_KEY as ACHIEVEMENT_BY_KEY, Facts, evaluate as evaluate_achievements
 from app.progress import Progress, gems_earned
 from app.routers.events import placings, unseen_win
@@ -515,7 +515,7 @@ def _profile(db: Session, m: Member) -> dict:
                        .where(GobiLaunch.victim_id == m.id, GobiLaunch.day == today_for(cfg)).order_by(GobiLaunch.created_at)).all()
     splats = db.scalars(select(Member.name).join(GobiLaunch, Member.id == GobiLaunch.launcher_id)
                         .where(GobiLaunch.victim_id == m.id, GobiLaunch.seen.is_(False)).order_by(GobiLaunch.created_at)).all()
-    return {"raid": raid, "taken_today": [{"name": n, "gems": g} for n, g in takers], "gobi_today": list(gobis),
+    return {"raid": raid, "avatar_nudge": bool(m.avatar_nudge and not m.avatar), "new_likes": _new_likes(db, m), "taken_today": [{"name": n, "gems": g} for n, g in takers], "gobi_today": list(gobis),
             "gobi_splat": list(splats), "member": {"id": m.id, "name": m.name, "avatar": look[0], "frame": look[1], "theme": _theme_of(m),
                        "shamed": tier.key == "low", "own_avatar": m.avatar, "own_frame": m.frame},
             **_status(p), "week_delta": p.week_delta, "streak": p.streak,
@@ -787,6 +787,45 @@ def swear_oath(body: OathIn, v: Viewer = Depends(current_viewer), db: Session = 
         m.oath_note = ""
         db.commit()
     return _profile(db, m)
+
+
+def _new_likes(db: Session, m: Member) -> dict | None:
+    """Likes on this member's posts (a new picture, a win) since they last looked, not counting their own."""
+    if m.likes_seen_at is None:  # first time: start counting from now
+        m.likes_seen_at = datetime.now(timezone.utc)
+        db.commit()
+        return None
+    since = m.likes_seen_at if m.likes_seen_at.tzinfo else m.likes_seen_at.replace(tzinfo=timezone.utc)
+    rows = db.execute(select(PostLike.name, PostLike.created_at, Announcement.kind, Announcement.data)
+                      .join(Announcement, Announcement.id == PostLike.post_id)
+                      .where(Announcement.member_id == m.id, PostLike.who != f"member:{m.id}")
+                      .order_by(PostLike.created_at.desc())).all()
+    rows = [r for r in rows if (r[1] if r[1].tzinfo else r[1].replace(tzinfo=timezone.utc)) > since]
+    if not rows:
+        return None
+    names = list(dict.fromkeys(r[0] for r in rows))
+    kind, data = rows[0][2], rows[0][3] or {}
+    what = (f"your new picture{' (' + data['picture'] + ')' if data.get('picture') else ''}" if kind == "picture"
+            else "your win" if kind == "win" else "your post")
+    return {"names": names[:2], "count": len(names), "likes": len(rows), "what": what}
+
+
+@router.post("/profile/likes-seen")
+def likes_seen(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    m = db.get(Member, v.id) if v.kind == "member" else None
+    if m:
+        m.likes_seen_at = datetime.now(timezone.utc)
+        db.commit()
+    return {"ok": True}
+
+
+@router.post("/profile/avatar-nudge-seen")
+def avatar_nudge_seen(v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    m = db.get(Member, v.id) if v.kind == "member" else None
+    if m:
+        m.avatar_nudge = False
+        db.commit()
+    return {"ok": True}
 
 
 @router.post("/profile/godfather-seen")
