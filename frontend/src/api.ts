@@ -86,6 +86,8 @@ export interface ShaytanTest { id: string; member: { id: string; name: string; a
 export type ShaytanShow = { id: string; show: "offer"; offer: number; ladder: number[] } | { id: string; show: "cut"; levels: number } | { id: string; show: "reward"; gems: number };
 export interface Settings { score_from: string; cut_misses: number; timezone: string }
 
+export interface FeedbackItem { id: string; kind: "feature" | "bug"; text: string; page: string; name: string; read: boolean; done: boolean; created_at: string }
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -214,6 +216,12 @@ export const api = {
 
   members: () => request<AdminMember[]>("/admin/members"),
   addMember: (body: { name: string; base_honor: number; pin?: string }) => request<AdminMember>("/admin/members", send("POST", body)),
+  sendFeedback: (kind: "feature" | "bug", text: string, page: string) => request<{ ok: boolean }>("/feedback", send("POST", { kind, text, page })),
+  feedback: () => request<{ items: FeedbackItem[]; unread: number }>("/feedback"),
+  feedbackUnread: () => request<{ unread: number }>("/feedback/unread"),
+  feedbackRead: () => request<{ ok: boolean }>("/feedback/read", send("POST", {})),
+  markFeedback: (id: string, done: boolean) => request<FeedbackItem>(`/feedback/${id}`, send("PATCH", { done })),
+  deleteFeedback: (id: string) => request<{ ok: boolean }>(`/feedback/${id}`, send("DELETE")),
   avatarNudge: (id: string) => request<AdminMember>(`/admin/members/${id}/avatar-nudge`, send("POST", {})),
   editMember: (id: string, body: Partial<Omit<AdminMember, "id" | "has_pin">> & { pin?: string | null }) => request<AdminMember>(`/admin/members/${id}`, send("PATCH", body)),
   deleteMember: (id: string) => request<void>(`/admin/members/${id}`, { method: "DELETE" }),

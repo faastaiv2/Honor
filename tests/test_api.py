@@ -1193,3 +1193,19 @@ def test_new_likes_on_my_picture_since_last_visit(client, family):
     assert nl["count"] == 3 and nl["names"] == ["Parent", "Sierra"] and "picture" in nl["what"]
     client.post("/api/board/profile/likes-seen", headers=h)
     assert client.get("/api/board/profile", headers=h).json()["new_likes"] is None
+
+
+def test_help_sends_feature_requests_and_bugs_to_the_admin(client, family):
+    h, ha = auth(client, family["A"]), auth(client, admin=True)
+    assert client.post("/api/feedback", headers=h, json={"kind": "feature", "text": "A pet to look after", "page": "/profile"}).status_code == 201
+    assert client.post("/api/feedback", headers=h, json={"kind": "bug", "text": "The map didn't open"}).status_code == 201
+    assert client.post("/api/feedback", headers=h, json={"kind": "spam", "text": "hello"}).status_code == 422
+    assert client.get("/api/feedback", headers=h).status_code == 403  # only the admin reads them
+    box = client.get("/api/feedback", headers=ha).json()
+    assert box["unread"] == 2 and box["items"][0]["kind"] == "bug" and box["items"][1]["name"] == "Alpha"
+    client.post("/api/feedback/read", headers=ha)
+    assert client.get("/api/feedback/unread", headers=ha).json()["unread"] == 0
+    fid = box["items"][0]["id"]
+    assert client.patch(f"/api/feedback/{fid}", headers=ha, json={"done": True}).json()["done"] is True
+    client.delete(f"/api/feedback/{fid}", headers=ha)
+    assert len(client.get("/api/feedback", headers=ha).json()["items"]) == 1

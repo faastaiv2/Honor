@@ -289,3 +289,17 @@ class Temptation(Base):
     posted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_by: Mapped[str] = mapped_column(String(120), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Feedback(Base):
+    """A member's message from the Help button: a feature idea or a bug report, for the admin."""
+    __tablename__ = "feedback"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
+    member_id: Mapped[str | None] = mapped_column(ForeignKey("members.id", ondelete="SET NULL"), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(80), default="")
+    kind: Mapped[str] = mapped_column(String(10))  # "feature" or "bug"
+    text: Mapped[str] = mapped_column(Text)
+    page: Mapped[str] = mapped_column(String(80), default="")  # where they were when they wrote it
+    read: Mapped[bool] = mapped_column(Boolean, default=False)
+    done: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

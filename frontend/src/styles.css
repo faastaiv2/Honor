@@ -2902,3 +2902,47 @@ nav.tabs a .red-dot { position: static; display: inline-block; width: 9px; heigh
 @keyframes lk-float { 0% { transform: translate(-50%, 0) scale(.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), -110px) scale(1.1) rotate(calc(var(--dx) / 3 * 1deg)); opacity: 0; } }
 .lk-card h2 b { color: #e0244a; }
 @media (prefers-reduced-motion: reduce) { .lk-big, .lk-hearts i { animation: none; } }
+
+/* Help button (members) and Inbox (admin) */
+nav.tabs .who a.inbox-btn { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 10px; font-size: 14px; border: 1px solid #ffffff40; box-shadow: none; }
+:root[data-skin=white] nav.tabs .who a.inbox-btn { border-color: var(--line); background: var(--paper); }
+nav.tabs .who .help-btn { font-weight: 700; }
+.help { position: fixed; inset: 0; z-index: 66; display: grid; place-items: center; padding: 16px; background: #0007; backdrop-filter: blur(3px); animation: avn-fade .25s ease both; }
+.help-card { position: relative; width: min(440px, 100%); padding: 24px 22px 20px; border-radius: 24px; background: var(--paper); color: var(--ink); box-shadow: 0 20px 60px #0006; animation: avn-pop .4s cubic-bezier(.3,1.5,.5,1) both; }
+.help-card h2 { margin: 0 0 4px; font-size: 26px; }
+.help-sub { margin: 0 0 16px; color: var(--mute); }
+.help-x { position: absolute; top: 10px; right: 10px; width: 40px; min-height: 40px; padding: 0; border: 0; background: transparent; color: var(--mute); font-size: 18px; }
+.help-opts { display: grid; gap: 10px; }
+.help-opt { display: flex; align-items: center; gap: 14px; min-height: 76px; padding: 12px 16px; text-align: left; border-radius: 18px; border: 1px solid var(--line); background: var(--soft); transition: transform .15s, box-shadow .15s; }
+.help-opt:hover { transform: translateY(-2px); box-shadow: 0 6px 16px #0001; }
+.help-opt > span:nth-child(2) { flex: 1; display: grid; }
+.help-opt small { color: var(--mute); }
+.help-opt i { font-style: normal; font-size: 26px; color: var(--mute); }
+.help-ico { width: 48px; height: 48px; flex: none; display: grid; place-items: center; font-size: 26px; border-radius: 14px; }
+.help-opt.feature .help-ico { background: color-mix(in srgb, #ffd24a 35%, var(--paper)); }
+.help-opt.bug .help-ico { background: color-mix(in srgb, #4caf50 25%, var(--paper)); }
+.help-back { min-height: 32px; padding: 0 8px; margin: -6px 0 6px -6px; border: 0; background: transparent; color: var(--mute); font-weight: 700; }
+.help-label { display: block; margin: 10px 0 8px; font-weight: 700; }
+.help-card textarea { width: 100%; resize: vertical; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--soft); margin-bottom: 12px; }
+.help-done { text-align: center; }
+.help-big { font-size: 56px; display: block; animation: avn-pop .5s cubic-bezier(.3,1.8,.5,1) both; }
+.help-done p { color: var(--mute); margin: 6px 0 18px; }
+.help-done .primary { width: 100%; min-height: 48px; }
+
+.inbox { max-width: 760px; margin: 0 auto; }
+.inbox-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.inbox-item { display: flex; gap: 14px; padding: 14px 16px; border-radius: 18px; background: var(--paper); border: 1px solid var(--line); }
+.inbox-item.new { border-color: #f0c040; box-shadow: 0 0 0 2px #f0c04033; }
+.inbox-item.done { opacity: .6; }
+.inbox-item.done p { text-decoration: line-through; }
+.inbox-ico { font-size: 26px; }
+.inbox-body { flex: 1; }
+.inbox-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.inbox-top small { color: var(--mute); margin-left: auto; }
+.inbox-tag { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; padding: 1px 8px; border-radius: 99px; }
+.inbox-tag.feature { color: #8a6200; background: #ffe9a8; }
+.inbox-tag.bug { color: #1a6b2a; background: #d6f2d8; }
+.inbox-body p { margin: 6px 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.inbox-tools { display: flex; gap: 8px; }
+.inbox-tools button { min-height: 34px; font-size: 14px; }
+.help-card textarea { font: inherit; }

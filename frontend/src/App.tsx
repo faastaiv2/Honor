@@ -1,4 +1,5 @@
 import FirstRun from "./pages/FirstRun";
+import HelpButton from "./lib/Help";
 import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api, type Profile, type TodayInfo } from "./api";
@@ -28,6 +29,7 @@ const Events = lazyPage(() => import("./pages/Events"));
 const AdminHome = lazyPage(() => import("./pages/AdminHome"));
 const Achievements = lazyPage(() => import("./pages/Achievements"));
 const Admin = lazyPage(() => import("./pages/Admin"));
+const Inbox = lazyPage(() => import("./pages/Inbox"));
 const HistoryPage = lazyPage(() => import("./pages/History"));
 const Animations = lazyPage(() => import("./pages/Animations"));
 const ProfilePage = lazyPage(() => import("./pages/Profile"));
@@ -44,6 +46,12 @@ export default function App() {
   const { pathname } = useLocation();
 
   const [unread, setUnread] = useState(0);
+  const [inbox, setInbox] = useState(0); // admin: unread Help messages
+  useEffect(() => {
+    if (!viewer?.is_admin) { setInbox(0); return; }
+    if (pathname === "/inbox") { setInbox(0); return; }
+    api.feedbackUnread().then((r) => setInbox(r.unread)).catch(() => undefined);
+  }, [viewer, changes, pathname]);
   // A red dot on Avatar when the shop has something new (just added, unlocked or affordable).
   const [shopNew, setShopNew] = useState(0);
   const [achReady, setAchReady] = useState(0); // achievements unlocked and waiting to be collected
@@ -117,6 +125,9 @@ export default function App() {
                   setInfo({ ...info, viewer: { ...info.viewer, theme: next } });
                   await api.setAdminTheme(next).catch(() => undefined);
                 }}>{info.viewer.theme === "dark" ? "☀️" : "🌙"}</button>}
+              {viewer.is_admin
+                ? <NavLink to="/inbox" className="inbox-btn" aria-label={`Inbox${inbox ? `, ${inbox} new` : ""}`} title="Inbox: Help messages">📬{inbox > 0 && <i className="nbadge">{inbox}</i>}</NavLink>
+                : <HelpButton />}
               <button onClick={signOut}>Sign out</button></span>
           </nav>
         </div>
@@ -140,6 +151,7 @@ export default function App() {
             <Route path="/achievements" element={viewer.is_admin ? <Navigate to="/" /> : <Achievements />} />
             <Route path="/rules" element={<Navigate to="/benefits" />} />
             <Route path="/admin" element={viewer.is_admin ? <Admin info={info} /> : <Navigate to="/" />} />
+            <Route path="/inbox" element={viewer.is_admin ? <Inbox /> : <Navigate to="/" />} />
             <Route path="/tests" element={viewer.is_admin ? <TestsPage /> : <Navigate to="/" />} />
             <Route path="/tasks" element={viewer.is_admin ? <Tasks /> : <Navigate to="/" />} />
             <Route path="*" element={<Navigate to="/" />} />
