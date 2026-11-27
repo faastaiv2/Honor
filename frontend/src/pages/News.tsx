@@ -224,7 +224,7 @@ export default function NewsPage({ admin }: { admin: boolean }) {
             )}
             {kind === "kitten" && (
               <div className="cm-body kitten">
-                <div className="cm-desert" aria-hidden="true"><span className="cm-desert-sun" /><span>🏜️</span><span className="cm-desert-cat">😿</span></div>
+                <div className="cm-desert" aria-hidden="true"><span className="cm-desert-sun" /><span>🌵</span><span className="cm-desert-cat">😿</span></div>
                 <p className="cm-text big">{n.title}</p>
                 {n.body && <p className="cm-text">{n.body}</p>}
               </div>
