@@ -29,35 +29,35 @@ type MacawColors = { body: [string, string]; wingTop: string; wingBottom: string
 const macaw = (c: MacawColors): Draw => (id) => <>
     <defs>
       <linearGradient id={`${id}r`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c.body[0]} /><stop offset="1" stopColor={c.body[1]} /></linearGradient>
-      <linearGradient id={`${id}w`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c.wingTop} /><stop offset=".45" stopColor={c.wingTop} /><stop offset=".5" stopColor={c.wingBottom} /><stop offset="1" stopColor={c.tail} /></linearGradient>
+      <linearGradient id={`${id}w`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c.wingTop} /><stop offset=".4" stopColor={c.wingTop} /><stop offset=".55" stopColor={c.wingBottom} /><stop offset="1" stopColor={c.tail} /></linearGradient>
+      <linearGradient id={`${id}t`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c.tailMid} /><stop offset="1" stopColor={c.tail} /></linearGradient>
     </defs>
-    {/* soft jungle leaves and a branch */}
-    <path d="M0 34 Q16 26 24 42 Q12 42 0 48Z M100 26 Q82 22 76 38 Q88 36 100 42Z" fill="#1e8a4a" opacity=".55" />
-    <path d="M2 94 Q50 86 98 96" stroke="#8a5a2a" strokeWidth="7" fill="none" strokeLinecap="round" />
-    {/* a short fan of tail feathers */}
-    <path d="M44 86 Q38 98 40 104 M50 88 V106 M56 86 Q62 98 60 104" stroke={c.tail} strokeWidth="6" strokeLinecap="round" fill="none" />
-    <path d="M50 88 V104" stroke={c.tailMid} strokeWidth="3.4" strokeLinecap="round" />
-    {/* a round little body with tucked wings */}
-    <ellipse cx="50" cy="76" rx="19" ry="16" fill={`url(#${id}r)`} />
-    <path d="M32 66 Q22 76 30 90 Q38 88 40 78Z" fill={`url(#${id}w)`} />
-    <path d="M68 66 Q78 76 70 90 Q62 88 60 78Z" fill={`url(#${id}w)`} />
-    <ellipse cx="50" cy="80" rx="10" ry="8" fill="#ffffff" opacity=".18" />
-    {/* tiny feet */}
-    <path d="M44 90 q-1 4 -4 4 M44 90 q1 4 3 4 M56 90 q-1 4 -3 4 M56 90 q1 4 4 4" stroke="#6a6a6a" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-    {/* a big round head with a fluffy crest */}
-    <path d="M44 20 Q42 8 50 6 Q48 12 52 14 Q54 6 62 8 Q56 12 56 20Z" fill={c.crest} />
-    <circle cx="50" cy="42" r="25" fill={`url(#${id}r)`} />
-    {/* white cheeks with dotted feather lines */}
-    <ellipse cx="34" cy="48" rx="10" ry="11" fill="#fff" /><ellipse cx="66" cy="48" rx="10" ry="11" fill="#fff" />
-    <path d="M29 46 h4 M30 51 h4 M71 46 h-4 M70 51 h-4" stroke={c.lines} strokeWidth="1" strokeLinecap="round" opacity=".7" />
-    {/* huge shiny eyes */}
-    {[37, 63].map((x) => <g key={x}><ellipse cx={x} cy="42" rx="7" ry="8" fill="#2a1a12" /><ellipse cx={x} cy="43.5" rx="5" ry="5.6" fill="#5a3a24" />
-      <circle cx={x + 2.4} cy="39" r="2.8" fill="#fff" /><circle cx={x - 2.2} cy="46" r="1.3" fill="#fff" /></g>)}
-    {/* a small round beak */}
-    <path d="M44 50 Q50 46 56 50 Q56 58 50 60 Q47 57 48 54 Q45 53 44 50Z" fill="#f6eedc" stroke="#9a8a6a" strokeWidth=".9" />
-    <path d="M47 54 Q50 57 53 54 Q52 58 50 58 Q48 57 47 54Z" fill="#2a2a2a" />
-    {/* blush */}
-    <ellipse cx="30" cy="56" rx="5" ry="3" fill="#ff8aa6" opacity=".55" /><ellipse cx="70" cy="56" rx="5" ry="3" fill="#ff8aa6" opacity=".55" />
+    {/* jungle leaves and the branch */}
+    <path d="M0 30 Q16 22 24 38 Q12 38 0 44Z M100 24 Q82 20 76 36 Q88 34 100 40Z" fill="#1e8a4a" opacity=".5" />
+    {/* the long tail hangs below the branch */}
+    <path d="M45 80 Q42 96 44 108 L50 108 Q50 94 50 82Z M55 80 Q58 96 56 108 L50 108 Q50 94 50 82Z" fill={`url(#${id}t)`} />
+    <path d="M2 86 Q50 80 98 88" stroke="#8a5a2a" strokeWidth="7" fill="none" strokeLinecap="round" />
+    {/* body with folded wings */}
+    <ellipse cx="50" cy="66" rx="16" ry="18" fill={`url(#${id}r)`} />
+    <path d="M36 54 Q28 70 38 90 Q44 84 44 70 Q42 60 36 54Z" fill={`url(#${id}w)`} stroke="#0a2a5a" strokeWidth=".6" strokeOpacity=".4" />
+    <path d="M64 54 Q72 70 62 90 Q56 84 56 70 Q58 60 64 54Z" fill={`url(#${id}w)`} stroke="#0a2a5a" strokeWidth=".6" strokeOpacity=".4" />
+    {/* feet gripping the branch */}
+    <path d="M45 82 q-2 3 -4 3 M45 82 q0 3 2 4 M55 82 q2 3 4 3 M55 82 q0 3 -2 4" stroke="#5a5a5a" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    {/* head */}
+    <path d="M47 18 Q46 10 51 9 Q50 13 53 15 Q55 9 59 11 Q55 14 55 19Z" fill={c.crest} />
+    <circle cx="50" cy="36" r="20" fill={`url(#${id}r)`} />
+    {/* the bare white face patches around the eyes, with fine feather lines */}
+    <path d="M30 36 Q30 26 40 26 Q47 28 46 38 Q44 48 36 46 Q30 44 30 36Z M70 36 Q70 26 60 26 Q53 28 54 38 Q56 48 64 46 Q70 44 70 36Z" fill="#fff" />
+    <path d="M33 40 h4 M34 43 h4 M67 40 h-4 M66 43 h-4" stroke={c.lines} strokeWidth=".9" strokeLinecap="round" opacity=".8" />
+    {/* bright, friendly eyes */}
+    {[39, 61].map((x) => <g key={x}><circle cx={x} cy="34" r="5" fill="#2a1a12" /><circle cx={x} cy="35" r="3.4" fill="#6a4a2a" />
+      <circle cx={x + 1.8} cy="32.2" r="1.9" fill="#fff" /><circle cx={x - 1.4} cy="37" r=".9" fill="#fff" /></g>)}
+    {/* the big hooked beak: pale upper part curving over the dark lower part */}
+    <path d="M45 50 Q50 55 55 50 Q55 57 50 59 Q46 57 45 50Z" fill="#2a2a2a" />
+    <path d="M42 41 Q50 34 58 41 Q60 50 52 58 Q50 59 49 56 Q51 52 49 48 Q45 47 42 41Z" fill="#f2ead6" stroke="#8a7a5a" strokeWidth=".9" />
+    <path d="M45 42 Q50 39 55 42" stroke="#fff" strokeWidth="1.2" fill="none" opacity=".8" strokeLinecap="round" />
+    {/* a little blush */}
+    <ellipse cx="34" cy="49" rx="4" ry="2.4" fill="#ff8aa6" opacity=".5" /><ellipse cx="66" cy="49" rx="4" ry="2.4" fill="#ff8aa6" opacity=".5" />
   </>;
 
 const PICS: Record<string, Pic> = {
