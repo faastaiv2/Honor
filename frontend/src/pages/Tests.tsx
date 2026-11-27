@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, ApiError, type AdminMember, type CharityTest, type ShaytanTest } from "../api";
+import { api, ApiError, type AdminMember, type CharityTest, type PigeonNote, type ShaytanTest } from "../api";
 import CharityScene from "../lib/Charity";
+import PigeonScene, { medievalNote } from "../lib/Pigeon";
 import Avatar from "../lib/Avatar";
 import Gem from "../lib/Gem";
 import { fmt } from "../lib/dates";
@@ -23,10 +24,18 @@ export default function Tests() {
   const [ask, setAsk] = useState("20");
   const [giveBack, setGiveBack] = useState("50");
   const [cPreview, setCPreview] = useState(false);
+  const [pigeons, setPigeons] = useState<PigeonNote[] | null>(null);
+  const [pWho, setPWho] = useState("");
+  const [pFrom, setPFrom] = useState("");
+  const [pGems, setPGems] = useState("50");
+  const [pMsg, setPMsg] = useState("");
+  const [pPreview, setPPreview] = useState(false);
 
   const load = useCallback(() => {
     api.members().then((ms) => { setMembers(ms.filter((m) => m.active)); setWho((w) => w || ms.find((m) => m.active)?.id || ""); }).catch(() => undefined);
     api.members().then((ms) => setCWho((w) => w || ms.find((m) => m.active)?.id || "")).catch(() => undefined);
+    api.members().then((ms) => setPWho((w) => w || ms.find((m) => m.active)?.id || "")).catch(() => undefined);
+    api.pigeons().then(setPigeons).catch(() => undefined);
     api.charityTests().then(setCharity).catch(() => undefined);
     api.tests().then(setTests).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load"));
   }, []);
@@ -56,6 +65,42 @@ export default function Tests() {
           <button onClick={() => setPreview(true)}>👁 Preview</button>
         </div>
         {error && <p className="err">{error}</p>}
+      </div>
+
+      <div className="card ts-deploy">
+        <h2>🕊️ Send a carrier pigeon</h2>
+        <p className="note">A pigeon flies onto the member's screen with a scroll tied to its leg. When they tap the note it unrolls:
+          a thank-you in old (medieval) English for keeping up the great work, signed by you, with a gift of gems.</p>
+        <div className="ts-row">
+          <select value={pWho} onChange={(e) => setPWho(e.target.value)} aria-label="Member">
+            {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+          <label className="ts-row">From <input value={pFrom} maxLength={80} placeholder="Your name" onChange={(e) => setPFrom(e.target.value)} aria-label="From" style={{ width: 140 }} /></label>
+          <label className="ts-row">Gift <input inputMode="numeric" value={pGems} onChange={(e) => setPGems(e.target.value.replace(/\D/g, "").slice(0, 5))} aria-label="Gems" /> <Gem /></label>
+        </div>
+        <textarea className="ts-msg" rows={4} maxLength={1500} value={pMsg} onChange={(e) => setPMsg(e.target.value)} aria-label="Message"
+          placeholder={`Leave empty for the standard note:\n\n${medievalNote(members.find((m) => m.id === pWho)?.name ?? "…", Number(pGems) || 0)}`} />
+        <div className="ts-row">
+          <button className="ts-go" disabled={!pWho} onClick={() => act(async () => { await api.sendPigeon(pWho, pFrom.trim(), Number(pGems) || 0, pMsg.trim()); setPMsg(""); },
+            `🕊️ The pigeon is flying to ${members.find((m) => m.id === pWho)?.name ?? ""}`)}>Send the pigeon</button>
+          <button onClick={() => setPPreview(true)}>👁 Preview</button>
+        </div>
+        {pigeons && pigeons.length > 0 && (
+          <ul className="ts-list">
+            {pigeons.map((t) => (
+              <li key={t.id} className="ts-item">
+                <div className="ts-head">
+                  <Avatar avatar={t.member.avatar} color="#ffffff" size={36} />
+                  <b>{t.member.name}</b>
+                  <span className={`ts-state ${t.opened_at ? "no" : "wait"}`}>{t.opened_at ? `📜 Opened · +${t.gems} gems` : "🕊️ On its way"}</span>
+                  <small className="note">{fmt(t.created_at.slice(0, 10), { day: "numeric", month: "short" })} · from {t.sender}</small>
+                </div>
+                {!t.opened_at && <div className="ts-row"><span className="ts-done">It arrives the next time {t.member.name} opens the app.</span>
+                  <button onClick={() => act(() => api.cancelPigeon(t.id), "Called back")}>Call back</button></div>}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="card ts-deploy">
@@ -122,6 +167,7 @@ export default function Tests() {
         )}
       </div>
       {preview && <ShaytanScene name={name || "Preview"} offer={Math.max(1, Number(offer) || 50)} preview onDone={() => setPreview(false)} />}
+      {pPreview && <PigeonScene name={members.find((m) => m.id === pWho)?.name || "Preview"} sender={pFrom.trim() || "Admin"} gems={Number(pGems) || 0} message={pMsg} preview onDone={() => setPPreview(false)} />}
       {cPreview && <CharityScene name={members.find((m) => m.id === cWho)?.name || "Preview"} ask={Math.max(1, Number(ask) || 20)} balance={9999} preview onDone={() => setCPreview(false)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </section>

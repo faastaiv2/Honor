@@ -252,3 +252,70 @@ def answer_charity(test_id: str, body: CharityAnswerIn, v: Viewer = Depends(curr
             db.add(GemGrant(member_id=t.member_id, delta=t.give_back, note="The man in the cloak gave back more", created_by="Honor"))
     db.commit()
     return {"answer": t.answer, "given": t.given, "give_back": t.give_back if body.give else 0}
+
+
+# ---------------------------------------------------------------- the carrier pigeon (a thank-you and gems)
+from app.models import PigeonNote  # noqa: E402
+
+
+def _pigeon_out(t: PigeonNote, m: Member | None) -> dict:
+    return {"id": t.id, "member": {"id": t.member_id, "name": m.name if m else "?", "avatar": m.avatar if m else ""},
+            "sender": t.sender, "gems": t.gems, "message": t.message,
+            "opened_at": t.opened_at.isoformat() if t.opened_at else None, "created_at": t.created_at.isoformat()}
+
+
+class PigeonIn(BaseModel):
+    member_id: str
+    sender: str = Field(default="", max_length=80)
+    gems: int = Field(default=50, ge=0, le=10000)
+    message: str = Field(default="", max_length=1500)
+
+
+@router.get("/pigeon")
+def list_pigeons(_: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
+    members = {m.id: m for m in db.scalars(select(Member))}
+    rows = db.scalars(select(PigeonNote).order_by(PigeonNote.created_at.desc()).limit(100))
+    return [_pigeon_out(t, members.get(t.member_id)) for t in rows]
+
+
+@router.post("/pigeon", status_code=201)
+def send_pigeon(body: PigeonIn, v: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> dict:
+    m = db.get(Member, body.member_id)
+    if not m:
+        raise HTTPException(404, "Member not found")
+    t = PigeonNote(member_id=m.id, sender=body.sender.strip() or v.name, gems=body.gems, message=body.message.strip(),
+                   created_by=v.name)
+    db.add(t)
+    db.commit()
+    return _pigeon_out(t, m)
+
+
+@router.delete("/pigeon/{note_id}", status_code=204)
+def cancel_pigeon(note_id: str, _: Viewer = Depends(require_admin), db: Session = Depends(get_db)) -> None:
+    t = db.get(PigeonNote, note_id)
+    if t and not t.opened_at:  # an opened note's gems are already theirs
+        db.delete(t)
+        db.commit()
+
+
+def pigeon_for(db: Session, member_id: str) -> dict | None:
+    t = db.scalar(select(PigeonNote).where(PigeonNote.member_id == member_id, PigeonNote.opened_at.is_(None))
+                  .order_by(PigeonNote.created_at).limit(1))
+    return {"id": t.id, "sender": t.sender, "gems": t.gems, "message": t.message} if t else None
+
+
+@router.post("/pigeon/{note_id}/open")
+def open_pigeon(note_id: str, v: Viewer = Depends(current_viewer), db: Session = Depends(get_db)) -> dict:
+    """The member opened the note: the gift of gems is theirs (once)."""
+    t = db.get(PigeonNote, note_id)
+    if not t:
+        raise HTTPException(404, "No such note")
+    if v.kind != "member" or v.id != t.member_id:
+        raise HTTPException(403, "Not your note")
+    if t.opened_at:
+        return {"gems": 0}
+    t.opened_at = datetime.now(timezone.utc)
+    if t.gems:
+        db.add(GemGrant(member_id=t.member_id, delta=t.gems, note=f"A gift from {t.sender} (carrier pigeon)", created_by="Honor"))
+    db.commit()
+    return {"gems": t.gems}

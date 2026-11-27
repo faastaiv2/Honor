@@ -1249,3 +1249,18 @@ def test_man_in_the_cloak_gives_back_more_or_reveals_shaytan(client, family):
     assert client.get("/api/board/profile", headers=hb).json()["gems"]["balance"] == 30
     assert not next(x for x in client.get("/api/board/achievements", headers=hb).json()["items"] if x["key"] == "sadaqah")["unlocked"]
     assert [x["answer"] for x in client.get("/api/tests/charity", headers=ha).json()] == ["refuse", "give"]
+
+
+def test_carrier_pigeon_brings_a_note_and_gems_once(client, family):
+    h, hb, ha = auth(client, family["A"]), auth(client, family["B"]), auth(client, admin=True)
+    t = client.post("/api/tests/pigeon", headers=ha, json={"member_id": family["A"].id, "gems": 75, "sender": "Mum"}).json()
+    assert t["sender"] == "Mum" and t["opened_at"] is None
+    before = client.get("/api/board/profile", headers=h).json()
+    assert before["pigeon"] == {"id": t["id"], "sender": "Mum", "gems": 75, "message": ""}
+    assert client.post(f"/api/tests/pigeon/{t['id']}/open", headers=hb).status_code == 403
+    assert client.post(f"/api/tests/pigeon/{t['id']}/open", headers=h).json() == {"gems": 75}
+    assert client.post(f"/api/tests/pigeon/{t['id']}/open", headers=h).json() == {"gems": 0}  # once
+    after = client.get("/api/board/profile", headers=h).json()
+    assert after["pigeon"] is None and after["gems"]["balance"] == before["gems"]["balance"] + 75
+    t2 = client.post("/api/tests/pigeon", headers=ha, json={"member_id": family["B"].id}).json()
+    assert t2["sender"] == "Parent" and t2["gems"] == 50  # from the admin by default

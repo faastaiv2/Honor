@@ -5,6 +5,7 @@ import GoblinRaid from "../lib/GoblinRaid";
 import GodfatherReveal from "../lib/GodfatherReveal";
 import ShaytanScene, { ShaytanCheer } from "../lib/Shaytan";
 import CharityScene from "../lib/Charity";
+import PigeonScene from "../lib/Pigeon";
 import GobiSplat from "../lib/GobiSplat";
 import RankIcon from "../lib/RankIcon";
 import { playMusic, playSound, resetSounds, stopMusic } from "../lib/sounds";
@@ -36,7 +37,7 @@ const MOMENT: Partial<Record<SoundKey, string>> = {
   achievement: "the reward appears", "event-win": "the prize chest appears",
 };
 
-type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" } | { kind: "godfather" } | { kind: "shaytan" } | { kind: "splat" } | { kind: "cheer" } | { kind: "charity" };
+type Preview = { kind: "goblins" } | { kind: "quest" } | { kind: "rank"; tier: Tier } | { kind: "chest" } | { kind: "gems" } | { kind: "achievement" } | { kind: "win" } | { kind: "godfather" } | { kind: "shaytan" } | { kind: "splat" } | { kind: "cheer" } | { kind: "charity" } | { kind: "pigeon" };
 
 /** One sound slot: upload, test, start point, volume, remove. */
 function SoundSlot({ k, label, when, info, onChange, onError, onDone }: {
@@ -200,6 +201,11 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         <>{slot("shaytan-goodjob", "Good job (voice)", "“Good job! You fell into Low Honor… just where I want you!”")}
           <p className="note">His laugh uses the “Evil laugh” sound from Deploy Shaytan.</p></>)}
 
+      {card("🕊️", "Carrier pigeon", "Sent from the Tests tab: a pigeon flies in with a scroll on its leg. Tap the note and it unrolls: a thank-you in old English from whoever sent it, with a gift of gems.",
+        () => setPreview({ kind: "pigeon" }),
+        <>{slot("pigeon-coo", "Flutter and coo", "As the pigeon flies in and lands")}
+          {slot("pigeon-scroll", "Scroll unrolls", "Paper unrolling, maybe a little fanfare")}</>)}
+
       {card("🧥", "The man in the cloak", "A test from the Tests tab: a poor man in a cloak begs for gems. Give, and he gives back more. Get lost, and he throws off the cloak: it was Shaytan, who says “Good job!” and laughs.",
         () => setPreview({ kind: "charity" }),
         <>{slot("charity-ask", "Begging (voice)", "“Please… could you spare me some gems? I haven't eaten all day…”")}
@@ -227,6 +233,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
       {card("🎨", "Art tournament win", "A 1st, 2nd or 3rd place: a golden chest with the prize.", () => setPreview({ kind: "win" }),
         slot("event-win", "Win", "Plays when the prize chest appears"))}
 
+      {preview?.kind === "pigeon" && <PigeonScene name="Preview" sender={info?.viewer.name || "Admin"} gems={50} preview onDone={() => setPreview(null)} />}
       {preview?.kind === "charity" && <CharityScene name="Preview" ask={20} balance={100} preview onDone={() => setPreview(null)} />}
       {preview?.kind === "cheer" && <ShaytanCheer name="Preview" preview onDone={() => setPreview(null)} />}
       {preview?.kind === "splat" && <GobiSplat by={["Preview"]} onDone={() => setPreview(null)} />}
