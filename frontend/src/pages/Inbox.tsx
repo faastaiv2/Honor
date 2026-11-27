@@ -5,8 +5,8 @@ import { notifyChanged } from "../lib/events";
 const PAGES: Record<string, string> = { "/": "Today", "/leaderboard": "Leaderboard", "/achievements": "Achievements", "/news": "Community",
   "/events": "Events", "/profile": "Avatar", "/benefits": "Benefits" };
 
-/** On the Members page: feature requests and bug reports from the Help button. */
-export default function HelpMessages() {
+/** The admin's Inbox: feature requests and bug reports from the Help button. */
+export default function Inbox() {
   const [items, setItems] = useState<FeedbackItem[] | null>(null);
   const [filter, setFilter] = useState<"open" | "feature" | "bug" | "done">("open");
   const [error, setError] = useState("");
@@ -22,8 +22,8 @@ export default function HelpMessages() {
   const n = (fn: (f: FeedbackItem) => boolean) => (items ?? []).filter(fn).length;
 
   return (
-    <section className="card inbox">
-      <h2>Help messages{(items ?? []).some((f) => !f.read) && <span className="nbadge">{(items ?? []).filter((f) => !f.read).length} new</span>}</h2>
+    <section className="inbox">
+      <h2>📬 Inbox</h2>
       <p className="note">Feature requests and bug reports from the Help button.</p>
       <div className="ax-filters" role="tablist">
         {([["open", "All open", n((f) => !f.done)], ["feature", "💡 Features", n((f) => !f.done && f.kind === "feature")],
