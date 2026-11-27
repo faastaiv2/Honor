@@ -1209,3 +1209,21 @@ def test_help_sends_feature_requests_and_bugs_to_the_admin(client, family):
     assert client.patch(f"/api/feedback/{fid}", headers=ha, json={"done": True}).json()["done"] is True
     client.delete(f"/api/feedback/{fid}", headers=ha)
     assert len(client.get("/api/feedback", headers=ha).json()["items"]) == 1
+
+
+def test_collecting_achievements_posts_to_community_except_the_oath(client, family, db):
+    from app.models import AchievementClaim
+    h, hb = auth(client, family["A"]), auth(client, family["B"])
+    a, b = at_today()
+    with a, b:
+        client.post("/api/board/oath", headers=h, json={"words": "I swear"})
+        assert client.post("/api/board/achievements/oath/claim", headers=h).status_code == 200
+        assert not [x for x in client.get("/api/news", headers=hb).json()["items"] if x["kind"] == "achievement"]
+        put_day(client, h, family["A"], TODAY, ALL)
+        ready = [x["key"] for x in client.get("/api/board/achievements", headers=h).json()["items"] if x["unlocked"] and not x["claimed"]]
+        assert ready
+        for k in ready:
+            client.post(f"/api/board/achievements/{k}/claim", headers=h)
+    posts = [x for x in client.get("/api/news", headers=hb).json()["items"] if x["kind"] == "achievement"]
+    assert len(posts) == 1 and len(posts[0]["data"]["items"]) == len(ready)  # one post for "Collect all"
+    assert posts[0]["member"]["name"] == "Alpha" and "oath" not in [i["key"] for i in posts[0]["data"]["items"]]

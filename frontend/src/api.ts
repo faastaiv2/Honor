@@ -74,8 +74,8 @@ export interface EventsInfo {
 export interface PeriodIn { name: string; start: string; end: string; off: string[]; numbers: Record<string, number>; members: string[] }
 export interface Period extends PeriodIn { id: string }
 export interface News {
-  id: string; kind: "post" | "picture" | "win" | "shaytan"; title: string; body: string; emoji: string; pinned: boolean; author: string; created_at: string; new: boolean;
-  data: { avatar?: string; picture?: string; entry_id?: string; art?: string; event?: string; gems?: number };
+  id: string; kind: "post" | "picture" | "win" | "shaytan" | "achievement"; title: string; body: string; emoji: string; pinned: boolean; author: string; created_at: string; new: boolean;
+  data: { avatar?: string; picture?: string; entry_id?: string; art?: string; event?: string; gems?: number; items?: { key: string; name: string; icon: string; tier: string; tier_name: string; gems: number }[] };
   member: { id: string; name: string; avatar: string; frame: string } | null;
   likes: number; liked: boolean; likers: string[];
   liker_looks?: { name: string; avatar: string; frame: string; parent: boolean }[];

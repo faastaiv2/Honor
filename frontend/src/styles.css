@@ -2946,3 +2946,10 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .inbox-tools { display: flex; gap: 8px; }
 .inbox-tools button { min-height: 34px; font-size: 14px; }
 .help-card textarea { font: inherit; }
+/* Community: achievement posts */
+.cm-achs { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 8px; }
+.cm-ach { --tc: #c07a3a; display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 16px; border: 1px solid var(--line);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tc) 16%, var(--paper)), var(--paper) 70%); box-shadow: inset 3px 0 0 var(--tc); }
+.cm-ach.t-silver { --tc: #7d90a8; } .cm-ach.t-gold { --tc: #e0a417; } .cm-ach.t-legend { --tc: #8b5cf6; } .cm-ach.t-godfather { --tc: #d4a017; }
+.cm-ach span { display: grid; line-height: 1.25; }
+.cm-ach small { display: inline-flex; align-items: center; gap: 3px; color: var(--mute); font-size: 12.5px; }

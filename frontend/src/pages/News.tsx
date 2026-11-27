@@ -3,16 +3,17 @@ import { api, ApiError, type News, type NewsIn } from "../api";
 import { notifyChanged, useToast } from "../lib/events";
 import Avatar from "../lib/Avatar";
 import Gem from "../lib/Gem";
+import Medal from "../lib/Medal";
 
 /**
  * Community: the family's feed. Posts from the parents, and posts the app writes when something happens
  * (a new picture, a 1st place, a deal with Shaytan). Filter by kind, ❤️ posts (double-tap works too).
  */
 type Look = { name: string; avatar: string; frame: string; parent?: boolean };
-type Filter = "all" | "post" | "picture" | "win" | "shaytan";
+type Filter = "all" | "post" | "picture" | "win" | "achievement" | "shaytan";
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" }, { key: "post", label: "📣 News" }, { key: "picture", label: "🖼️ Pictures" },
-  { key: "win", label: "🥇 Winners" }, { key: "shaytan", label: "😈 Shaytan" },
+  { key: "win", label: "🥇 Winners" }, { key: "achievement", label: "🏅 Achievements" }, { key: "shaytan", label: "😈 Shaytan" },
 ];
 const EMOJIS = ["📣", "🎉", "🏆", "📅", "🕌", "⚠️", "🎁", "❤️", "🌙", "⭐"];
 const blank: NewsIn = { title: "", body: "", emoji: "📣", pinned: false };
@@ -113,7 +114,7 @@ export default function NewsPage({ admin }: { admin: boolean }) {
   const count = (f: Filter) => (items ?? []).filter((n) => f === "all" || (n.kind || "post") === f).length;
 
   const author = (n: News & { member: News["member"] }) => {
-    if ((n.kind === "picture" || n.kind === "win" || n.kind === "shaytan") && n.member) return { look: { name: n.member.name, avatar: n.member.avatar, frame: n.member.frame } as Look, name: n.member.name, tag: null };
+    if ((n.kind === "picture" || n.kind === "win" || n.kind === "shaytan" || n.kind === "achievement") && n.member) return { look: { name: n.member.name, avatar: n.member.avatar, frame: n.member.frame } as Look, name: n.member.name, tag: null };
     return { look: { name: n.author || "Admin", avatar: "", frame: "", parent: true } as Look, name: n.author || "Admin", tag: "Admin" };
   };
 
@@ -193,6 +194,19 @@ export default function NewsPage({ admin }: { admin: boolean }) {
                 <p className="cm-text big">🥇 <b>{n.member.name}</b> won 1st place{n.data.event ? <> in <b>{n.data.event}</b></> : null}!</p>
                 {n.data.entry_id && <figure className="cm-figure"><Art id={n.data.entry_id} alt={n.data.art || "The winning picture"} />
                   <figcaption>{n.data.art ? <>“{n.data.art}”</> : <span />}{n.data.gems ? <span className="cm-prize">+{n.data.gems} <Gem /></span> : null}</figcaption></figure>}
+              </div>
+            )}
+            {kind === "achievement" && n.member && (
+              <div className="cm-body achpost">
+                <p className="cm-text big">🏅 <b>{n.member.name}</b> earned {(n.data.items?.length ?? 0) > 1 ? <>{n.data.items!.length} achievements</> : <b className="hl">{n.data.items?.[0]?.name}</b>}!</p>
+                <ul className="cm-achs">
+                  {(n.data.items ?? []).map((a) => (
+                    <li key={a.key} className={`cm-ach t-${a.tier}`}>
+                      <Medal icon={a.icon} tier={a.tier} size={52} />
+                      <span><b>{a.name}</b><small>{a.tier_name} · +{a.gems} <Gem /></small></span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
             {kind === "shaytan" && (

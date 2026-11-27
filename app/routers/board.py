@@ -766,8 +766,30 @@ def claim_achievement(key: str, v: Viewer = Depends(current_viewer), db: Session
     if not item["unlocked"]:
         raise HTTPException(400, f"Not yet: {item['progress']}/{item['goal']}")
     db.add(AchievementClaim(member_id=m.id, key=key, gems=a.gems))
+    if key not in NO_POST_ACHIEVEMENTS:
+        _post_achievement(db, m, a)
     db.commit()
     return achievements(None, v, db)
+
+
+NO_POST_ACHIEVEMENTS = {"oath"}  # everyone swears the oath: not news
+_TIER_LABEL = {"bronze": "Common", "silver": "Rare", "gold": "Epic", "legend": "Legendary", "godfather": "Godfather"}
+
+
+def _post_achievement(db: Session, m: Member, a) -> None:
+    """Community post when a member collects an achievement. Several collected within 10 minutes ("Collect all")
+    go into one post."""
+    from app.routers.news import system_post
+    item = {"key": a.key, "name": a.name, "icon": a.icon, "tier": a.tier, "tier_name": _TIER_LABEL.get(a.tier, ""), "gems": a.gems}
+    recent = db.scalar(select(Announcement).where(Announcement.kind == "achievement", Announcement.member_id == m.id)
+                       .order_by(Announcement.created_at.desc()).limit(1))
+    items = [item]
+    if recent:
+        t = recent.created_at if recent.created_at.tzinfo else recent.created_at.replace(tzinfo=timezone.utc)
+        if t > datetime.now(timezone.utc) - timedelta(minutes=10):
+            items = [x for x in (recent.data or {}).get("items", []) if x.get("key") != a.key] + [item]
+    title = (f"{m.name} earned {a.name}!" if len(items) == 1 else f"{m.name} earned {len(items)} achievements!")
+    system_post(db, "achievement", m, title, {"items": items}, emoji="🏅", merge_minutes=10)
 
 
 class OathIn(BaseModel):
@@ -806,7 +828,7 @@ def _new_likes(db: Session, m: Member) -> dict | None:
     names = list(dict.fromkeys(r[0] for r in rows))
     kind, data = rows[0][2], rows[0][3] or {}
     what = (f"your new picture{' (' + data['picture'] + ')' if data.get('picture') else ''}" if kind == "picture"
-            else "your win" if kind == "win" else "your post")
+            else "your win" if kind == "win" else "your achievement" if kind == "achievement" else "your post")
     return {"names": names[:2], "count": len(names), "likes": len(rows), "what": what}
 
 
