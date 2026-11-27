@@ -216,7 +216,7 @@ SHOP_PICTURES: list[tuple[str, str, int, str]] = [
     ("fairy", "Fairy", 0, "rare"), ("swordsman", "Swordsman", 300, "rare"), ("chef", "Chef", 250, "rare"), ("pirate", "Pirate", 300, "rare"),
     ("firefighter", "Firefighter", 300, "rare"), ("snowleopard", "Snow Leopard", 350, "rare"), ("unicorn", "Unicorn", 300, "rare"),
     ("dino", "Dino", 0, "rare"), ("oasiskitten", "Oasis Kitten", 0, "rare"), ("astronaut", "Astronaut", 400, "rare"), ("robot", "Robot", 0, "rare"),
-    ("ninja", "Ninja", 440, "rare"), ("parrot", "Scarlet Macaw", 250, "rare"), ("giraffe", "Giraffe", 250, "rare"),
+    ("ninja", "Ninja", 440, "rare"), ("parrot", "Scarlet Macaw", 250, "rare"), ("yellowmacaw", "Golden Macaw", 250, "rare"), ("greenmacaw", "Green Macaw", 250, "rare"), ("giraffe", "Giraffe", 250, "rare"),
     ("octopus", "Octopus", 300, "rare"), ("whale", "Whale", 300, "rare"), ("ballerina", "Ballerina", 250, "rare"),
     ("scientist", "Scientist", 300, "rare"), ("wizardkid", "Little Wizard", 350, "rare"), ("herokid", "Super Kid", 350, "rare"),
     ("redpanda", "Red Panda", 300, "rare"), ("explorer", "Little Explorer", 300, "rare"), ("flamingo", "Flamingo", 250, "rare"),

@@ -24,6 +24,39 @@ const Smile = ({ y, w = 6, color = "#2a1a10" }: { y: number; w?: number; color?:
 );
 const Body = ({ fill, y = 86 }: { fill: string; y?: number }) => <ellipse cx="50" cy={y + 18} rx="34" ry="24" fill={fill} />;
 
+/** A macaw on a branch, in its own colours (body, wing top, wing bottom, tail, face lines). */
+type MacawColors = { body: [string, string]; wingTop: string; wingBottom: string; tail: string; tailMid: string; crest: string; lines: string };
+const macaw = (c: MacawColors): Draw => (id) => <>
+    <defs>
+      <linearGradient id={`${id}r`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c.body[0]} /><stop offset="1" stopColor={c.body[1]} /></linearGradient>
+      <linearGradient id={`${id}w`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c.wingTop} /><stop offset=".35" stopColor={c.wingTop} /><stop offset=".4" stopColor={c.wingBottom} /><stop offset="1" stopColor={c.tail} /></linearGradient>
+    </defs>
+    {/* jungle leaves behind */}
+    <path d="M0 30 Q18 22 26 40 Q12 40 0 46Z M100 22 Q80 18 74 36 Q88 34 100 40Z M0 70 Q14 60 24 76 Q10 78 0 84Z" fill="#1e8a4a" opacity=".8" />
+    {/* the branch it sits on */}
+    <path d="M4 92 Q50 84 96 94" stroke="#7a4a22" strokeWidth="7" fill="none" strokeLinecap="round" />
+    {/* long tail feathers */}
+    <path d="M44 84 L38 104 M50 86 L50 106 M56 84 L62 104" stroke={c.tail} strokeWidth="6" strokeLinecap="round" />
+    <path d="M50 86 L50 106" stroke={c.tailMid} strokeWidth="4" strokeLinecap="round" />
+    {/* wings */}
+    <path d="M30 50 Q16 66 26 88 Q36 84 40 70Z" fill={`url(#${id}w)`} stroke="#123a5a" strokeWidth="1" />
+    <path d="M70 50 Q84 66 74 88 Q64 84 60 70Z" fill={`url(#${id}w)`} stroke="#123a5a" strokeWidth="1" />
+    {/* body and head */}
+    <ellipse cx="50" cy="66" rx="20" ry="22" fill={`url(#${id}r)`} />
+    <circle cx="50" cy="40" r="20" fill={`url(#${id}r)`} />
+    <path d="M42 22 Q46 12 52 14 Q48 18 50 22Z" fill={c.crest} />
+    {/* white face patches with tiny feather lines */}
+    <path d="M32 40 Q34 30 44 32 Q46 42 40 48 Q34 48 32 40Z M68 40 Q66 30 56 32 Q54 42 60 48 Q66 48 68 40Z" fill="#fff" />
+    <path d="M35 38 h5 M36 42 h5 M65 38 h-5 M64 42 h-5" stroke={c.lines} strokeWidth="1" />
+    {[41, 59].map((x) => <g key={x}><circle cx={x} cy="38" r="4.4" fill="#fffbe0" stroke="#2a1a10" strokeWidth="1" /><circle cx={x} cy="38" r="2.6" fill="#1a1a1a" /><circle cx={x + 1} cy="37" r="1" fill="#fff" /></g>)}
+    {/* the big curved beak */}
+    <path d="M44 46 Q50 42 56 46 Q58 58 50 64 Q48 58 50 54 Q46 52 44 46Z" fill="#f4ead8" stroke="#8a7a60" strokeWidth="1" />
+    <path d="M46 52 Q50 56 54 52 Q52 60 50 60 Q48 58 46 52Z" fill="#2a2a2a" />
+    {/* little feet on the branch */}
+    <path d="M44 86 q-2 4 -5 4 M44 86 q0 4 2 5 M56 86 q2 4 5 4 M56 86 q0 4 -2 5" stroke="#5a5a5a" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    <Cheeks y={50} dx={14} color="#ff9ab0" />
+  </>;
+
 const PICS: Record<string, Pic> = {
   lion: { bg: ["#ffe9a8", "#f0a830"], draw: () => <>
     <Body fill="#d98a2b" />
@@ -1293,36 +1326,10 @@ const PICS: Record<string, Pic> = {
     <Smile y={67} w={5} />
     <Cheeks y={64} dx={15} />
   </> },
-  parrot: { bg: ["#e6fff0", "#2aa86a"], draw: (id) => <>
-    <defs>
-      <linearGradient id={`${id}r`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ff5a4a" /><stop offset="1" stopColor="#c81e2a" /></linearGradient>
-      <linearGradient id={`${id}w`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffd23a" /><stop offset=".35" stopColor="#ffd23a" /><stop offset=".4" stopColor="#3ac0f0" /><stop offset="1" stopColor="#1a5ad0" /></linearGradient>
-    </defs>
-    {/* jungle leaves behind */}
-    <path d="M0 30 Q18 22 26 40 Q12 40 0 46Z M100 22 Q80 18 74 36 Q88 34 100 40Z M0 70 Q14 60 24 76 Q10 78 0 84Z" fill="#1e8a4a" opacity=".8" />
-    {/* the branch it sits on */}
-    <path d="M4 92 Q50 84 96 94" stroke="#7a4a22" strokeWidth="7" fill="none" strokeLinecap="round" />
-    {/* long tail feathers */}
-    <path d="M44 84 L38 104 M50 86 L50 106 M56 84 L62 104" stroke="#1a5ad0" strokeWidth="6" strokeLinecap="round" />
-    <path d="M50 86 L50 106" stroke="#e8302a" strokeWidth="4" strokeLinecap="round" />
-    {/* wings */}
-    <path d="M30 50 Q16 66 26 88 Q36 84 40 70Z" fill={`url(#${id}w)`} stroke="#123a8a" strokeWidth="1" />
-    <path d="M70 50 Q84 66 74 88 Q64 84 60 70Z" fill={`url(#${id}w)`} stroke="#123a8a" strokeWidth="1" />
-    {/* body and head */}
-    <ellipse cx="50" cy="66" rx="20" ry="22" fill={`url(#${id}r)`} />
-    <circle cx="50" cy="40" r="20" fill={`url(#${id}r)`} />
-    <path d="M42 22 Q46 12 52 14 Q48 18 50 22Z" fill="#ff7a5a" />
-    {/* white face patches with tiny feather lines */}
-    <path d="M32 40 Q34 30 44 32 Q46 42 40 48 Q34 48 32 40Z M68 40 Q66 30 56 32 Q54 42 60 48 Q66 48 68 40Z" fill="#fff" />
-    <path d="M35 38 h5 M36 42 h5 M65 38 h-5 M64 42 h-5" stroke="#e8a0a0" strokeWidth="1" />
-    {[41, 59].map((x) => <g key={x}><circle cx={x} cy="38" r="4.4" fill="#fffbe0" stroke="#2a1a10" strokeWidth="1" /><circle cx={x} cy="38" r="2.6" fill="#1a1a1a" /><circle cx={x + 1} cy="37" r="1" fill="#fff" /></g>)}
-    {/* the big curved beak */}
-    <path d="M44 46 Q50 42 56 46 Q58 58 50 64 Q48 58 50 54 Q46 52 44 46Z" fill="#f4ead8" stroke="#8a7a60" strokeWidth="1" />
-    <path d="M46 52 Q50 56 54 52 Q52 60 50 60 Q48 58 46 52Z" fill="#2a2a2a" />
-    {/* little feet on the branch */}
-    <path d="M44 86 q-2 4 -5 4 M44 86 q0 4 2 5 M56 86 q2 4 5 4 M56 86 q0 4 -2 5" stroke="#5a5a5a" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-    <Cheeks y={50} dx={14} color="#ff9ab0" />
-  </> },
+  // Three Rare macaws: red, yellow and green
+  parrot: { bg: ["#e6fff0", "#2aa86a"], draw: macaw({ body: ["#ff5a4a", "#c81e2a"], wingTop: "#ffd23a", wingBottom: "#3ac0f0", tail: "#1a5ad0", tailMid: "#e8302a", crest: "#ff7a5a", lines: "#e8a0a0" }) },
+  yellowmacaw: { bg: ["#e6f6ff", "#2a8ad0"], draw: macaw({ body: ["#ffe45a", "#f0a818"], wingTop: "#3ac0f0", wingBottom: "#1a6ad0", tail: "#123a9a", tailMid: "#2a8ae0", crest: "#3ac0f0", lines: "#6a6a6a" }) },
+  greenmacaw: { bg: ["#fff4e0", "#f0a040"], draw: macaw({ body: ["#7ad85a", "#2a9a3a"], wingTop: "#3ac0b0", wingBottom: "#1a6ad0", tail: "#e8302a", tailMid: "#3a8ad0", crest: "#e8302a", lines: "#c84a4a" }) },
   giraffe: { bg: ["#eef8ff", "#7ac0f0"], draw: () => <>
     <path d="M38 100 L42 60 H58 L62 100Z" fill="#f4c040" />
     <g fill="#c07a2a">{[[46, 72, 4], [54, 84, 4.5], [45, 92, 3.6], [55, 66, 3]].map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} />)}</g>
