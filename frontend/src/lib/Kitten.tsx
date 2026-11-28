@@ -132,7 +132,7 @@ export default function KittenScene({ name, balance, onAnswer, onDone, preview =
     <div className={`kt kt-${stage}`} role="dialog" aria-modal="true" aria-label="A thirsty kitten in the desert">
       <div className="kt-sky" aria-hidden="true">
         <span className="kt-sun" />
-        <svg className="kt-pyramids" viewBox="0 0 400 120" preserveAspectRatio="xMidYMax slice">
+        <svg className="kt-pyramids" viewBox="0 -8 420 128" preserveAspectRatio="xMidYMax meet">
           <path d="M30 120 L110 30 L190 120Z" fill="#e0b060" /><path d="M110 30 L190 120 L130 120Z" fill="#c08a40" />
           <path d="M170 120 L270 10 L370 120Z" fill="#e8bb6a" /><path d="M270 10 L370 120 L292 120Z" fill="#c8924a" />
           <path d="M330 120 L372 74 L414 120Z" fill="#d8a858" /><path d="M372 74 L414 120 L384 120Z" fill="#b8843e" />
