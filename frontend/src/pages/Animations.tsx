@@ -262,7 +262,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
           {slot("collect", "Collect", "Plays when gems fly into the wallet")}</>)}
 
       {card("🏅", "Achievement collected", "Collecting an achievement's gems in the Achievements tab.", () => setPreview({ kind: "achievement" }),
-        slot("achievement", "Achievement", "Plays as the achievement's gems appear"))}
+        slot("achievement", "New achievement", "Plays only when a new achievement pops up, not when its gems are collected"))}
 
       {card("🎨", "Art tournament win", "A 1st, 2nd or 3rd place: a golden chest with the prize.", () => setPreview({ kind: "win" }),
         slot("event-win", "Win", "Plays when the prize chest appears"))}
@@ -288,7 +288,7 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         reward={(info?.gems.per_rank[preview.tier.key] ?? 0) + (preview.tier.key === "legendary" ? 0 : info?.gems.per_level ?? 10)} onClose={() => setPreview(null)} />}
       {preview?.kind === "chest" && <GemReward amount={45} chest jewel="#e3214a" title="Daily streak chest · preview" onDone={() => setPreview(null)} />}
       {preview?.kind === "gems" && <GemReward amount={20} title="Day complete! · preview" onDone={() => setPreview(null)} />}
-      {preview?.kind === "achievement" && <GemReward amount={100} title="Achievement · preview" sound="achievement" onDone={() => setPreview(null)} />}
+      {preview?.kind === "achievement" && <GemReward amount={100} title="Achievement · preview" onDone={() => setPreview(null)} />}
       {preview?.kind === "win" && <GemReward amount={100} chest jewel="#ffd24a" title="🥇 1st place · preview" sound="event-win" onDone={() => setPreview(null)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

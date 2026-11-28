@@ -163,7 +163,7 @@ export default function Achievements() {
           </section>
         );
       })}
-      {reward && <GemReward amount={reward.amount} title={reward.title} sound="achievement" onDone={() => { setReward(null); setToast("Gems added to your wallet"); }} />}
+      {reward && <GemReward amount={reward.amount} title={reward.title} onDone={() => { setReward(null); setToast("Gems added to your wallet"); }} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );
