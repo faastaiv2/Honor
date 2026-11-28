@@ -267,10 +267,16 @@ def credited(done, prev_done, tasks: list | None = None, first_day: bool = False
     return (out - night) | (night if first_day else night & set(prev_done or []))
 
 
+# From this day: all tasks done → +1 (move on); at least half → 0 (hold your rank); less than half → −1 (cut).
+# Days before it keep the old rule (cut when `cut_misses` or more tasks were missed), so past Honor doesn't change.
+HALF_RULE_FROM = date(2026, 11, 27)
+
+
 def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, today: date, cut_misses: int,
               tasks: list | None = None, skip: set[str] | dict | None = None, bonus_on: bool = True) -> DayScore:
-    """+1 for the pledge and all 17 tasks, +1 for the bonus (only after all tasks), -1 when a finished weekday misses any task
-    (`cut_misses` is 1; a larger number would allow some misses).
+    """+1 for the pledge and all the day's tasks, +1 for the bonus (only after all tasks, only on the Legendary quest).
+    A finished weekday with fewer than half of its tasks done is cut −1; half or more holds (0). (Before HALF_RULE_FROM:
+    cut when `cut_misses` or more were missed.)
 
     An excused day (a reason was written) excuses the fitness tasks and is never cut.
     Weekends: no pledge needed, nothing is cut. Today is never cut while it is still open.
@@ -284,7 +290,11 @@ def score_day(d: date, done: set[str] | list[str] | None, excuse: str | None, to
     pledge = weekend or "gate" in done
     gain = 1 if pledge and missed == 0 else 0
     bonus = 1 if bonus_on and gain and "bonus" in done else 0  # only on the Legendary quest, once every task is done
-    cut = -1 if (not weekend and not excused and d < today and missed >= cut_misses) else 0
+    if d >= HALF_RULE_FROM:
+        short = len(req) > 0 and (len(req) - missed) * 2 < len(req)  # fewer than half of the day's tasks done
+    else:
+        short = missed >= cut_misses
+    cut = -1 if (not weekend and not excused and d < today and short) else 0
     return DayScore(gain, bonus, cut, len(req) - missed, len(req), weekend, excused)
 
 

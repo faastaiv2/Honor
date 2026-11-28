@@ -3838,3 +3838,11 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .fq-launch-box { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: color-mix(in srgb, #7c5cff 8%, var(--paper)); border: 1px dashed #7c5cff; }
 .fq-launch-box .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .fq-state.wait { background: #ede9fe; color: #5b3fd6; }
+
+/* Move on / hold / cut */
+.meter-half { position: relative; }
+.meter-mark { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); opacity: .35; border-radius: 2px; }
+.halfrule { margin: 6px 0 0; font-size: .9rem; font-weight: 700; }
+.halfrule.up { color: var(--good); }
+.halfrule.hold { color: #8a6400; }
+.halfrule.low { color: var(--bad); }

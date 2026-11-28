@@ -178,3 +178,16 @@ def test_quest_days_use_the_quest_number_and_legendary_only_tasks():
     assert [t.key for t in normal] == ["push"] and normal[0].label_on(_d(2026, 11, 24)) == "10 push-ups"
     quest = day_plan(specs, None, _d(2026, 11, 24), leg, quest=True)
     assert [t.key for t in quest] == ["push", "extra"] and quest[0].label_on(_d(2026, 11, 24)) == "99 push-ups"
+
+
+def test_half_rule_move_on_hold_or_cut():
+    from datetime import date as _d
+    from app.scoring import TaskSpec, score_day
+    specs = [TaskSpec(f"t{i}", f"T{i}", "G") for i in range(10)]
+    mon, later = _d(2026, 11, 30), _d(2026, 12, 5)  # a Monday after the rule starts
+    keys = [t.key for t in specs]
+    assert score_day(mon, ["gate", *keys], None, later, 1, specs).delta == 1  # all done: move on
+    assert score_day(mon, ["gate", *keys[:5]], None, later, 1, specs).delta == 0  # half: hold
+    assert score_day(mon, ["gate", *keys[:4]], None, later, 1, specs).delta == -1  # under half: cut
+    old = _d(2026, 11, 23)
+    assert score_day(old, ["gate", *keys[:9]], None, later, 1, specs).delta == -1  # before the change: any miss cut

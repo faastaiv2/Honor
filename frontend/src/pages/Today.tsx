@@ -229,7 +229,14 @@ export default function Today({ info, member }: { info: TodayInfo | null; member
             {s.excused ? " · excused" : ""}{view.weekend ? " · weekend, optional" : s.cut ? " · Honor cut 👺" : ""}
             {view.before_scoring && view.mode !== "preview" ? " · before scoring started" : ""}
           </p>
-          <div className="meter"><i style={{ width: `${s.of ? (s.done / s.of) * 100 : 0}%` }} /></div>
+          <div className="meter meter-half"><i style={{ width: `${s.of ? (s.done / s.of) * 100 : 0}%` }} /><b className="meter-mark" title="Half: hold your rank" /></div>
+          {!view.weekend && !s.excused && s.of > 0 && view.mode !== "preview" && (isToday || view.mode === "makeup") && (
+            <p className={`halfrule ${s.done >= s.of ? "up" : s.done * 2 >= s.of ? "hold" : "low"}`}>
+              {s.done >= s.of ? "✅ All done: you move on, +1 Honor"
+                : s.done * 2 >= s.of ? <>🛡️ Rank held. Finish the last {s.of - s.done} to move on (+1 Honor)</>
+                : <>⚠️ {Math.ceil(s.of / 2) - s.done} more to hold your rank. Under half = −1 Honor</>}
+            </p>
+          )}
         </div>
       </div>
       {view.periods.length > 0 && (
