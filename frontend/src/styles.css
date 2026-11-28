@@ -3950,7 +3950,7 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .gx-floor.cracked .gx-cracks { opacity: 1; transform: none; }
 .gx-heap { position: absolute; left: 50%; bottom: 36px; width: 250px; height: 230px; translate: -50% 0; transition: transform .35s cubic-bezier(.3, 1.4, .5, 1); }
 .gx-heap.sunk { transform: translateY(10px) scaleY(.97); }
-.gx-hg { position: absolute; display: block; transform: translate(-50%, -50%) rotate(var(--r)); animation: gx-fall .78s both; }
+.gx-hg { position: absolute; display: block; transform: translate(-50%, -50%) rotate(var(--r)); animation: gx-fall .85s both; }
 .gx-hg svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 2px 1px #0a3a7044); }
 /* poured from one stream above the middle: they fall faster and faster (gravity), spread out, land with a little bounce */
 @keyframes gx-fall {
@@ -3973,3 +3973,12 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .gx-fly .gx-heap { animation: gx-tofly .65s cubic-bezier(.5, 0, .7, .4) forwards; }
 .gx-fly .gx-spill, .gx-fly .gx-floor { transition: opacity .3s; opacity: 0 !important; }
 @media (prefers-reduced-motion: reduce) { .gx-hg, .gx-spill { animation: none !important; } .gx-spill { opacity: 1; } }
+
+/* the reward's look: a dark charcoal room, like a game's reward screen */
+.gx:not(.gx-gold) .gx-bg { background: radial-gradient(circle at 50% 55%, #222c36 0%, #182028 60%, #12181e 100%); }
+.gx:not(.gx-gold) .gx-glow { opacity: 0; }
+.gx:not(.gx-gold) .gx-title { color: #ffffff; letter-spacing: .04em; text-transform: none; font-size: 17px; font-weight: 900; }
+.gx:not(.gx-gold) .gx-amount { color: #4fb3f0; }
+.gx:not(.gx-gold) .gx-floor { background: #3d4752; }
+.gx:not(.gx-gold) .gx-floor.cracked { background: #2a323b; }
+.gx-hg svg { filter: none !important; }

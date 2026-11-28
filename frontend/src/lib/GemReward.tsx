@@ -115,8 +115,8 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
   const colors = gold ? ["#fff6c8", "#ffd24a", "#ffffff"] : SPARK;
   const n = Math.max(14, Math.min(70, Math.round(amount)));
   const { spots, size } = useMemo(() => heapSpots(n), [n]);
-  const STEP = 16; // ms between falling gems: they pour in together, like a stream
-  const rainMs = 200 + n * STEP + 900;
+  const STEP = 7; // ms between gems: they drop together as one big clump, the lowest landing first
+  const rainMs = 200 + n * STEP + 1000;
 
   useEffect(() => {
     const c = canvas.current;
@@ -214,7 +214,7 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
               {spots.map((g, i) => (
                 <span key={i} className="gx-hg" style={{ left: `${g.x}%`, top: `${g.y}%`, width: `${size}%`, ["--r" as string]: `${g.r}deg`,
                   animationDelay: reduced ? "0ms" : `${200 + g.order * STEP}ms`, zIndex: g.order,
-                  ["--sx" as string]: `${(50 - g.x) * 1.6}px`, ["--h" as string]: `${430 + (g.order % 5) * 30}px`, ["--r0" as string]: `${(g.order * 47) % 120 - 60}deg` }}><GemArt tone={g.tone} glint={false} /></span>
+                  ["--sx" as string]: `${(50 - g.x) * 0.9}px`, ["--h" as string]: `${560 + (g.order % 4) * 14}px`, ["--r0" as string]: `${(g.order * 47) % 80 - 40}deg` }}><GemArt tone={g.tone} glint={false} /></span>
               ))}
             </div>
           )}
