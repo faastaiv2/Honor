@@ -35,8 +35,8 @@ const SCRIPTS: Record<string, (e: Engine, c: string[], at: At, shake: Shake) => 
   silver: (e, c, at) => {
     e.burst("star", 170, ["#ffffff", "#dfe6ee"]); e.emit("crystal", 6, FILM, ["#ffffff", "#dfe6ee"]);
     at(2500, () => e.emit("gold", 70, 2400, c));
-    at(5000, () => { e.burst("sparkle", 150, c); e.burst("ring", 48, c); e.burst("streak", 2, ["#fff"]); });
-    at(7500, () => { e.emit("confetti", 50, 2500, c); e.emit("streak", 1.2, 2500, ["#fff"]); });
+    at(5000, () => { e.burst("sparkle", 150, c); e.burst("ring", 48, c); });
+    at(7500, () => { e.emit("confetti", 50, 2500, c); });
   },
   // Sunrise: the sun climbs, gold coins rain, fireworks.
   gold: (e, c, at) => {

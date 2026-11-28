@@ -636,7 +636,7 @@ label.check input { width: 22px; height: 22px; min-height: 0; accent-color: var(
 .ru-bronze .ru-scene i { left: -10%; right: -10%; bottom: -30%; height: 70%; background: radial-gradient(ellipse at 50% 100%, #ff8a2a 0%, #b0501a55 40%, transparent 70%); animation: ru-forge 1.3s ease-in-out infinite alternate; }
 /* Silver: a moon and drifting mist. */
 .ru-silver .ru-scene i { display: none; } /* no moon */
-.ru-silver .ru-scene b { left: -50%; right: -50%; bottom: 0; height: 45%; background: repeating-linear-gradient(90deg, transparent 0 120px, #ffffff14 160px 260px, transparent 300px 420px); filter: blur(18px); animation: ru-mist 9s linear infinite; }
+.ru-silver .ru-scene b { display: none; } /* no scrolling mist */
 /* Gold: the sun rises. */
 .ru-gold .ru-scene i { left: 50%; bottom: -40vmin; width: 80vmin; height: 80vmin; translate: -50% 0; border-radius: 50%; background: radial-gradient(circle, #fff6c8 0%, #ffd34d 35%, #ff9f1a55 60%, transparent 72%); animation: ru-sunrise 6s cubic-bezier(.3,.6,.3,1) both; }
 .ru-gold .ru-scene b { inset: 0; background: linear-gradient(0deg, #ff9f1a44, transparent 60%); animation: ru-fadein 4s both; }
