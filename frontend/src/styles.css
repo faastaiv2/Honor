@@ -3932,3 +3932,37 @@ nav.tabs .who .help-btn { font-weight: 700; }
 @keyframes fc-gems { from { transform: translateY(18px) scale(.8); } }
 .fc .fc-spark { transform-box: fill-box; transform-origin: center; animation: gem-glint 2.4s ease-in-out infinite; }
 .gx-chest-btn:hover .fc-closed { filter: brightness(1.06); }
+
+/* Gem rain onto the floor (gx-heap): falls in, piles up, the floor cracks, two gems tumble off */
+.gx-stage { width: 300px; height: 290px; }
+.gx-chest .gx-stage { height: 290px; place-items: end center; }
+.gx-chest .gx-chest-btn { inset: auto 30px 10px; height: 230px; }
+.gx-floor { position: absolute; left: 50%; bottom: 22px; width: 280px; height: 54px; translate: -50% 0; border-radius: 50%;
+  background: #3a4757; box-shadow: inset 0 4px 10px #0004; animation: gx-floor-in .4s ease both; }
+.gx-gold .gx-floor { background: #8a5a12; }
+@keyframes gx-floor-in { from { opacity: 0; transform: scale(.6); } }
+.gx-floor.cracked { animation: gx-thud .35s ease-out; background: #2c3642; }
+.gx-gold .gx-floor.cracked { background: #6a4208; }
+@keyframes gx-thud { 30% { transform: scaleY(.85) scaleX(1.04); } }
+.gx-cracks { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; fill: #8794a2; opacity: 0; transform: scale(.7); transform-origin: 50% 40%;
+  transition: opacity .2s, transform .35s cubic-bezier(.2, 1.4, .4, 1); }
+.gx-gold .gx-cracks { fill: #b98a3a; }
+.gx-floor.cracked .gx-cracks { opacity: 1; transform: none; }
+.gx-heap { position: absolute; left: 50%; bottom: 36px; width: 250px; height: 230px; translate: -50% 0; transition: transform .35s cubic-bezier(.3, 1.4, .5, 1); }
+.gx-heap.sunk { transform: translateY(10px) scaleY(.97); }
+.gx-hg { position: absolute; display: block; transform: translate(-50%, -50%) rotate(var(--r)); animation: gx-fall .62s cubic-bezier(.45, 0, .55, 1.25) both; }
+.gx-hg svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 2px 2px #0003); }
+@keyframes gx-fall { 0% { opacity: 0; transform: translate(-50%, calc(-50% - 380px)) rotate(0deg); } 12% { opacity: 1; } 100% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--r)); } }
+.gx-spill { position: absolute; bottom: 52px; width: 46px; opacity: 0; z-index: 99; }
+.gx-spill svg { display: block; width: 100%; height: auto; }
+.gx-spill.l { left: 92px; } .gx-spill.r { right: 92px; }
+.gx-spill.go { animation: gx-spill-l .9s .12s cubic-bezier(.3, .1, .4, 1) forwards; }
+.gx-spill.r.go { animation-name: gx-spill-r; }
+@keyframes gx-spill-l { 0% { opacity: 1; transform: translate(0, -30px) rotate(0); } 50% { transform: translate(-84px, 52px) rotate(-150deg); } 70% { transform: translate(-100px, 40px) rotate(-185deg); } 100% { opacity: 1; transform: translate(-112px, 58px) rotate(-200deg); } }
+@keyframes gx-spill-r { 0% { opacity: 1; transform: translate(0, -30px) rotate(0); } 50% { transform: translate(84px, 52px) rotate(150deg); } 70% { transform: translate(100px, 40px) rotate(185deg); } 100% { opacity: 1; transform: translate(112px, 58px) rotate(200deg); } }
+.gx-amount { opacity: 0; transform: translateY(8px); transition: opacity .35s, transform .35s; min-height: 48px; font-size: 40px; color: #6cc0f7; text-shadow: none; }
+.gx-amount.on, .gx-ready .gx-amount { opacity: 1; transform: none; }
+.gx-gold .gx-amount { color: #4a2c00; }
+.gx-fly .gx-heap { animation: gx-tofly .65s cubic-bezier(.5, 0, .7, .4) forwards; }
+.gx-fly .gx-spill, .gx-fly .gx-floor { transition: opacity .3s; opacity: 0 !important; }
+@media (prefers-reduced-motion: reduce) { .gx-hg, .gx-spill { animation: none !important; } .gx-spill { opacity: 1; } }

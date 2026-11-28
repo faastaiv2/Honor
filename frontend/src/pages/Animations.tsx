@@ -254,10 +254,11 @@ export default function Animations({ info }: { info: TodayInfo | null }) {
         () => setPreview({ kind: "godfather" }),
         slot("godfather", "Godfather", "Plays as the screen goes dark and the gold ring draws itself"))}
 
-      {card("💎", "Gem rewards", "Every gem reward works the same clean way: a chest (daily streak, ranks, wins) waits for a tap, gives a little wiggle and opens, a fan of gems pops out into one big gem while “+N” counts up, and Collect sends it to the wallet. Achievements skip the chest.",
+      {card("💎", "Gem rewards", "Every gem reward: a chest (daily streak, ranks, wins) waits for a tap and opens; the gems fall onto a dark floor and pile up, the floor cracks under the weight, two gems tumble off the sides, “+N gems” counts up, and Collect sends them to the wallet. Achievements skip the chest.",
         () => setPreview({ kind: "chest" }),
         <>{slot("chest", "Chest opens", "Plays when the chest is tapped open")}
-          {slot("gems", "Gems appear", "Plays as the gems pop out")}
+          {slot("gems", "Gems fall", "Plays as the gems start falling")}
+          {slot("gems-crack", "Floor cracks", "Plays when the floor cracks under the heap")}
           {slot("collect", "Collect", "Plays when gems fly into the wallet")}</>)}
 
       {card("🏅", "Achievement collected", "Collecting an achievement's gems in the Achievements tab.", () => setPreview({ kind: "achievement" }),

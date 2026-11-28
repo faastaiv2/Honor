@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Gem from "./Gem";
-import { HexGem } from "./GemArt";
+import GemArt from "./GemArt";
 import { Particles } from "./particles";
 import { playSound } from "./sounds";
 import type { SoundKey } from "../api";
@@ -77,21 +77,46 @@ export interface GemRewardProps {
   onDone: () => void;
 }
 
-export default function GemReward({ amount, title, from, chest = false, gold = false, jewel, sound, onDone }: GemRewardProps) {
+/** Where each gem lands: a rounded mound, wide at the bottom, packed and overlapping, a little uneven.
+ * % of the heap box (x centre, y centre). Bottom rows land first; within a row the order is mixed. */
+function heapSpots(n: number) {
+  const rows: number[] = [];
+  const grow = [1, 2, 3, 3, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9];
+  for (let k = 0; rows.reduce((a, b) => a + b, 0) < n; k++) rows.unshift(grow[Math.min(k, grow.length - 1)]);
+  const widest = rows[0];
+  const size = Math.max(15, Math.min(30, 104 / (widest * 0.74 + 0.4)));
+  const out: { x: number; y: number; r: number; tone: "blue" | "sky" | "deep"; order: number }[] = [];
+  let left = n, order = 0;
+  rows.forEach((count, row) => {
+    const idx = Array.from({ length: count }, (_, i) => i).sort((p, q) => ((p * 7 + row * 3) % 5) - ((q * 7 + row * 3) % 5));
+    for (const i of idx) {
+      if (left-- <= 0) break;
+      const jx = (((row * 7 + i * 13) % 7) - 3) * 0.9, jy = (((row * 5 + i * 11) % 5) - 2) * 0.9;
+      out.push({ x: 50 + (i - (count - 1) / 2) * size * 0.74 + jx, y: 86 - row * size * 0.5 + jy, r: ((i * 37 + row * 23) % 50) - 25,
+        tone: (["blue", "sky", "deep"] as const)[(i * 2 + row) % 3], order: order++ });
+    }
+  });
+  return { spots: out, size };
+}
+
+export default function GemReward({ amount, title, from, chest = false, gold = false, sound, onDone }: GemRewardProps) {
   const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  // One calm sequence for every reward:
-  //   ready (chest only: it breathes, "Tap to open") → open (a short wiggle, the lid swings up, a soft flash)
-  //   → shown (a fan of gems pops out and settles into one big gem, "+N" counts up) → fly (Collect: the gem
-  //   flies to your wallet, which counts up) → done.
-  const [phase, setPhase] = useState<"ready" | "open" | "shown" | "fly" | "done">(chest && !reduced ? "ready" : "shown");
+  // ready (chest: tap to open) → open (wiggle, lid up, gems inside) → rain (the chest goes, a dark floor appears and the gems
+  // fall in one by one, piling into a heap) → crack (the floor cracks under the weight, the heap sinks a little and two gems
+  // tumble off the sides) → shown ("+N gems" counts up, Collect) → fly (the heap flies into the wallet) → done.
+  const [phase, setPhase] = useState<"ready" | "open" | "rain" | "crack" | "fly" | "done">(reduced ? "crack" : chest ? "ready" : "rain");
   const [shown, setShown] = useState(reduced ? amount : 0);
   const [wallet, setWallet] = useState(from ?? 0);
   const [fly, setFly] = useState<{ dx: number; dy: number } | null>(null);
   const walletRef = useRef<HTMLSpanElement>(null);
-  const bigRef = useRef<HTMLDivElement>(null);
+  const heapRef = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const engine = useRef<Particles | null>(null);
   const colors = gold ? ["#fff6c8", "#ffd24a", "#ffffff"] : SPARK;
+  const n = Math.max(8, Math.min(60, Math.round(amount)));
+  const { spots, size } = useMemo(() => heapSpots(n), [n]);
+  const STEP = 34; // ms between falling gems
+  const rainMs = 200 + n * STEP + 650;
 
   useEffect(() => {
     const c = canvas.current;
@@ -104,27 +129,30 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
     return () => { e.stop(); window.removeEventListener("resize", onResize); };
   }, [reduced]);
 
-  useEffect(() => {
-    if (sound) void playSound(sound);
-    if (!chest || reduced) void playSound("gems");
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (sound) void playSound(sound); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const center = () => {
-    const r = bigRef.current?.getBoundingClientRect();
-    return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : undefined;
-  };
   function open() {
     if (phase !== "ready") return;
     setPhase("open");
     void playSound("chest");
-    window.setTimeout(() => { const at = center(); if (at) engine.current?.burst("sparkle", 70, colors, at); void playSound("gems"); setPhase("shown"); }, 900);
+    window.setTimeout(() => setPhase("rain"), 1100);
   }
-
-  // "+N" counts up once the gems are out; a little sparkle when it lands.
+  // The rain, then the crack.
   useEffect(() => {
-    if (phase !== "shown" || reduced) return;
-    if (!chest) { const t = window.setTimeout(() => { const at = center(); if (at) engine.current?.burst("sparkle", 40, colors, at); }, 350); void t; }
-    const start = performance.now() + 450, len = Math.min(1600, 500 + amount * 6);
+    if (phase !== "rain") return;
+    void playSound("gems");
+    const t = window.setTimeout(() => {
+      setPhase("crack");
+      void playSound("gems-crack");
+      const h = heapRef.current?.getBoundingClientRect();
+      if (h) engine.current?.burst("sparkle", 30, ["#9aa8b4", "#cfd8df", "#ffffff"], { x: h.left + h.width / 2, y: h.top + h.height * 0.92 });
+    }, rainMs);
+    return () => clearTimeout(t);
+  }, [phase, rainMs]);
+  // "+N gems" counts up after the crack.
+  useEffect(() => {
+    if (phase !== "crack" || reduced) return;
+    const start = performance.now() + 250, len = Math.min(1400, 450 + amount * 5);
     let raf = 0;
     const step = (t: number) => {
       const k = Math.min(1, Math.max(0, (t - start) / len));
@@ -133,15 +161,15 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [phase, amount, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, amount, reduced]);
 
   function collect() {
     void playSound("collect");
-    if (reduced || !walletRef.current || !bigRef.current) { onDone(); return; }
-    const w = walletRef.current.getBoundingClientRect(), g = bigRef.current.getBoundingClientRect();
+    if (reduced || !walletRef.current || !heapRef.current) { onDone(); return; }
+    const w = walletRef.current.getBoundingClientRect(), g = heapRef.current.getBoundingClientRect();
     setFly({ dx: w.left + w.width / 2 - (g.left + g.width / 2), dy: w.top + w.height / 2 - (g.top + g.height / 2) });
     setPhase("fly");
-    const base = from ?? 0, start = performance.now() + 550, len = 700;
+    const base = from ?? 0, start = performance.now() + 500, len = 800;
     const step = (t: number) => {
       const k = Math.min(1, Math.max(0, (t - start) / len));
       setWallet(Math.round(base + amount * k));
@@ -154,8 +182,8 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
     requestAnimationFrame(step);
   }
 
-  const out = phase === "shown" || phase === "fly" || phase === "done";
-  const fan = 9;
+  const heap = phase === "rain" || phase === "crack" || phase === "fly" || phase === "done";
+  const cracked = phase === "crack" || phase === "fly" || phase === "done";
   return createPortal(
     <div className={`gx gx-${phase}${gold ? " gx-gold" : ""}${chest ? " gx-chest" : ""}`} role="dialog" aria-modal="true" aria-label={`${amount} gems`}>
       <div className="gx-bg" aria-hidden="true"><i className="gx-glow" /></div>
@@ -165,23 +193,36 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
       </span>
       <div className="gx-card">
         {title && <p className="gx-title">{title}</p>}
+        <p className={`gx-amount${cracked ? " on" : ""}`} aria-live="polite">
+          {phase === "ready" ? <span className="gx-hint">Tap the chest to open</span> : cracked ? <>+{shown} gems</> : "\u00a0"}
+        </p>
         <div className="gx-stage">
-          {chest && (
+          {chest && !heap && (
             <button type="button" className="gx-chest-btn" onClick={open} disabled={phase !== "ready"} aria-label="Open the chest">
-              <Chest state={phase === "ready" ? "closed" : "open"} jewel={jewel} />
+              <Chest state={phase === "ready" ? "closed" : "open"} />
             </button>
           )}
-          {out && <div className="gx-fan" aria-hidden="true">
-            {Array.from({ length: fan }, (_, i) => <span key={i} className="gx-fan-gem" style={{ ["--a" as string]: `${-80 + (160 / (fan - 1)) * i}deg`, ["--d" as string]: `${i * 25}ms` }}><HexGem tone={(["blue", "sky", "deep"] as const)[i % 3]} /></span>)}
+          {heap && <div className={`gx-floor${cracked ? " cracked" : ""}`} aria-hidden="true">
+            <svg className="gx-cracks" viewBox="0 0 300 80" aria-hidden="true">
+              <path d="M34 24 L-6 16 L10 40 Z" /><path d="M26 46 L-10 60 L22 64 Z" /><path d="M56 62 L36 86 L74 72 Z" />
+              <path d="M266 24 L306 14 L292 40 Z" /><path d="M274 46 L312 58 L278 64 Z" /><path d="M244 62 L266 88 L228 72 Z" />
+              <path d="M116 72 L104 92 L134 78 Z" /><path d="M184 72 L200 92 L168 78 Z" /><path d="M150 76 L140 96 L162 96 Z" />
+            </svg>
           </div>}
-          <div className={`gx-big${out ? " on" : ""}`} ref={bigRef} style={fly ? { ["--dx" as string]: `${fly.dx}px`, ["--dy" as string]: `${fly.dy}px` } : undefined}>
-            {out && <HexGem tone="sky" glint />}
-          </div>
+          {heap && (
+            <div className={`gx-heap${cracked ? " sunk" : ""}`} ref={heapRef} style={fly ? { ["--dx" as string]: `${fly.dx}px`, ["--dy" as string]: `${fly.dy}px` } : undefined}>
+              {spots.map((g, i) => (
+                <span key={i} className="gx-hg" style={{ left: `${g.x}%`, top: `${g.y}%`, width: `${size}%`, ["--r" as string]: `${g.r}deg`,
+                  animationDelay: reduced ? "0ms" : `${200 + g.order * STEP}ms`, zIndex: g.order }}><GemArt tone={g.tone} glint={false} /></span>
+              ))}
+            </div>
+          )}
+          {heap && <>
+            <span className={`gx-spill l${cracked ? " go" : ""}`} aria-hidden="true"><GemArt tone="sky" glint={false} /></span>
+            <span className={`gx-spill r${cracked ? " go" : ""}`} aria-hidden="true"><GemArt tone="blue" glint={false} /></span>
+          </>}
         </div>
-        <p className="gx-amount" aria-live="polite">
-          {phase === "ready" ? <span className="gx-hint">Tap the chest to open</span> : phase === "open" ? "\u00a0" : <>+{shown} <Gem size={34} /></>}
-        </p>
-        <button className={`gx-collect${phase === "shown" ? "" : " wait"}`} onClick={collect} disabled={phase !== "shown"} aria-hidden={phase !== "shown"}>Collect</button>
+        <button className={`gx-collect${phase === "crack" ? "" : " wait"}`} onClick={collect} disabled={phase !== "crack"} aria-hidden={phase !== "crack"}>Collect</button>
       </div>
     </div>,
     document.body,
