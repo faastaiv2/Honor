@@ -3950,9 +3950,16 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .gx-floor.cracked .gx-cracks { opacity: 1; transform: none; }
 .gx-heap { position: absolute; left: 50%; bottom: 36px; width: 250px; height: 230px; translate: -50% 0; transition: transform .35s cubic-bezier(.3, 1.4, .5, 1); }
 .gx-heap.sunk { transform: translateY(10px) scaleY(.97); }
-.gx-hg { position: absolute; display: block; transform: translate(-50%, -50%) rotate(var(--r)); animation: gx-fall .62s cubic-bezier(.45, 0, .55, 1.25) both; }
-.gx-hg svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 2px 2px #0003); }
-@keyframes gx-fall { 0% { opacity: 0; transform: translate(-50%, calc(-50% - 380px)) rotate(0deg); } 12% { opacity: 1; } 100% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--r)); } }
+.gx-hg { position: absolute; display: block; transform: translate(-50%, -50%) rotate(var(--r)); animation: gx-fall .78s both; }
+.gx-hg svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 2px 1px #0a3a7044); }
+/* poured from one stream above the middle: they fall faster and faster (gravity), spread out, land with a little bounce */
+@keyframes gx-fall {
+  0% { opacity: 0; transform: translate(calc(-50% + var(--sx)), calc(-50% - var(--h))) rotate(var(--r0)); animation-timing-function: cubic-bezier(.5, 0, .9, .5); }
+  8% { opacity: 1; }
+  72% { transform: translate(-50%, -50%) rotate(var(--r)) scale(1.04, .9); animation-timing-function: cubic-bezier(.2, .6, .4, 1); }
+  86% { transform: translate(-50%, calc(-50% - 7px)) rotate(var(--r)) scale(.97, 1.04); animation-timing-function: cubic-bezier(.5, 0, .7, .4); }
+  100% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--r)); }
+}
 .gx-spill { position: absolute; bottom: 52px; width: 46px; opacity: 0; z-index: 99; }
 .gx-spill svg { display: block; width: 100%; height: auto; }
 .gx-spill.l { left: 92px; } .gx-spill.r { right: 92px; }
@@ -3960,7 +3967,7 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .gx-spill.r.go { animation-name: gx-spill-r; }
 @keyframes gx-spill-l { 0% { opacity: 1; transform: translate(0, -30px) rotate(0); } 50% { transform: translate(-84px, 52px) rotate(-150deg); } 70% { transform: translate(-100px, 40px) rotate(-185deg); } 100% { opacity: 1; transform: translate(-112px, 58px) rotate(-200deg); } }
 @keyframes gx-spill-r { 0% { opacity: 1; transform: translate(0, -30px) rotate(0); } 50% { transform: translate(84px, 52px) rotate(150deg); } 70% { transform: translate(100px, 40px) rotate(185deg); } 100% { opacity: 1; transform: translate(112px, 58px) rotate(200deg); } }
-.gx-amount { opacity: 0; transform: translateY(8px); transition: opacity .35s, transform .35s; min-height: 48px; font-size: 40px; color: #6cc0f7; text-shadow: none; }
+.gx-amount { opacity: 0; transform: translateY(8px); transition: opacity .35s, transform .35s; min-height: 48px; font-size: 40px; color: #56c2ff; text-shadow: none; }
 .gx-amount.on, .gx-ready .gx-amount { opacity: 1; transform: none; }
 .gx-gold .gx-amount { color: #4a2c00; }
 .gx-fly .gx-heap { animation: gx-tofly .65s cubic-bezier(.5, 0, .7, .4) forwards; }

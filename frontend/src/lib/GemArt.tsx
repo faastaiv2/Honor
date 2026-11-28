@@ -5,9 +5,9 @@
  */
 const PALETTES: Record<string, [string, string, string]> = {
   // body, shine, outline
-  blue: ["#5aaef0", "#d4efff", "#3f93d6"],
-  sky: ["#6cc0f7", "#e0f5ff", "#4aa6e6"],
-  deep: ["#4a9ae8", "#cfe8ff", "#337fcc"],
+  blue: ["#38b0ff", "#d8f2ff", "#1a7fd6"],
+  sky: ["#56c2ff", "#e6f8ff", "#2a92e0"],
+  deep: ["#2c9cf5", "#cdeaff", "#1570c8"],
 };
 
 /**

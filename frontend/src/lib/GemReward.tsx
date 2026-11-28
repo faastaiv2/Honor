@@ -113,10 +113,10 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
   const canvas = useRef<HTMLCanvasElement>(null);
   const engine = useRef<Particles | null>(null);
   const colors = gold ? ["#fff6c8", "#ffd24a", "#ffffff"] : SPARK;
-  const n = Math.max(8, Math.min(60, Math.round(amount)));
+  const n = Math.max(14, Math.min(70, Math.round(amount)));
   const { spots, size } = useMemo(() => heapSpots(n), [n]);
-  const STEP = 34; // ms between falling gems
-  const rainMs = 200 + n * STEP + 650;
+  const STEP = 16; // ms between falling gems: they pour in together, like a stream
+  const rainMs = 200 + n * STEP + 900;
 
   useEffect(() => {
     const c = canvas.current;
@@ -213,7 +213,8 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
             <div className={`gx-heap${cracked ? " sunk" : ""}`} ref={heapRef} style={fly ? { ["--dx" as string]: `${fly.dx}px`, ["--dy" as string]: `${fly.dy}px` } : undefined}>
               {spots.map((g, i) => (
                 <span key={i} className="gx-hg" style={{ left: `${g.x}%`, top: `${g.y}%`, width: `${size}%`, ["--r" as string]: `${g.r}deg`,
-                  animationDelay: reduced ? "0ms" : `${200 + g.order * STEP}ms`, zIndex: g.order }}><GemArt tone={g.tone} glint={false} /></span>
+                  animationDelay: reduced ? "0ms" : `${200 + g.order * STEP}ms`, zIndex: g.order,
+                  ["--sx" as string]: `${(50 - g.x) * 1.6}px`, ["--h" as string]: `${430 + (g.order % 5) * 30}px`, ["--r0" as string]: `${(g.order * 47) % 120 - 60}deg` }}><GemArt tone={g.tone} glint={false} /></span>
               ))}
             </div>
           )}
