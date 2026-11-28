@@ -380,7 +380,7 @@ def bully_for(db: Session, member_id: str) -> dict | None:
 
 
 class BullyAnswerIn(BaseModel):
-    choice: str = Field(pattern="^(gobi|mean|kind|tell)$")
+    choice: str = Field(pattern="^(gobi|mean|kind|forgive|tell)$")  # "tell" is the old gold choice, kept for old answers
 
 
 @router.post("/bully/{test_id}/answer")

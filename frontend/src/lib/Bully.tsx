@@ -96,7 +96,7 @@ function Skeleton() {
 }
 
 type Stage = "enter" | "taunt" | "choose" | "gobi" | "fled" | "mean" | "mean2" | "kind" | "kind2"
-  | "summon" | "storm" | "zap" | "skel" | "poof" | "hadith" | "leave";
+  | "summon" | "storm" | "zap" | "skel" | "poof" | "hadith" | "forgive" | "glow" | "forgive2" | "ayah" | "leave";
 
 const TAUNTS = [
   "You are very bad and lazy! 😏",
@@ -106,7 +106,7 @@ const TAUNTS = [
 
 export default function BullyScene({ name, balance, price = 25, tellPrice = 100, elder = "", onAnswer, onDone, preview = false }: {
   name: string; balance: number; price?: number; tellPrice?: number; elder?: string;
-  onAnswer?: (choice: "gobi" | "mean" | "kind" | "tell") => Promise<unknown> | void;
+  onAnswer?: (choice: "gobi" | "mean" | "kind" | "forgive") => Promise<unknown> | void;
   /** refund: gems given back after telling a grown-up (shown as a gem rain). */
   onDone: (refund?: number) => void; preview?: boolean;
 }) {
@@ -126,20 +126,18 @@ export default function BullyScene({ name, balance, price = 25, tellPrice = 100,
   }, []);
 
   const later = (ms: number, fn: () => void) => window.setTimeout(fn, ms);
-  async function choose(c: "gobi" | "mean" | "kind" | "tell") {
+  async function choose(c: "gobi" | "mean" | "kind" | "forgive") {
     setError("");
     if (!preview) {
       try { await onAnswer?.(c); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); return; }
     }
     if (c === "gobi") setStage("gobi");
     if (c === "mean") { setStage("mean"); later(3000, () => setStage("mean2")); later(7600, () => setStage("leave")); later(8600, () => onDone()); }
-    if (c === "tell") {
-      setStage("summon"); void playSound("tell-thunder");
-      later(2200, () => setStage("storm"));
-      later(4600, () => { setStage("zap"); void playSound("tell-zap"); });
-      later(6400, () => setStage("skel"));
-      later(8600, () => setStage("poof"));
-      later(9800, () => setStage("hadith"));
+    if (c === "forgive") { // forgive him and leave it to Allah: a soft light, he is sorry, then the ayahs
+      setStage("forgive");
+      later(3400, () => setStage("glow"));
+      later(5600, () => { setStage("forgive2"); void playSound("bully-sorry"); });
+      later(10200, () => setStage("ayah"));
       return;
     }
     if (c === "kind") {
@@ -158,11 +156,11 @@ export default function BullyScene({ name, balance, price = 25, tellPrice = 100,
 
   const moodNow: Mood | null = stage === "mean" || stage === "mean2" ? "angry" : stage === "kind2" ? "sorry" : stage === "fled" ? "crying"
     : stage === "summon" || stage === "storm" ? "scared" : stage === "skel" || stage === "poof" ? "skeleton" : stage === "zap" ? "scared"
-    : stage === "leave" || stage === "hadith" ? null : "smug";
+    : stage === "glow" ? "scared" : stage === "forgive2" ? "sorry"
+    : stage === "leave" || stage === "hadith" || stage === "ayah" ? null : "smug";
   if (moodNow) lastMood.current = moodNow;
   const mood = lastMood.current;
   const can = balance >= price;
-  const canTell = balance >= tellPrice;
   const dark = ["summon", "storm", "zap", "skel", "poof", "hadith"].includes(stage);
   return createPortal(
     <div className={`bl bl-s-${stage}${dark ? " bl-dark" : ""}`} role="dialog" aria-modal="true" aria-label="Someone is being rude to you">
@@ -178,7 +176,10 @@ export default function BullyScene({ name, balance, price = 25, tellPrice = 100,
       </>}
       {stage === "zap" && <svg className="bl-bolt hit" viewBox="0 0 80 400" preserveAspectRatio="none" aria-hidden="true"><path d="M44 0 L22 150 L44 150 L16 400 L66 120 L42 120 L60 0Z" fill="#fffbe0" stroke="#fff06a" strokeWidth="4" /></svg>}
       {(stage === "storm" || stage === "zap") && <div className="bl-flash" aria-hidden="true" />}
-      {stage !== "hadith" && <div className="bl-stage"><div className="bl-kidwrap">
+      {["forgive", "glow", "forgive2", "ayah"].includes(stage) && <div className="bl-light" aria-hidden="true">
+        {Array.from({ length: 14 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}
+      </div>}
+      {stage !== "hadith" && stage !== "ayah" && <div className="bl-stage"><div className="bl-kidwrap">
         {stage === "zap" ? <div className="bl-xray"><span className="a"><Kid mood="scared" /></span><span className="b"><Kid mood="skeleton" /></span></div> : <Kid mood={mood} />}
         {stage === "poof" && <div className="bl-puffs" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ ["--i" as string]: i }} />)}</div>}
       </div></div>}
@@ -191,8 +192,7 @@ export default function BullyScene({ name, balance, price = 25, tellPrice = 100,
             <button className="bl-c bl-gobi" disabled={!can} onClick={() => choose("gobi")}>🥦 Launch Gobi <span>{price} <Gem /></span>{!can && <small>you need {price} gems</small>}</button>
             <button className="bl-c bl-mean" onClick={() => choose("mean")}>😤 Say something mean back</button>
             <button className="bl-c bl-kind" onClick={() => choose("kind")}>🤝 Reply kindly</button>
-            <button className="bl-c bl-tell" disabled={!canTell} onClick={() => choose("tell")}>⚡ Tell {who} <span>{tellPrice} <Gem /></span>
-              <small>{canTell ? "you get it all back after" : `you need ${tellPrice} gems`}</small></button>
+            <button className="bl-c bl-tell" onClick={() => choose("forgive")}>🤲 Forgive and trust in Allah</button>
           </div>
           {error && <p className="err">{error}</p>}
         </>}
@@ -215,6 +215,21 @@ export default function BullyScene({ name, balance, price = 25, tellPrice = 100,
           <p className="bl-hadith-s">Sahih al-Bukhari & Sahih Muslim</p>
           <p className="bl-hadith-n">Hurting others with words is never okay. Telling a grown-up was the right call, {name} 💪</p>
           <button className="bl-refund" autoFocus onClick={() => onDone(preview ? 0 : tellPrice)}>Get my {tellPrice} <Gem /> back</button>
+        </div>}
+        {stage === "forgive" && <p className="bl-bubble you">I forgive you. Allah sees everything, and I trust Him. 🤲</p>}
+        {stage === "glow" && <p className="bl-bubble them">…You… forgive me? After what I said? 😳</p>}
+        {stage === "forgive2" && <>
+          <p className="bl-bubble them soft">I'm really sorry. I shouldn't have said that. I'll try to be better. 🥺</p>
+          <p className="bl-lesson good">Forgiving made you the strongest one here 💛</p>
+        </>}
+        {stage === "ayah" && <div className="bl-hadith">
+          <p className="bl-hadith-k">Allah says in the Quran:</p>
+          <p className="bl-hadith-q">“And whoever relies upon Allah — then He is sufficient for him.”</p>
+          <p className="bl-hadith-s">Surah At-Talaq 65:3 · Saheeh International</p>
+          <p className="bl-hadith-q small">“…and let them pardon and overlook. Would you not like that Allah should forgive you?”</p>
+          <p className="bl-hadith-s">Surah An-Nur 24:22 · Saheeh International</p>
+          <p className="bl-hadith-n">You forgave and left it to Allah. That is real strength, {name} 💪</p>
+          <button className="bl-refund" autoFocus onClick={() => onDone()}>Alhamdulillah ✨</button>
         </div>}
         {stage === "fled" && <p className="bl-bubble them">WAAAAH! 😭 Okay, okay, I'm going!</p>}
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import Gem from "./Gem";
+import { playSound, preloadSound } from "./sounds";
 
 /**
  * Launch Gobi: a cauliflower in a slingshot. Pull it back, let go, and try to hit the picture of the person
@@ -60,6 +61,7 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose, t
 
   // The target drifts from side to side, a little faster after each miss.
   const misses = useRef(0);
+  useEffect(() => { void preloadSound("gobi-splat"); }, []); // ready before the first throw
   useEffect(() => {
     let raf = 0;
     const t0 = performance.now();
@@ -125,6 +127,7 @@ export default function GobiGame({ name, avatar, frame, color, onHit, onClose, t
   async function hit(at: { x: number; y: number }) {
     setGobi(at);
     setPhase("hit");
+    void playSound("gobi-splat", false); // the splat, right as it lands
     try { setWon(await onHit()); } catch (e) { setError(e instanceof Error ? e.message : "Could not save the hit"); }
     window.setTimeout(() => setPhase("done"), 1300);
   }

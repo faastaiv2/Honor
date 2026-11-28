@@ -3846,3 +3846,13 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .halfrule.up { color: var(--good); }
 .halfrule.hold { color: #8a6400; }
 .halfrule.low { color: var(--bad); }
+
+/* Rude kid: forgive and trust in Allah — a soft golden light from above */
+.bl-light { position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(70% 55% at 50% 0%, #fff6d2cc, #ffe39a55 45%, transparent 75%); animation: bl-light-in 1.6s ease both; }
+@keyframes bl-light-in { from { opacity: 0; } }
+.bl-light i { position: absolute; bottom: -10px; left: calc(4% + var(--i) * 6.8%); width: 6px; height: 6px; border-radius: 50%; background: #fff3b0; box-shadow: 0 0 10px #ffd24a;
+  animation: bl-mote calc(4s + var(--i) % 4 * .8s) calc(var(--i) * -.45s) linear infinite; }
+@keyframes bl-mote { from { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } to { transform: translateY(-90vh); opacity: 0; } }
+.bl-hadith-q.small { font-size: 18px; }
+@media (prefers-reduced-motion: reduce) { .bl-light i { animation: none; } }

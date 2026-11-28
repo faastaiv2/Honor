@@ -59,7 +59,7 @@ ACHIEVEMENTS: list[Achievement] = [
                 lambda f: f.shaytan, reward=30),
     Achievement("sadaqah", "Sadaqah", "Give to someone in need when they ask", "Honor", "heart", "silver", 1,
                 lambda f: f.sadaqah),
-    Achievement("kindness", "Gentle Heart", "Reply kindly when someone is rude to you", "Honor", "heart", "silver", 1,
+    Achievement("kindness", "Gentle Heart", "Reply kindly, or forgive, when someone is rude to you", "Honor", "heart", "silver", 1,
                 lambda f: f.kindness),
     Achievement("mercy", "Mercy to All Creatures", "Give everything you have so a thirsty kitten can drink", "Honor", "heart", "gold", 1,
                 lambda f: f.mercy, secret=True),

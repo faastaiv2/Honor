@@ -108,7 +108,7 @@ export interface PigeonNote { id: string; member: { id: string; name: string; av
   opened_at: string | null; created_at: string }
 export interface QuizQuestion { q: string; options: string[]; answer?: number }
 export interface QuizShow { id: string; gems_each: number; answers: number[]; questions: QuizQuestion[] }
-export interface BullyTest { id: string; member: { id: string; name: string; avatar: string }; answer: "" | "gobi" | "mean" | "kind" | "tell"; paid: number; elder: string; answered_at: string | null; created_at: string }
+export interface BullyTest { id: string; member: { id: string; name: string; avatar: string }; answer: "" | "gobi" | "mean" | "kind" | "forgive" | "tell"; paid: number; elder: string; answered_at: string | null; created_at: string }
 export interface QuizTest { id: string; member: { id: string; name: string; avatar: string }; questions: Required<QuizQuestion>[]; gems_each: number; answers: number[];
   right: number; finished_at: string | null; created_at: string }
 export interface KittenTest { id: string; member: { id: string; name: string; avatar: string }; answer: "" | "water" | "walk"; gems: number; posted: boolean; answered_at: string | null; created_at: string }
@@ -246,7 +246,7 @@ export const api = {
   bullyTests: () => request<BullyTest[]>("/tests/bully"),
   sendBully: (member_id: string, elder = "") => request<BullyTest>("/tests/bully", send("POST", { member_id, elder })),
   cancelBully: (id: string) => request<void>(`/tests/bully/${id}`, send("DELETE")),
-  answerBully: (id: string, choice: "gobi" | "mean" | "kind" | "tell") => request<{ answer: string; paid: number }>(`/tests/bully/${id}/answer`, send("POST", { choice })),
+  answerBully: (id: string, choice: "gobi" | "mean" | "kind" | "forgive") => request<{ answer: string; paid: number }>(`/tests/bully/${id}/answer`, send("POST", { choice })),
   quizTests: () => request<QuizTest[]>("/tests/quiz"),
   sendQuiz: (member_id: string, questions: Required<QuizQuestion>[], gems_each: number) => request<QuizTest>("/tests/quiz", send("POST", { member_id, questions, gems_each })),
   cancelQuiz: (id: string) => request<void>(`/tests/quiz/${id}`, send("DELETE")),

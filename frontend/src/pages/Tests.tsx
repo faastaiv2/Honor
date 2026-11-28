@@ -36,9 +36,6 @@ export default function Tests() {
   const [bullies, setBullies] = useState<BullyTest[] | null>(null);
   const [bWho, setBWho] = useState("");
   const [bPreview, setBPreview] = useState(false);
-  // The grown-up they can tell: typed here and remembered on this device only (never in the app's code).
-  const [elder, setElder] = useState(() => { try { return localStorage.getItem("honor.tellName") || ""; } catch { return ""; } });
-  useEffect(() => { try { localStorage.setItem("honor.tellName", elder); } catch { /* private mode */ } }, [elder]);
   const [kittens, setKittens] = useState<KittenTest[] | null>(null);
   const [kWho, setKWho] = useState("");
   const [kPreview, setKPreview] = useState(false);
@@ -86,8 +83,8 @@ export default function Tests() {
     ...(charity ?? []).filter((t) => t.answer).map((t) => ({ when: t.answered_at || t.created_at, who: t.member, icon: "🧥", test: "The man in the cloak",
       choice: t.answer === "give" ? `Gave ${t.given} gems` : "Said get lost", good: t.answer === "give" })),
     ...(bullies ?? []).filter((t) => t.answer).map((t) => ({ when: t.answered_at || t.created_at, who: t.member, icon: "😠", test: "Rude kid",
-      choice: t.answer === "kind" ? "Replied kindly" : t.answer === "tell" ? `Told ${t.elder || "a grown-up"}` : t.answer === "mean" ? "Was mean back" : "Launched a Mega Gobi",
-      good: t.answer === "kind" || t.answer === "tell" ? true : t.answer === "mean" ? false : null })),
+      choice: t.answer === "kind" ? "Replied kindly" : t.answer === "forgive" ? "Forgave and trusted in Allah" : t.answer === "tell" ? `Told ${t.elder || "a grown-up"}` : t.answer === "mean" ? "Was mean back" : "Launched a Mega Gobi",
+      good: t.answer === "kind" || t.answer === "forgive" || t.answer === "tell" ? true : t.answer === "mean" ? false : null })),
     ...(kittens ?? []).filter((t) => t.answer).map((t) => ({ when: t.answered_at || t.created_at, who: t.member, icon: "🐱", test: "Thirsty kitten",
       choice: t.answer === "water" ? "Gave it water" : "Walked past", good: t.answer === "water" })),
     ...(quizzes ?? []).filter((t) => t.finished_at).map((t) => ({ when: t.finished_at!, who: t.member, icon: "🦉", test: "Owl's quiz",
@@ -228,14 +225,12 @@ export default function Tests() {
         <p className="note">A boastful kid struts onto the member's screen: “You are very bad and lazy! I am better than you! I am very powerful and strong, and you are
           WEAK!” They choose: <b>Launch Gobi</b> (25 gems, the golden Mega Gobi launcher; hit him and he runs off crying), <b>say something mean back</b> (he gets
           angrier, a storm cloud, nothing gained), <b>reply kindly</b> (he says sorry, becomes a friend, and they earn “Gentle Heart”, Rare, +40 gems), or the gold
-          <b> Tell …</b> button (100 gems, given back after): the sky goes dark, lightning strikes left and right and then him, he turns into a skeleton and vanishes,
-          and they see the hadith about harming others with your tongue.</p>
+          <b> 🤲 Forgive and trust in Allah</b> button (free): a soft golden light, he says sorry, then two ayahs on trusting Allah and forgiving. It also earns “Gentle Heart”.</p>
         <div className="ts-row">
           <select value={bWho} onChange={(e) => setBWho(e.target.value)} aria-label="Member">
             {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
-          <label className="ts-row">Tell button: “Tell <input value={elder} maxLength={80} placeholder="a grown-up" onChange={(e) => setElder(e.target.value)} aria-label="Who they can tell" style={{ width: 150 }} />”</label>
-          <button className="ts-go" disabled={!bWho} onClick={() => act(() => api.sendBully(bWho, elder.trim()), `😠 The rude kid is on his way to ${members.find((m) => m.id === bWho)?.name ?? ""}`)}>Send him</button>
+          <button className="ts-go" disabled={!bWho} onClick={() => act(() => api.sendBully(bWho, ""), `😠 The rude kid is on his way to ${members.find((m) => m.id === bWho)?.name ?? ""}`)}>Send him</button>
           <button onClick={() => setBPreview(true)}>👁 Preview</button>
         </div>
         {bullies && bullies.length > 0 && (
@@ -245,8 +240,8 @@ export default function Tests() {
                 <div className="ts-head">
                   <Avatar avatar={t.member.avatar} color="#ffffff" size={36} />
                   <b>{t.member.name}</b>
-                  <span className={`ts-state ${t.answer === "kind" || t.answer === "tell" ? "no" : t.answer ? "yes" : "wait"}`}>
-                    {t.answer === "kind" ? "🤝 Replied kindly" : t.answer === "tell" ? `⚡ Told ${t.elder || "a grown-up"}` : t.answer === "mean" ? "😤 Was mean back" : t.answer === "gobi" ? `🥦 Launched a Mega Gobi (−${t.paid})` : "⏳ Waiting"}</span>
+                  <span className={`ts-state ${t.answer === "kind" || t.answer === "forgive" || t.answer === "tell" ? "no" : t.answer ? "yes" : "wait"}`}>
+                    {t.answer === "kind" ? "🤝 Replied kindly" : t.answer === "forgive" ? "🤲 Forgave and trusted in Allah" : t.answer === "tell" ? `⚡ Told ${t.elder || "a grown-up"}` : t.answer === "mean" ? "😤 Was mean back" : t.answer === "gobi" ? `🥦 Launched a Mega Gobi (−${t.paid})` : "⏳ Waiting"}</span>
                   <small className="note">{fmt(t.created_at.slice(0, 10), { day: "numeric", month: "short" })}</small>
                 </div>
                 {!t.answer && <div className="ts-row"><span className="ts-done">He appears the next time {t.member.name} opens the app.</span>
@@ -358,7 +353,7 @@ export default function Tests() {
       </div>
       {preview && <ShaytanScene name={name || "Preview"} offer={Math.max(1, Number(offer) || 50)} preview onDone={() => setPreview(false)} />}
       {kPreview && <KittenScene name={members.find((m) => m.id === kWho)?.name || "Preview"} balance={120} preview onDone={() => setKPreview(false)} />}
-      {bPreview && <BullyScene name={members.find((m) => m.id === bWho)?.name || "Preview"} balance={200} elder={elder} preview onDone={() => setBPreview(false)} />}
+      {bPreview && <BullyScene name={members.find((m) => m.id === bWho)?.name || "Preview"} balance={200} preview onDone={() => setBPreview(false)} />}
       {qPreview && <QuizScene name={members.find((m) => m.id === qWho)?.name || "Preview"} preview onDone={() => setQPreview(false)}
         quiz={{ id: "p", gems_each: Number(qGems) || 0, answers: cleanQs().map(() => -1), questions: cleanQs() }} />}
       {pPreview && <PigeonScene name={members.find((m) => m.id === pWho)?.name || "Preview"} sender={pFrom.trim() || "Admin"} gems={Number(pGems) || 0} message={pMsg} preview onDone={() => setPPreview(false)} />}

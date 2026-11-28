@@ -784,7 +784,7 @@ def _kind_replies(db: Session, member_id: str) -> int:
 
     from app.models import BullyTest
     return int(db.scalar(select(func.count()).select_from(BullyTest).where(BullyTest.member_id == member_id,
-                                                                           BullyTest.answer == "kind")) or 0)
+                                                                           BullyTest.answer.in_(("kind", "forgive")))) or 0)
 
 
 def _achievements(db: Session, m: Member, p: Progress) -> list[dict]:

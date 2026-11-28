@@ -12,6 +12,19 @@ import { api, type MusicInfo, type SoundKey } from "../api";
 let infos: Promise<Partial<Record<SoundKey, MusicInfo>>> | null = null;
 const buffers = new Map<SoundKey, Promise<AudioBuffer | null>>();
 const music = new Map<SoundKey, { src: AudioBufferSourceNode; gain: GainNode }>();
+/** Silence at the very start of each file (many recordings and MP3s begin with some), skipped so the sound is heard at once. */
+const lead = new WeakMap<AudioBuffer, number>();
+function leadingSilence(b: AudioBuffer): number {
+  const limit = Math.min(b.length, Math.floor(b.sampleRate * 3)); // look at the first 3 seconds at most
+  let first = limit;
+  for (let ch = 0; ch < b.numberOfChannels; ch++) {
+    const d = b.getChannelData(ch);
+    for (let i = 0; i < Math.min(first, limit); i++) if (Math.abs(d[i]) > 0.02) { first = i; break; }
+  }
+  if (first >= limit) return 0; // quiet all the way (a soft sound): leave it alone
+  return Math.max(0, first / b.sampleRate - 0.01);
+}
+function withLead(b: AudioBuffer): AudioBuffer { if (!lead.has(b)) lead.set(b, leadingSilence(b)); return b; }
 let ctx: AudioContext | null = null;
 
 function audio(): AudioContext | null {
@@ -50,7 +63,7 @@ async function load(key: SoundKey): Promise<AudioBuffer | null> {
   const url = await api.musicUrl(key, (await allInfo())[key]?.updated ?? undefined);
   const bytes = await (await fetch(url)).arrayBuffer();
   URL.revokeObjectURL(url);
-  return await new Promise<AudioBuffer>((ok, bad) => { c.decodeAudioData(bytes, ok, bad); });
+  return withLead(await new Promise<AudioBuffer>((ok, bad) => { c.decodeAudioData(bytes, ok, bad); }));
 }
 
 /** Download and decode a sound now so it plays on time. Resolves to its settings, or null if it isn't set. */
@@ -90,6 +103,7 @@ export function seedSound(key: SoundKey, file: Blob) {
   if (!c) { buffers.delete(key); return; }
   buffers.set(key, file.arrayBuffer()
     .then((bytes) => new Promise<AudioBuffer>((ok, bad) => { c.decodeAudioData(bytes, ok, bad); }))
+    .then(withLead)
     .catch(() => { buffers.delete(key); return null; }));
 }
 
@@ -118,7 +132,9 @@ function start(m: { buffer: AudioBuffer; info: MusicInfo }, volume: number, late
   gain.gain.value = volume;
   src.connect(gain).connect(c.destination);
   // Started late (the file was still loading)? Skip ahead so it stays in time with the animation.
-  const from = Math.max(0, Math.min((m.info.start || 0) + Math.max(0, late), m.buffer.duration));
+  // With no start point chosen, skip the silence at the start of the file.
+  const begin = m.info.start ? m.info.start : (lead.get(m.buffer) ?? 0);
+  const from = Math.max(0, Math.min(begin + Math.max(0, late), m.buffer.duration));
   const len = m.info.end > m.info.start ? Math.min(m.info.end, m.buffer.duration) - from : undefined;
   if (len !== undefined && len <= 0.05) return null;
   try { len !== undefined ? src.start(0, from, Math.max(0, len)) : src.start(0, from); } catch { return null; }
