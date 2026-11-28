@@ -77,26 +77,28 @@ export interface GemRewardProps {
   onDone: () => void;
 }
 
-/** Where each gem lands: a rounded mound, wide at the bottom, packed and overlapping, a little uneven.
- * % of the heap box (x centre, y centre). Bottom rows land first; within a row the order is mixed. */
-function heapSpots(n: number) {
-  const rows: number[] = [];
-  const grow = [1, 2, 3, 3, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9];
-  for (let k = 0; rows.reduce((a, b) => a + b, 0) < n; k++) rows.unshift(grow[Math.min(k, grow.length - 1)]);
-  const widest = rows[0];
-  const size = Math.max(15, Math.min(30, 104 / (widest * 0.74 + 0.4)));
-  const out: { x: number; y: number; r: number; tone: "blue" | "sky" | "deep"; order: number }[] = [];
-  let left = n, order = 0;
-  rows.forEach((count, row) => {
-    const idx = Array.from({ length: count }, (_, i) => i).sort((p, q) => ((p * 7 + row * 3) % 5) - ((q * 7 + row * 3) % 5));
-    for (const i of idx) {
-      if (left-- <= 0) break;
-      const jx = (((row * 7 + i * 13) % 7) - 3) * 0.9, jy = (((row * 5 + i * 11) % 5) - 2) * 0.9;
-      out.push({ x: 50 + (i - (count - 1) / 2) * size * 0.74 + jx, y: 86 - row * size * 0.5 + jy, r: ((i * 37 + row * 23) % 50) - 25,
-        tone: (["blue", "sky", "deep"] as const)[(i * 2 + row) % 3], order: order++ });
+/** Where each gem lands: a full, rounded mound like a real pile, wide at the bottom with a little peak, gems overlapping
+ * so no gaps show. Filled on a tight, jittered grid under the mound's outline. % of the heap box (centre x, centre y).
+ * Bottom gems land first. */
+function heapSpots(_n: number) {
+  const size = 20; // gem width, % of the box
+  const base = 90, H = 74, W = 48; // floor line, pile height, half-width (in %)
+  const top = (x: number) => base - H * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(x) / W, 1.7)), 0.85);
+  const rnd = (k: number) => { const v = Math.sin(k * 12.9898) * 43758.5453; return v - Math.floor(v); };
+  const pts: { x: number; y: number; r: number; tone: "blue" | "sky" | "deep"; order: number }[] = [];
+  const dx = size * 0.56, dy = size * 0.5;
+  let k = 0;
+  for (let row = 0, y = base - 2; y > base - H - 6; row++, y -= dy) {
+    for (let x = -W + (row % 2 ? dx / 2 : 0); x <= W; x += dx, k++) {
+      const jx = (rnd(k) - 0.5) * dx * 0.5, jy = (rnd(k + 99) - 0.5) * dy * 0.5;
+      const px = x + jx, py = y + jy;
+      if (py < top(px) + size * 0.2) continue; // stay inside the mound
+      pts.push({ x: 50 + px, y: py, r: Math.round((rnd(k + 7) - 0.5) * 60), tone: (["blue", "sky", "deep"] as const)[Math.floor(rnd(k + 3) * 3)], order: 0 });
     }
-  });
-  return { spots: out, size };
+  }
+  pts.push({ x: 52, y: base - H - 3, r: 12, tone: "sky", order: 0 }, { x: 46, y: base - H + 4, r: -16, tone: "blue", order: 0 }); // the little peak
+  pts.sort((p, q) => q.y - p.y || p.x - q.x).forEach((p, i) => { p.order = i; });
+  return { spots: pts, size };
 }
 
 export default function GemReward({ amount, title, from, chest = false, gold = false, sound, onDone }: GemRewardProps) {
@@ -113,8 +115,8 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
   const canvas = useRef<HTMLCanvasElement>(null);
   const engine = useRef<Particles | null>(null);
   const colors = gold ? ["#fff6c8", "#ffd24a", "#ffffff"] : SPARK;
-  const n = Math.max(14, Math.min(70, Math.round(amount)));
-  const { spots, size } = useMemo(() => heapSpots(n), [n]);
+  const { spots, size } = useMemo(() => heapSpots(0), []);
+  const n = spots.length;
   const STEP = 7; // ms between gems: they drop together as one big clump, the lowest landing first
   const rainMs = 200 + n * STEP + 1000;
 
@@ -210,19 +212,22 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
             </svg>
           </div>}
           {heap && <svg className={`gx-rim${cracked ? " on" : ""}`} viewBox="0 0 280 54" aria-hidden="true">
-              <path d="M-21.9 29.1 L-20.7 9.6 L-29.9 -3.9 L30.1 30.1 Z" />
-              <path d="M-11.9 34.3 L-9.2 19.2 L-13.6 9.3 L24.1 35.3 Z" />
-              <path d="M0.7 40.6 L7.4 23.3 L7.7 11.6 L32.7 41.6 Z" />
-              <path d="M24.9 46.7 L32.5 32.7 L34.5 23.7 L52.9 47.7 Z" />
-              <path d="M57.0 51.7 L66.5 35.5 L70.0 24.7 L87.0 52.7 Z" />
-              <path d="M98.7 54.5 L107.5 41.6 L111.1 33.5 L124.7 55.5 Z" />
-              <path d="M130.7 55.0 L140.6 39.9 L144.9 30.0 L158.7 56.0 Z" />
-              <path d="M169.0 53.8 L178.7 40.3 L183.3 31.8 L195.0 54.8 Z" />
-              <path d="M200.1 50.7 L212.9 34.0 L219.4 22.7 L232.1 51.7 Z" />
-              <path d="M230.2 46.1 L243.8 31.5 L251.8 22.1 L258.2 47.1 Z" />
-              <path d="M247.2 40.2 L268.3 24.0 L282.5 13.2 L281.2 41.2 Z" />
-              <path d="M256.7 33.5 L284.1 18.4 L304.4 8.5 L292.7 34.5 Z" />
-              <path d="M249.7 28.3 L285.8 8.8 L311.6 -4.7 L301.7 29.3 Z" />
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M14.7 24.7 L-4.8 8.2 L-21.6 -14.4 L35.5 14.7 Z" /><path className="gx-plate" d="M14.7 24.7 L-4.8 8.2 L-21.6 -14.4 L35.5 14.7 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M15.6 30.4 L-7.8 21.6 L-37.6 7.7 L19.5 20.6 Z" /><path className="gx-plate" d="M15.6 30.4 L-7.8 21.6 L-37.6 7.7 L19.5 20.6 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M24.0 35.6 L9.1 32.2 L-16.5 25.1 L14.0 27.4 Z" /><path className="gx-plate" d="M24.0 35.6 L9.1 32.2 L-16.5 25.1 L14.0 27.4 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M40.7 40.5 L30.4 40.3 L5.8 37.4 L20.2 33.8 Z" /><path className="gx-plate" d="M40.7 40.5 L30.4 40.3 L5.8 37.4 L20.2 33.8 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M64.2 44.6 L57.0 46.0 L33.5 45.9 L36.8 39.6 Z" /><path className="gx-plate" d="M64.2 44.6 L57.0 46.0 L33.5 45.9 L36.8 39.6 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M94.8 47.5 L90.3 50.4 L67.0 52.7 L60.7 44.1 Z" /><path className="gx-plate" d="M94.8 47.5 L90.3 50.4 L67.0 52.7 L60.7 44.1 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M126.8 48.9 L124.9 51.8 L105.2 55.1 L92.8 47.4 Z" /><path className="gx-plate" d="M126.8 48.9 L124.9 51.8 L105.2 55.1 L92.8 47.4 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M157.5 48.8 L157.5 52.8 L140.0 58.0 L122.5 48.8 Z" /><path className="gx-plate" d="M157.5 48.8 L157.5 52.8 L140.0 58.0 L122.5 48.8 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M187.2 47.4 L189.2 50.3 L174.8 55.1 L153.2 48.9 Z" /><path className="gx-plate" d="M187.2 47.4 L189.2 50.3 L174.8 55.1 L153.2 48.9 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M219.3 44.1 L224.2 46.4 L214.0 51.6 L185.2 47.5 Z" /><path className="gx-plate" d="M219.3 44.1 L224.2 46.4 L214.0 51.6 L185.2 47.5 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M244.5 39.3 L252.9 40.4 L249.3 45.3 L214.1 44.8 Z" /><path className="gx-plate" d="M244.5 39.3 L252.9 40.4 L249.3 45.3 L214.1 44.8 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M260.5 33.4 L274.0 32.0 L281.3 35.3 L237.9 40.8 Z" /><path className="gx-plate" d="M260.5 33.4 L274.0 32.0 L281.3 35.3 L237.9 40.8 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M266.0 26.6 L288.9 21.0 L314.1 21.0 L254.2 36.3 Z" /><path className="gx-plate" d="M266.0 26.6 L288.9 21.0 L314.1 21.0 L254.2 36.3 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M259.8 20.2 L280.5 6.5 L311.6 -2.1 L264.1 30.8 Z" /><path className="gx-plate" d="M259.8 20.2 L280.5 6.5 L311.6 -2.1 L264.1 30.8 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M24.9 18.1 L13.7 4.3 L10.7 -13.7 L49.4 11.7 Z" /><path className="gx-plate" d="M24.9 18.1 L13.7 4.3 L10.7 -13.7 L49.4 11.7 Z" /></g>
+              <g><path className="gx-plate-side" transform="translate(0 5)" d="M251.3 16.7 L264.1 4.6 L288.4 -4.4 L264.8 23.9 Z" /><path className="gx-plate" d="M251.3 16.7 L264.1 4.6 L288.4 -4.4 L264.8 23.9 Z" /></g>
             </svg>}
           {heap && (
             <div className={`gx-heap${cracked ? " sunk" : ""}`} ref={heapRef} style={fly ? { ["--dx" as string]: `${fly.dx}px`, ["--dy" as string]: `${fly.dy}px` } : undefined}>
