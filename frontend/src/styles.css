@@ -3919,3 +3919,16 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .gx-collect:active { transform: translateY(3px); box-shadow: 0 2px 0 #8a6400; }
 .gx-collect.wait { opacity: 0; transform: translateY(10px); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .gx *, .gx { animation: none !important; transition: none !important; } .gx-big { opacity: 1; transform: none; } }
+
+/* Flat chest (fc-) for gem rewards */
+.gx .fc { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; overflow: visible; }
+.gx .fc-closed { animation: gx-in .5s cubic-bezier(.2, .9, .3, 1.2) both, gx-breathe 2.4s .6s ease-in-out infinite; transform-origin: 50% 92%; }
+.gx-open .fc { animation: gx-wiggle .36s ease-in-out 1; transform-origin: 50% 92%; }
+.fc .fc-back { opacity: 0; transform-box: view-box; transform-origin: 110px 108px; transform: scaleY(.2); transition: opacity .25s .3s, transform .45s .3s cubic-bezier(.2, 1.4, .4, 1); }
+.fc .fc-lid { transform-box: view-box; transform-origin: 110px 108px; transition: opacity .2s .3s, transform .35s .3s ease-in; }
+.fc-open .fc-back { opacity: 1; transform: none; }
+.fc-open .fc-lid { opacity: 0; transform: translateY(-30px) scaleY(.6); }
+.fc-open .fc-gems { animation: fc-gems .5s .55s cubic-bezier(.2, 1.4, .4, 1) both; transform-box: view-box; transform-origin: 110px 112px; }
+@keyframes fc-gems { from { transform: translateY(18px) scale(.8); } }
+.fc .fc-spark { transform-box: fill-box; transform-origin: center; animation: gem-glint 2.4s ease-in-out infinite; }
+.gx-chest-btn:hover .fc-closed { filter: brightness(1.06); }

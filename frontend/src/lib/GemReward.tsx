@@ -14,49 +14,53 @@ import type { SoundKey } from "../api";
 
 const SPARK = ["#ffffff", "#bfe9ff", "#7fd0ff", "#ffe9a8"];
 
-/** A treasure chest: wood planks, gold bands and rivets, an ornate lock with a gem. View box 0 0 220 200. */
-function Chest({ state, jewel = "#e3214a" }: { state: "closed" | "open"; jewel?: string }) {
+const Y = "#f6c544", Y2 = "#fbd863", YD = "#e2a636", W1 = "#a5603a", W2 = "#8a4e2e", W3 = "#6e3c22";
+
+/** A flat, friendly treasure chest: wooden box, yellow corner plates with stripes, a keyhole lock.
+ * Closed: the lid on top with a handle. Open: the lid stands up behind, and blue gems fill the box. View box 0 0 220 200. */
+function Chest({ state }: { state: "closed" | "open"; jewel?: string }) {
+  const plate = (x: number, y: number, h: number, key: string) => (
+    <g key={key}>
+      <rect x={x} y={y} width="36" height={h} rx="6" fill={Y} />
+      <clipPath id={`fc-${key}`}><rect x={x} y={y} width="36" height={h} rx="6" /></clipPath>
+      <g clipPath={`url(#fc-${key})`} opacity=".55">
+        {[-40, -10, 20, 50, 80].map((o) => <path key={o} d={`M${x + o} ${y + h} L${x + o + 60} ${y + h - 60}`} stroke={Y2} strokeWidth="9" />)}
+      </g>
+      <circle cx={x + 11} cy={y + 12} r="4" fill={YD} /><circle cx={x + 11} cy={y + h - 12} r="4" fill={YD} />
+    </g>
+  );
   return (
-    <svg className={`tc tc-${state}`} viewBox="0 0 220 200" aria-hidden="true">
-      <defs>
-        <linearGradient id="tc-wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#a0522d" /><stop offset=".55" stopColor="#7a3b16" /><stop offset="1" stopColor="#4e220a" /></linearGradient>
-        <linearGradient id="tc-wood-lid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#b8642f" /><stop offset="1" stopColor="#7a3b16" /></linearGradient>
-        <linearGradient id="tc-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff6c0" /><stop offset=".35" stopColor="#ffd34a" /><stop offset=".7" stopColor="#d99a10" /><stop offset="1" stopColor="#8a5a00" /></linearGradient>
-        <linearGradient id="tc-gold-v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff2a8" /><stop offset=".5" stopColor="#f0b820" /><stop offset="1" stopColor="#9a6400" /></linearGradient>
-        <radialGradient id="tc-glow"><stop offset="0" stopColor="#ffffff" /><stop offset=".35" stopColor="#bfeaff" /><stop offset="1" stopColor="#4ab8ff" stopOpacity="0" /></radialGradient>
-        <linearGradient id="tc-beam" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#ffffff" stopOpacity=".95" /><stop offset="1" stopColor="#9fdcff" stopOpacity="0" /></linearGradient>
-      </defs>
-      <ellipse cx="110" cy="186" rx="88" ry="10" fill="#000" opacity=".35" />
-      <g className="tc-beams">
-        {[-58, -34, -12, 12, 34, 58].map((a) => <path key={a} d="M104 104 L116 104 L132 -40 L88 -40 Z" fill="url(#tc-beam)" transform={`rotate(${a} 110 104)`} />)}
-        <ellipse cx="110" cy="100" rx="78" ry="30" fill="url(#tc-glow)" />
+    <svg className={`fc fc-${state}`} viewBox="0 0 220 200" aria-hidden="true">
+      <rect x="22" y="182" width="176" height="12" rx="6" fill="#000" opacity=".3" />
+      {/* open: the lid standing up behind, gems heaped inside */}
+      <g className="fc-back">
+        <rect x="42" y="40" width="136" height="70" rx="16" fill={W1} />
+        <rect x="52" y="50" width="116" height="60" rx="8" fill={W3} />
+        <rect x="42" y="30" width="136" height="14" rx="7" fill={Y} />
+        <rect x="98" y="18" width="24" height="16" rx="5" fill={Y} />
+        <g className="fc-gems">
+          <path d="M62 112 L72 82 Q76 74 84 76 L108 86 Q114 90 110 98 L100 118 Z" fill="#4fa6ec" />
+          <path d="M98 112 L104 74 Q106 66 114 66 L138 70 Q146 72 144 80 L136 112 Z" fill="#5aaef0" />
+          <path d="M130 114 L140 86 Q144 78 152 80 L164 86 Q170 90 166 98 L158 118 Z" fill="#4a9ae8" />
+          <path d="M78 90 L90 88 L84 100 Z" fill="#cfeeff" /><path d="M116 76 L128 76 L120 88 Z" fill="#cfeeff" /><path d="M146 90 L156 92 L148 100 Z" fill="#cfeeff" />
+        </g>
       </g>
-      <path className="tc-mouth" d="M34 104 Q110 84 186 104 L186 110 Q110 92 34 110 Z" fill="#2a1204" />
-      <g className="tc-body">
-        <path d="M30 104 H190 V168 Q190 178 180 178 H40 Q30 178 30 168 Z" fill="url(#tc-wood)" stroke="#3a1804" strokeWidth="2" />
-        <path d="M32 128 H188 M32 152 H188" stroke="#3a1804" strokeWidth="2" opacity=".7" />
-        <path d="M50 114 q20 3 40 0 M120 138 q22 3 44 0 M56 162 q18 -3 36 0 M130 116 q16 3 30 0" stroke="#d98a50" strokeWidth="1.4" fill="none" opacity=".45" />
-        {[34, 172].map((x) => <rect key={x} x={x} y="104" width="14" height="74" rx="3" fill="url(#tc-gold-v)" stroke="#7a4a00" strokeWidth="1.2" />)}
-        {[78, 128].map((x) => <rect key={x} x={x} y="104" width="14" height="74" fill="url(#tc-gold-v)" stroke="#7a4a00" strokeWidth="1.2" />)}
-        <rect x="30" y="170" width="160" height="8" rx="3" fill="url(#tc-gold)" stroke="#7a4a00" strokeWidth="1" />
-        {[[41, 116], [41, 164], [179, 116], [179, 164], [85, 140], [135, 140]].map(([x, y]) => <circle key={`${x}${y}`} cx={x} cy={y} r="2.6" fill="#fff6c0" stroke="#8a5a00" strokeWidth=".8" />)}
+      {/* the box */}
+      <rect x="42" y="104" width="136" height="80" rx="4" fill={W1} />
+      <path d="M44 132 H176 M44 158 H176" stroke={W3} strokeWidth="6" opacity=".55" />
+      {plate(30, 100, 86, "l")}{plate(154, 100, 86, "r")}
+      {/* closed: the lid */}
+      <g className="fc-lid">
+        <path d="M34 108 V78 Q34 56 56 56 H164 Q186 56 186 78 V108 Z" fill={W1} />
+        <path d="M44 82 H176" stroke={W2} strokeWidth="5" opacity=".7" />
+        <rect x="30" y="98" width="160" height="12" rx="6" fill={Y} />
+        <rect x="98" y="46" width="24" height="14" rx="5" fill={Y} />
       </g>
-      <rect className="tc-seam" x="34" y="100" width="152" height="6" rx="3" fill="#e6f8ff" />
-      <g className="tc-lid">
-        <path d="M28 104 V80 Q110 30 192 80 V104 Z" fill="url(#tc-wood-lid)" stroke="#3a1804" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M30 88 Q110 44 190 88" stroke="#3a1804" strokeWidth="1.6" fill="none" opacity=".6" />
-        <path d="M40 76 Q75 56 108 52" stroke="#e8a070" strokeWidth="2" fill="none" opacity=".5" strokeLinecap="round" />
-        <path d="M34 104 V80 Q37 77 48 71 V104 Z M172 71 Q183 77 186 80 V104 H172 Z" fill="url(#tc-gold-v)" stroke="#7a4a00" strokeWidth="1.2" />
-        <path d="M78 104 V58 Q84 55 92 53 V104 Z M128 53 Q136 55 142 58 V104 H128 Z" fill="url(#tc-gold-v)" stroke="#7a4a00" strokeWidth="1.2" />
-        <path d="M26 104 H194 V98 Q110 92 26 98 Z" fill="url(#tc-gold)" stroke="#7a4a00" strokeWidth="1.2" />
-        {[[41, 86], [179, 86], [85, 66], [135, 66]].map(([x, y]) => <circle key={`${x}${y}`} cx={x} cy={y} r="2.4" fill="#fff6c0" stroke="#8a5a00" strokeWidth=".8" />)}
-      </g>
-      <g className="tc-lock">
-        <path d="M94 88 H126 L130 100 V120 Q110 136 90 120 V100 Z" fill="url(#tc-gold)" stroke="#7a4a00" strokeWidth="1.6" strokeLinejoin="round" />
-        <path d="M97 92 H123 L126 101 V118 Q110 130 94 118 V101 Z" fill="none" stroke="#fff6c0" strokeWidth="1" opacity=".7" />
-        <circle cx="110" cy="99" r="6" fill={jewel} stroke="#fff" strokeWidth="1.4" />
-        <circle cx="108" cy="97" r="1.8" fill="#fff" opacity=".85" />
-        <circle cx="110" cy="112" r="3.4" fill="#3a1804" /><path d="M108.6 113 L110 121 L111.4 113 Z" fill="#3a1804" />
+      {/* the lock */}
+      <g className="fc-lock">
+        <rect x="90" y="96" width="40" height="44" rx="8" fill={Y} />
+        <circle cx="110" cy="113" r="7" fill={YD} /><path d="M106 116 L114 116 L116 130 L104 130 Z" fill={YD} />
+        <path className="fc-spark" d="M124 128 L125.2 131 L128 132 L125.2 133 L124 136 L122.8 133 L120 132 L122.8 131 Z" fill="#fff" />
       </g>
     </svg>
   );
