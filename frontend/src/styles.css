@@ -3948,8 +3948,8 @@ nav.tabs .who .help-btn { font-weight: 700; }
   transition: opacity .2s, transform .35s cubic-bezier(.2, 1.4, .4, 1); }
 .gx-gold .gx-cracks { fill: #b98a3a; }
 .gx-floor.cracked .gx-cracks { opacity: 1; transform: none; }
-.gx-heap { position: absolute; left: 50%; bottom: 36px; width: 250px; height: 230px; translate: -50% 0; transition: transform .35s cubic-bezier(.3, 1.4, .5, 1); }
-.gx-heap.sunk { transform: translateY(10px) scaleY(.97); }
+.gx-heap { position: absolute; left: 50%; bottom: 36px; width: 250px; height: 230px; translate: -50% 0; clip-path: inset(-600px -300px -4px -300px); transition: transform .55s cubic-bezier(.5, 0, .4, 1.15), clip-path .55s cubic-bezier(.5, 0, .4, 1.15); }
+.gx-heap.sunk { transform: translateY(34px); clip-path: inset(-600px -300px 30px -300px); } /* it breaks through the floor: the bottom of the pile sinks into the hole */
 .gx-hg { position: absolute; display: block; transform: translate(-50%, -50%) rotate(var(--r)); animation: gx-fall .85s both; }
 .gx-hg svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 2px 1px #0a3a7044); }
 /* poured from one stream above the middle: they fall faster and faster (gravity), spread out, land with a little bounce */
@@ -3965,8 +3965,8 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .gx-spill.l { left: 92px; } .gx-spill.r { right: 92px; }
 .gx-spill.go { animation: gx-spill-l .9s .12s cubic-bezier(.3, .1, .4, 1) forwards; }
 .gx-spill.r.go { animation-name: gx-spill-r; }
-@keyframes gx-spill-l { 0% { opacity: 1; transform: translate(0, -30px) rotate(0); } 50% { transform: translate(-84px, 52px) rotate(-150deg); } 70% { transform: translate(-100px, 40px) rotate(-185deg); } 100% { opacity: 1; transform: translate(-112px, 58px) rotate(-200deg); } }
-@keyframes gx-spill-r { 0% { opacity: 1; transform: translate(0, -30px) rotate(0); } 50% { transform: translate(84px, 52px) rotate(150deg); } 70% { transform: translate(100px, 40px) rotate(185deg); } 100% { opacity: 1; transform: translate(112px, 58px) rotate(200deg); } }
+@keyframes gx-spill-l { 0% { opacity: 1; transform: translate(0, -30px) rotate(0); } 50% { transform: translate(-92px, 66px) rotate(-150deg); } 70% { transform: translate(-110px, 56px) rotate(-185deg); } 100% { opacity: 1; transform: translate(-124px, 74px) rotate(-200deg); } }
+@keyframes gx-spill-r { 0% { opacity: 1; transform: translate(0, -30px) rotate(0); } 50% { transform: translate(92px, 66px) rotate(150deg); } 70% { transform: translate(110px, 56px) rotate(185deg); } 100% { opacity: 1; transform: translate(124px, 74px) rotate(200deg); } }
 .gx-amount { opacity: 0; transform: translateY(8px); transition: opacity .35s, transform .35s; min-height: 48px; font-size: 40px; color: #56c2ff; text-shadow: none; }
 .gx-amount.on, .gx-ready .gx-amount { opacity: 1; transform: none; }
 .gx-gold .gx-amount { color: #4a2c00; }
@@ -3982,3 +3982,12 @@ nav.tabs .who .help-btn { font-weight: 700; }
 .gx:not(.gx-gold) .gx-floor { background: #3d4752; }
 .gx:not(.gx-gold) .gx-floor.cracked { background: #2a323b; }
 .gx-hg svg { filter: none !important; }
+
+/* the broken floor: a dark hole, grey shards standing up around the front of the pile */
+.gx-floor.cracked { background: #0d1116 !important; box-shadow: inset 0 6px 14px #000a; }
+.gx-rim { position: absolute; left: calc(50% - 165px); bottom: 18px; width: 330px; height: 64px; overflow: visible; z-index: 120; fill: #7f8b98; pointer-events: none;
+  opacity: 0; transform: translateY(8px) scaleY(.3); transform-origin: 50% 100%; transition: opacity .15s .25s, transform .4s .25s cubic-bezier(.2, 1.6, .4, 1); }
+.gx-rim path:nth-child(odd) { fill: #66727f; }
+.gx-rim.on { opacity: 1; transform: none; }
+.gx-gold .gx-rim { fill: #b98a3a; }
+.gx-crack.gx-floor, .gx-floor.cracked { animation: gx-thud .45s ease-out; }

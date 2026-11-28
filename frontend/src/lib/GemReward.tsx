@@ -209,6 +209,21 @@ export default function GemReward({ amount, title, from, chest = false, gold = f
               <path d="M116 72 L104 92 L134 78 Z" /><path d="M184 72 L200 92 L168 78 Z" /><path d="M150 76 L140 96 L162 96 Z" />
             </svg>
           </div>}
+          {heap && <svg className={`gx-rim${cracked ? " on" : ""}`} viewBox="0 0 280 54" aria-hidden="true">
+              <path d="M-21.9 29.1 L-20.7 9.6 L-29.9 -3.9 L30.1 30.1 Z" />
+              <path d="M-11.9 34.3 L-9.2 19.2 L-13.6 9.3 L24.1 35.3 Z" />
+              <path d="M0.7 40.6 L7.4 23.3 L7.7 11.6 L32.7 41.6 Z" />
+              <path d="M24.9 46.7 L32.5 32.7 L34.5 23.7 L52.9 47.7 Z" />
+              <path d="M57.0 51.7 L66.5 35.5 L70.0 24.7 L87.0 52.7 Z" />
+              <path d="M98.7 54.5 L107.5 41.6 L111.1 33.5 L124.7 55.5 Z" />
+              <path d="M130.7 55.0 L140.6 39.9 L144.9 30.0 L158.7 56.0 Z" />
+              <path d="M169.0 53.8 L178.7 40.3 L183.3 31.8 L195.0 54.8 Z" />
+              <path d="M200.1 50.7 L212.9 34.0 L219.4 22.7 L232.1 51.7 Z" />
+              <path d="M230.2 46.1 L243.8 31.5 L251.8 22.1 L258.2 47.1 Z" />
+              <path d="M247.2 40.2 L268.3 24.0 L282.5 13.2 L281.2 41.2 Z" />
+              <path d="M256.7 33.5 L284.1 18.4 L304.4 8.5 L292.7 34.5 Z" />
+              <path d="M249.7 28.3 L285.8 8.8 L311.6 -4.7 L301.7 29.3 Z" />
+            </svg>}
           {heap && (
             <div className={`gx-heap${cracked ? " sunk" : ""}`} ref={heapRef} style={fly ? { ["--dx" as string]: `${fly.dx}px`, ["--dy" as string]: `${fly.dy}px` } : undefined}>
               {spots.map((g, i) => (
